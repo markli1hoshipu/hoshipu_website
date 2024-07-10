@@ -92,6 +92,12 @@ class Client_atg:
         # 获得各部分信息
         user_input = self.ui.plaintext_maininput.toPlainText()
         lines = user_input.splitlines()
+        for i in range(len(lines)):
+            lines[i] = lines[i].strip()
+            if lines[i] == '':
+                lines = lines[:i]
+                break
+
         # if len(user_input.splitlines()) <= 2 暂时不处理，考虑到也许要生成空记录
         if len(lines) <= 1:
             QMessageBox.critical(self.ui, "错误", '请输入有效预定')
@@ -113,12 +119,12 @@ class Client_atg:
             flighttype = 1
 
         # 先得到开头结尾
-        head,tail = cah.generate_output_headtail(phone,company,airline,idtype,flighttype,remark,user_input,self.data)
+        head,tail = cah.generate_output_headtail(phone,company,airline,idtype,flighttype,remark,lines,self.data)
         re = head
 
         # 处理中间部分
         rank = 1
-        for name in user_input.splitlines()[2:]:
+        for name in lines[2:]:
             return_remind,fre = cah.generate_output_name(name,rank,company,airline,idtype,flighttype,self.data)
             if return_remind == 1:
                 # 一切正常
@@ -134,7 +140,7 @@ class Client_atg:
                 for option in options:
                     message_box.addButton(str(ct), QMessageBox.AcceptRole)
                     ct += 1
-                choice = message_box.exec_()
+                choice = message_box.exec_() - 2
                 if choice != QMessageBox.Cancel:
                     re += options[choice-1]
 
@@ -147,8 +153,9 @@ class Client_atg:
                     message_box.setText(f"{name}没有找到信息，，是否继续生成?")
                     message_box.addButton('跳过,继续生成其他', QMessageBox.AcceptRole)
                     message_box.addButton('否，终止生成', QMessageBox.AcceptRole)
-                    choice = message_box.exec_()
+                    choice = message_box.exec() - 2
                     if choice == 0:
+                        rank += 1
                         continue
                     else:
                         return
@@ -160,10 +167,12 @@ class Client_atg:
                     message_box.addButton('是,使用当前信息', QMessageBox.AcceptRole)
                     message_box.addButton('跳过,继续生成其他', QMessageBox.AcceptRole)
                     message_box.addButton('否，终止生成', QMessageBox.AcceptRole)
-                    choice = message_box.exec_()
+                    choice = message_box.exec_() - 2
+                    print(choice)
                     if choice == 0:
                         re += similars[0]
-                    elif choice ==1:
+                    elif choice == 1:
+                        rank += 1
                         continue
                     else:
                         return
@@ -182,10 +191,11 @@ class Client_atg:
                         ct += 1
                     message_box.addButton('跳过,继续生成其他', QMessageBox.AcceptRole)
                     message_box.addButton('否，终止生成', QMessageBox.AcceptRole)
-                    choice = message_box.exec_()
+                    choice = message_box.exec_() - 2
                     if choice < ct:
                         re += options[choice-1]
                     elif choice == ct:
+                        rank += 1
                         continue
                     else:
                         return
@@ -238,3 +248,7 @@ if __name__ == "__main__":
     app.exec() # PySide6 是 exec 而不是 exec_
     # pyinstaller --onefile --windowed --icon=client_atg.ico client_atg.py
     # pyinstaller --onefile --windowed --icon=C:\Users\mark_hoshipu\Desktop\my_coding\yif_2024\client_atg程序打包\client_atg.ico C:\Users\mark_hoshipu\Desktop\my_coding\yif_2024\client_atg程序打包\client_atg.py
+
+
+
+

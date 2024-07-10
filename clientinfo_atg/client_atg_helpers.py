@@ -279,8 +279,8 @@ def update_data(filename='client_atg.txt', dataname='client_atg_data.xlsx'):
    
 # 在生成部分 考虑到要让用户选择重名问题 把生成函数分为两个：一主一次
 
-def generate_output_headtail(user_phone,company,airline,id_type,flighttype,remark,user_input,data_dict):
-    lines = user_input.splitlines()
+def generate_output_headtail(user_phone,company,airline,id_type,flighttype,remark,lines,data_dict):
+
     names = lines[2:]
     input_names = ''
     for n in names:
@@ -305,7 +305,7 @@ def generate_output_headtail(user_phone,company,airline,id_type,flighttype,remar
     tail += '\n以下为查询价格指令:\n\n'
     if company in data_dict['companies']:
         if airline in data_dict['settings']['companydata'][company]['discount_code']:
-            tail += f'PAT:A{data_dict['settings']['companydata'][company]['discount_code'][airline]}\n\n'
+            tail += f'PAT:A{data_dict['settings']['companydata'][company]['discount_code'][airline]}n\n'
         else:
             tail +='PAT:A\n\n'
     else:
@@ -337,7 +337,7 @@ def generate_output_name(name,rank,company,airline,id_type,flighttype,data_dict)
                     # 这个情况比较奇怪，所有单独拿出来写
                     # 首先返回的必须是0,? 来表示首位索引没有
                     # 其次输入略有不同
-                    print(pcustomers)
+  
                     for customer in pcustomers: #customer 为[passport,phone,iphone,iemail,langugae]
                         re = ''
                         re += f'OSI {airline} CTCM{customer[1]}/P{rank}\n' #这个预留出来方便修改
@@ -364,7 +364,7 @@ def generate_output_name(name,rank,company,airline,id_type,flighttype,data_dict)
             if name in data_dict['iddata'][company]:
                 for cus in data_dict['iddata'][company][name]:
                     if cus[-1] != 'None' and cus[-1] in data_dict['passdata'][company]: # cus[-1] 为engname
-                        pcustomers.append(data_dict['passdata'][company][cus[-1]])
+                        pcustomers += (data_dict['passdata'][company][cus[-1]])
             if len(pcustomers) == 0:
                 return 0, fre
             for customer in pcustomers: #customer 为[passport,phone,iphone,iemail,langugae]
@@ -393,6 +393,8 @@ def generate_output_name(name,rank,company,airline,id_type,flighttype,data_dict)
         return 4, ['选择输出种类有问题！']
     except:
         return 4, ['选择输出种类有问题！']
+
+
 
 def format_lines(text):
     # 取消所有换行符
@@ -503,3 +505,4 @@ def upload_new_data(rt_input,sheetname,data_dict,dataname='client_atg_data.xlsx'
     except Exception as e:
         # 如果操作发生错误，返回错误信息
         return str(e)
+
