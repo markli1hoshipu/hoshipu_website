@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Authentication Debug Tool</h1>
+    
+    <div class="section">
+        <h2>1. Token Status</h2>
+        <div id="tokenStatus"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. User Information</h2>
+        <div id="userInfo"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. API Test</h2>
+        <button onclick="testTasksAPI()">Test Tasks API</button>
+        <div id="apiResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>4. Actions</h2>
+        <button onclick="clearAuth()">Clear Authentication</button>
+        <button onclick="refreshPage()">Refresh Page</button>
+    </div>
+
+    <script>
+        function checkTokenStatus() {
+            const tokenDiv = document.getElementById('tokenStatus');
+            const idToken = localStorage.getItem('id_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+            const authProvider = localStorage.getItem('auth_provider');
+            
+            if (!idToken) {
+                tokenDiv.innerHTML = '<div class="error">❌ No ID token found. Please log in.</div>';
+                return false;
+            }
+            
+            try {
+                // Decode JWT token
+                const payload = JSON.parse(atob(idToken.split('.')[1]));
+                const now = Date.now() / 1000;
+                const expired = now > payload.exp;
+                
+                const statusClass = expired ? 'error' : 'success';
+                const statusIcon = expired ? '❌' : '✅';
+                
+                tokenDiv.innerHTML = `
+                    <div class="${statusClass}">
+                        ${statusIcon} Token Status: ${expired ? 'EXPIRED' : 'VALID'}
+                    </div>
+                    <pre>Email: ${payload.email || 'Not found'}
+Expires: ${new Date(payload.exp * 1000).toLocaleString()}
+Current: ${new Date().toLocaleString()}
+Provider: ${authProvider || 'Not set'}
+Refresh Token: ${refreshToken ? 'Available' : 'Missing'}</pre>
+                `;
+                
+                return !expired;
+            } catch (e) {
+                tokenDiv.innerHTML = '<div class="error">❌ Invalid token format</div>';
+                return false;
+            }
+        }
+        
+        function checkUserInfo() {
+            const userDiv = document.getElementById('userInfo');
+            const idToken = localStorage.getItem('id_token');
+            
+            if (!idToken) {
+                userDiv.innerHTML = '<div class="error">❌ No token to extract user info</div>';
+                return;
+            }
+            
+            try {
+                const payload = JSON.parse(atob(idToken.split('.')[1]));
+                userDiv.innerHTML = `
+                    <div class="success">✅ User Information Found</div>
+                    <pre>ID: ${payload.sub || 'Not found'}
+Email: ${payload.email || 'Not found'}
+Name: ${payload.name || 'Not found'}
+Picture: ${payload.picture || 'Not found'}</pre>
+                `;
+            } catch (e) {
+                userDiv.innerHTML = '<div class="error">❌ Error extracting user info</div>';
+            }
+        }
+        
+        async function testTasksAPI() {
+            const resultDiv = document.getElementById('apiResult');
+            const idToken = localStorage.getItem('id_token');
+            
+            if (!idToken) {
+                resultDiv.innerHTML = '<div class="error">❌ No token for API test</div>';
+                return;
+            }
+            
+            try {
+                resultDiv.innerHTML = '<div class="warning">🔄 Testing API...</div>';
+                
+                const response = await fetch('http://localhost:8004/api/tasks', {
+                    headers: {
+                        'Authorization': `Bearer ${idToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const tasks = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ API Success! Found ${tasks.length} tasks</div>
+                        <pre>${JSON.stringify(tasks, null, 2)}</pre>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ API Error (${response.status})</div>
+                        <pre>${errorText}</pre>
+                    `;
+                }
+            } catch (e) {
+                resultDiv.innerHTML = `
+                    <div class="error">❌ Network Error</div>
+                    <pre>${e.message}</pre>
+                `;
+            }
+        }
+        
+        function clearAuth() {
+            localStorage.removeItem('id_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('auth_provider');
+            localStorage.removeItem('auth_service_name');
+            alert('Authentication cleared. Please refresh and log in again.');
+        }
+        
+        function refreshPage() {
+            window.location.reload();
+        }
+        
+        // Run checks on page load
+        window.onload = function() {
+            checkTokenStatus();
+            checkUserInfo();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+/* Theme Variables - Now managed by Color Template System */
+/* This file provides legacy support while the new system takes over */
+
+:root {
+  /* Font Sizes */
+  --font-size-small: 14px;
+  --font-size-medium: 16px;
+  --font-size-large: 18px;
+  
+  /* Legacy color mappings - will be overridden by color template system */
+  /* Background Colors */
+  --bg-primary: var(--color-background-primary, #ffffff);
+  --bg-secondary: var(--color-background-secondary, #f8fafc);
+  --bg-tertiary: var(--color-background-tertiary, #f1f5f9);
+  --bg-accent: var(--color-surface-secondary, #e2e8f0);
+  
+  /* Text Colors */
+  --text-primary: var(--color-text-primary, #0f172a);
+  --text-secondary: var(--color-text-secondary, #475569);
+  --text-tertiary: var(--color-text-tertiary, #64748b);
+  --text-accent: var(--color-text-secondary, #475569);
+  
+  /* Border Colors */
+  --border-color: var(--color-border-primary, #f1f5f9);
+  --border-color-hover: var(--color-border-secondary, #e2e8f0);
+  
+  /* Shadow Colors */
+  --shadow-sm: var(--color-shadow-sm, 0 1px 2px 0 rgb(0 0 0 / 0.05));
+  --shadow-md: var(--color-shadow-md, 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1));
+  --shadow-lg: var(--color-shadow-lg, 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1));
+  
+  /* Interactive Colors */
+  --primary-color: var(--color-primary-500, #3b82f6);
+  --primary-color-hover: var(--color-interactive-hover-primary, #2563eb);
+  --success-color: var(--color-status-success-500, #22c55e);
+  --warning-color: var(--color-status-warning-500, #f59e0b);
+  --error-color: var(--color-status-error-500, #ef4444);
+  --info-color: var(--color-status-info-500, #3b82f6);
+  
+  /* Component specific mappings */
+  --nav-bg: rgb(225, 239, 242);
+  --sidebar-bg: var(--color-background-secondary, #f8fafc);
+  --dashboard-bg: rgb(225, 239, 242);
+  --content-bg: var(--color-surface-primary, #ffffff);
+  --hover-bg: var(--color-surface-hover, #f1f5f9);
+  --active-bg: var(--color-surface-active, #e2e8f0);
+}
+
+/* Font Size Classes */
+.text-size-small {
+  font-size: var(--font-size-small);
+}
+
+.text-size-medium {
+  font-size: var(--font-size-medium);
+}
+
+.text-size-large {
+  font-size: var(--font-size-large);
+}
+
+/* Base Theme Classes */
+body {
+  background-color: var(--dashboard-bg);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dashboard and Layout Components */
+.dashboard-container {
+  background-color: var(--dashboard-bg) !important;
+  color: var(--text-primary) !important;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.navigation-bar {
+  background-color: var(--nav-bg) !important;
+  border: var(--border-color) !important;
+  box-shadow: none !important;
+}
+
+.sidebar-menu {
+  background-color: var(--sidebar-bg) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.main-content {
+  background-color: var(--content-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+.content-panel {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Card Styles */
+.card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Button Styles */
+.button {
+  background-color: var(--bg-accent);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.button:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-color-hover);
+}
+
+.button-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.button-primary:hover {
+  background-color: var(--primary-color-hover);
+}
+
+/* Input Styles */
+.input {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.input:focus {
+  border-color: var(--primary-color);
+}
+
+/* Text Colors */
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-tertiary {
+  color: var(--text-tertiary);
+}
+
+.text-accent {
+  color: var(--text-accent);
+}
+
+/* Border Colors */
+.border-color {
+  border-color: var(--border-color);
+}
+
+.border-color-hover:hover {
+  border-color: var(--border-color-hover);
+}
+
+/* Background Colors */
+.bg-primary {
+  background-color: var(--bg-primary);
+}
+
+.bg-secondary {
+  background-color: var(--bg-secondary);
+}
+
+.bg-tertiary {
+  background-color: var(--bg-tertiary);
+}
+
+.bg-accent {
+  background-color: var(--bg-accent);
+}
