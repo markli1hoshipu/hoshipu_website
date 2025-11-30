@@ -1,0 +1,206 @@
+/* src/styles/components.css */
+/* Component styles using the Color Template System */
+
+/* --- Card Styles --- */
+.card {
+  background-color: var(--color-surface-primary, #ffffff);
+  border-radius: var(--border-radius-md, 12px);
+  box-shadow: var(--color-shadow-sm, 0 1px 2px 0 rgb(0 0 0 / 0.05));
+  padding: var(--spacing-lg, 24px);
+  border: 1px solid var(--color-border-primary, #e2e8f0);
+  text-align: left;
+}
+
+/* --- Button Styles --- */
+/* Base button style inherited from global index.css */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm, 8px);
+
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  font-size: var(--font-size-base, 1rem);
+  line-height: var(--line-height-base, 1.5);
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+
+  /* Make buttons more rounded using a larger border radius variable */
+  border-radius: var(--border-radius-md, 8px); /* <-- Changed from --border-radius-sm */
+
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, opacity 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* Added box-shadow to transition */
+
+  /* Add a subtle box shadow for softness/depth */
+  box-shadow: var(--box-shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05)); /* <-- Added subtle shadow */
+}
+
+/* Button variants */
+.btn-default {
+  background-color: var(--color-surface-secondary, #f8fafc);
+  color: var(--color-text-primary, #0f172a);
+  border: 1px solid var(--color-border-primary, #e2e8f0);
+}
+.btn-default:hover {
+   border-color: var(--color-border-secondary, #cbd5e1);
+   background-color: var(--color-surface-hover, #f1f5f9);
+   box-shadow: var(--color-shadow-sm, 0 1px 2px 0 rgb(0 0 0 / 0.05)), var(--color-shadow-md, 0 4px 6px -1px rgb(0 0 0 / 0.1));
+}
+.btn-default:active {
+  background-color: var(--color-surface-active, #e2e8f0);
+  border-color: var(--color-border-secondary, #cbd5e1);
+  box-shadow: var(--color-shadow-sm, 0 1px 2px 0 rgb(0 0 0 / 0.05));
+}
+
+
+.btn-primary {
+  background-color: var(--color-primary-500, #3b82f6);
+  color: var(--color-text-inverse, #ffffff);
+  border: 1px solid var(--color-primary-500, #3b82f6);
+}
+.btn-primary:hover {
+  background-color: var(--color-interactive-hover-primary, #2563eb);
+  border-color: var(--color-interactive-hover-primary, #2563eb);
+  box-shadow: var(--color-shadow-sm, 0 1px 2px 0 rgb(0 0 0 / 0.05)), var(--color-shadow-md, 0 4px 6px -1px rgb(0 0 0 / 0.1));
+}
+.btn-primary:active {
+  background-color: var(--color-interactive-active-primary, #1d4ed8);
+  border-color: var(--color-interactive-active-primary, #1d4ed8);
+  box-shadow: var(--color-shadow-sm, 0 1px 2px 0 rgb(0 0 0 / 0.05));
+}
+
+/* Disabled state for all buttons */
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  /* You might want a different background/border for disabled */
+  /* background-color: var(--color-background-hover, #f0f0f0); */
+  /* border-color: var(--color-border-subtle, #e0e0e0); */
+  box-shadow: none; /* Remove shadow when disabled */
+}
+
+/* --- Input Styles --- */
+/* Base input style */
+.input {
+  width: 100%;
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 12px);
+  border: 1px solid var(--color-border-primary, #e2e8f0);
+  border-radius: var(--border-radius-sm, 4px);
+  background-color: var(--color-surface-primary, #ffffff);
+  color: var(--color-text-primary, #0f172a);
+  font-size: var(--font-size-base, 1rem);
+  line-height: var(--line-height-base, 1.5);
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+
+  /* Style for focus state */
+  &:focus {
+      outline: none;
+      border-color: var(--color-border-focus, #3b82f6);
+      box-shadow: var(--color-interactive-focus-background, #dbeafe) 0 0 0 3px;
+  }
+
+  /* Style for placeholder text */
+  &::placeholder {
+      color: var(--color-text-placeholder, #94a3b8);
+      opacity: 1;
+  }
+
+   /* Disabled state */
+  &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      background-color: var(--color-interactive-disabled-background, #f8fafc);
+  }
+}
+
+
+/* --- Spinner Styles --- */
+.spinner {
+  border: 4px solid var(--color-border-primary, rgba(0, 0, 0, 0.1));
+  border-left-color: var(--color-primary-500, #3b82f6);
+  border-radius: 50%;
+  width: var(--size-md, 24px);
+  height: var(--size-md, 24px);
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+/* Keyframes for spinner animation (can also be in index.css) */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* --- Status Message Styles --- */
+/* Basic status message - rely on global paragraph styles */
+.status-message {
+  /* Default text color inherited from layout or global styles */
+  /* text-align should typically be handled by parent layout or specific content blocks */
+  /* text-align: center; Removed base text-align */
+  font-size: var(--font-size-sm, 0.9rem); /* Slightly smaller text for status */
+  margin-bottom: var(--spacing-sm, 8px); /* Space below status messages */
+}
+
+.status-message.error {
+  color: var(--color-status-error-500, #ef4444);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.status-message.success {
+   color: var(--color-status-success-500, #22c55e);
+   font-weight: var(--font-weight-semibold, 600);
+}
+
+.status-message.warning {
+   color: var(--color-status-warning-500, #f59e0b);
+   font-weight: var(--font-weight-semibold, 600);
+}
+
+/* --- Tutorial Highlight Styles --- */
+.tutorial-highlight {
+  position: relative;
+  z-index: 99;
+  animation: tutorial-pulse 2s ease-in-out infinite;
+  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.4),
+              0 0 20px rgba(20, 184, 166, 0.3),
+              0 0 40px rgba(20, 184, 166, 0.2);
+  border-radius: 8px;
+  transition: all 0.3s ease-in-out;
+}
+
+.tutorial-highlight::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border: 2px solid #14b8a6;
+  border-radius: 8px;
+  pointer-events: none;
+  animation: tutorial-border-pulse 2s ease-in-out infinite;
+}
+
+@keyframes tutorial-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.4),
+                0 0 20px rgba(20, 184, 166, 0.3),
+                0 0 40px rgba(20, 184, 166, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(20, 184, 166, 0.3),
+                0 0 30px rgba(20, 184, 166, 0.25),
+                0 0 60px rgba(20, 184, 166, 0.15);
+  }
+}
+
+@keyframes tutorial-border-pulse {
+  0%, 100% {
+    border-color: rgba(20, 184, 166, 0.8);
+  }
+  50% {
+    border-color: rgba(20, 184, 166, 1);
+  }
+}
