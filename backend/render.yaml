@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: hoshipu-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: ALLOWED_ORIGINS
+        sync: false

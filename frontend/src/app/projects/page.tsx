@@ -9,11 +9,12 @@ import Link from "next/link";
 
 const projects = [
   {
-    title: "GJP PDF Rename",
-    description: "Intelligent PDF batch renaming tool that extracts invoice information and renames files using customizable templates.",
-    tags: ["PDF.js", "TypeScript", "File Processing"],
+    title: "GJP PDF 重命名工具",
+    description: "智能PDF批量重命名工具，可提取发票信息并使用自定义模板重命名文件。",
+    tags: ["CHINESE", "PDF处理", "批量重命名"],
     link: "/projects/pdf-rename",
     type: "tool",
+    language: "zh",
   },
 ];
 
@@ -60,7 +61,7 @@ export default function Projects() {
               <CardFooter>
                 <Button asChild className="w-full">
                   <Link href={project.link}>
-                    Open Tool <ArrowRight className="ml-2 h-4 w-4" />
+                    {project.language === "zh" ? "打开工具" : "Open Tool"} <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
               </CardFooter>
