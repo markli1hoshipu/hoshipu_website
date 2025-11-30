@@ -77,7 +77,7 @@ export default function PDFRenamePage() {
       setProcessedFiles(results);
     } catch (error) {
       console.error("Error processing files:", error);
-      alert("Failed to process files. Make sure the backend server is running.");
+      alert("处理文件失败。请确保后端服务器正在运行。");
     } finally {
       setProcessing(false);
     }
@@ -90,7 +90,7 @@ export default function PDFRenamePage() {
       saveAs(blob, "renamed_pdfs.zip");
     } catch (error) {
       console.error("Error downloading files:", error);
-      alert("Failed to download files. Make sure the backend server is running.");
+      alert("下载文件失败。请确保后端服务器正在运行。");
     }
   };
 
@@ -107,10 +107,10 @@ export default function PDFRenamePage() {
         transition={{ duration: 0.6 }}
         className="mb-12"
       >
-        <h1 className="text-4xl md:text-5xl font-bold mb-6">GJP PDF Rename</h1>
+        <h1 className="text-4xl md:text-5xl font-bold mb-6">GJP PDF 重命名工具</h1>
         <p className="text-lg text-muted-foreground max-w-3xl">
-          Intelligent PDF batch renaming tool that extracts invoice information and renames files using customizable templates.
-          Upload your PDFs, select a naming template, and download renamed files instantly.
+          智能PDF批量重命名工具，可提取发票信息并使用自定义模板重命名文件。
+          上传您的PDF文件，选择命名模板，即可立即下载重命名后的文件。
         </p>
       </motion.div>
 
@@ -118,8 +118,8 @@ export default function PDFRenamePage() {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Upload PDFs</CardTitle>
-              <CardDescription>Select one or more PDF files to process</CardDescription>
+              <CardTitle>上传PDF文件</CardTitle>
+              <CardDescription>选择一个或多个PDF文件进行处理</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
@@ -134,15 +134,15 @@ export default function PDFRenamePage() {
                 <label htmlFor="file-upload" className="cursor-pointer">
                   <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground mb-2">
-                    Click to upload or drag and drop
+                    点击上传或拖放文件
                   </p>
-                  <p className="text-xs text-muted-foreground">PDF files only</p>
+                  <p className="text-xs text-muted-foreground">仅支持PDF文件</p>
                 </label>
               </div>
 
               {files.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="font-medium">Uploaded Files ({files.length})</h3>
+                  <h3 className="font-medium">已上传文件 ({files.length})</h3>
                   <div className="max-h-48 overflow-y-auto space-y-2">
                     {files.map((file, index) => (
                       <div
@@ -171,10 +171,10 @@ export default function PDFRenamePage() {
                     {processing ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
+                        处理中...
                       </>
                     ) : (
-                      "Process Files"
+                      "处理文件"
                     )}
                   </Button>
                 </div>
@@ -187,16 +187,16 @@ export default function PDFRenamePage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Processed Files</CardTitle>
+                    <CardTitle>已处理文件</CardTitle>
                     <CardDescription>
-                      {processedFiles.filter(f => f.status === "success").length} successful,{" "}
-                      {processedFiles.filter(f => f.status === "incomplete").length} incomplete,{" "}
-                      {processedFiles.filter(f => f.status === "error").length} errors
+                      成功 {processedFiles.filter(f => f.status === "success").length} 个，{" "}
+                      不完整 {processedFiles.filter(f => f.status === "incomplete").length} 个，{" "}
+                      错误 {processedFiles.filter(f => f.status === "error").length} 个
                     </CardDescription>
                   </div>
                   <Button onClick={downloadAll}>
                     <Download className="mr-2 h-4 w-4" />
-                    Download All
+                    下载全部
                   </Button>
                 </div>
               </CardHeader>
@@ -222,15 +222,15 @@ export default function PDFRenamePage() {
                             </span>
                           </div>
                           <div className="text-sm text-muted-foreground ml-6">
-                            <div>New name: <span className="text-foreground">{pFile.newName}</span></div>
+                            <div>新文件名: <span className="text-foreground">{pFile.newName}</span></div>
                             {pFile.status === "incomplete" && pFile.missingFields && (
                               <div className="text-amber-600 mt-1">
-                                Missing: {pFile.missingFields.join(", ")}
+                                缺少字段: {pFile.missingFields.join(", ")}
                               </div>
                             )}
                             {pFile.status === "error" && pFile.error && (
                               <div className="text-red-600 mt-1">
-                                Error: {pFile.error}
+                                错误: {pFile.error}
                               </div>
                             )}
                           </div>
@@ -254,12 +254,12 @@ export default function PDFRenamePage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Template Settings</CardTitle>
-              <CardDescription>Choose or create a naming template</CardDescription>
+              <CardTitle>模板设置</CardTitle>
+              <CardDescription>选择或创建命名模板</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Preset Templates</label>
+                <label className="text-sm font-medium mb-2 block">预设模板</label>
                 <div className="space-y-2">
                   {DEFAULT_TEMPLATES.map((template, index) => (
                     <Button
@@ -278,15 +278,15 @@ export default function PDFRenamePage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Custom Template</label>
+                <label className="text-sm font-medium mb-2 block">自定义模板</label>
                 <Input
                   placeholder="{buyer} {name} {origin}-{destination}.pdf"
                   value={customTemplate}
                   onChange={(e) => setCustomTemplate(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground mt-2">
-                  Available fields: {"{buyer}"}, {"{name}"}, {"{origin}"}, {"{destination}"}, 
-                  {"{amount}"}, {"{invoiceNumber}"}, {"{issueDate}"}
+                  可用字段: {"{buyer}"}, {"{name}"}, {"{origin}"}, {"{destination}"}, 
+                  {"{amount}"}, {"{invoice_number}"}, {"{issue_date}"}
                 </p>
               </div>
             </CardContent>
@@ -294,32 +294,32 @@ export default function PDFRenamePage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>How it Works</CardTitle>
+              <CardTitle>使用说明</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground">
               <div className="flex gap-2">
                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium shrink-0">
                   1
                 </div>
-                <p>Upload PDF invoice files</p>
+                <p>上传PDF发票文件</p>
               </div>
               <div className="flex gap-2">
                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium shrink-0">
                   2
                 </div>
-                <p>Tool extracts invoice information (buyer, passenger, route, amount, etc.)</p>
+                <p>工具自动提取发票信息（购买方、旅客、路线、金额等）</p>
               </div>
               <div className="flex gap-2">
                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium shrink-0">
                   3
                 </div>
-                <p>Files are renamed based on your template</p>
+                <p>根据您选择的模板重命名文件</p>
               </div>
               <div className="flex gap-2">
                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium shrink-0">
                   4
                 </div>
-                <p>Download renamed files individually or as a ZIP</p>
+                <p>单独下载或打包下载为ZIP文件</p>
               </div>
             </CardContent>
           </Card>

@@ -16,9 +16,14 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Hoshipu Backend API", version="1.0.0")
 
+allowed_origins = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:6001,http://localhost:3000,http://10.0.0.122:6001"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:6001", "http://localhost:3000", "http://10.0.0.122:6001"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,4 +40,5 @@ async def health():
     return {"status": "healthy"}
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=6101, reload=True)
+    port = int(os.getenv("PORT", 6101))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
