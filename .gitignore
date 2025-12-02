@@ -12,3 +12,6 @@ backend/.env
 
 # Old folder
 personal-website/
+
+# Reference folder
+ref/
