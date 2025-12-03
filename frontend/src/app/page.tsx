@@ -1,10 +1,47 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, Code, Palette, Zap } from "lucide-react";
+import { ArrowRight, Code, Palette, Zap, Music, Music2, Music3, Music4 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+const musicNotes = [Music, Music2, Music3, Music4];
+
+const Star = ({ index }: { index: number }) => {
+  const randomDelay = Math.random() * 5;
+  const randomDuration = 15 + Math.random() * 10;
+  const randomX = Math.random() * 100;
+  const randomSize = 40 + Math.random() * 40;
+  const Note = musicNotes[Math.floor(Math.random() * musicNotes.length)];
+  const isBlack = Math.random() > 0.5;
+
+  return (
+    <motion.div
+      className="absolute"
+      style={{
+        left: `${randomX}%`,
+        top: '-5%',
+      }}
+      animate={{
+        y: ['0vh', '110vh'],
+        opacity: [0, 0.6, 0.6, 0],
+      }}
+      transition={{
+        duration: randomDuration,
+        repeat: Infinity,
+        delay: randomDelay,
+        ease: "linear",
+      }}
+    >
+      <Note 
+        size={randomSize} 
+        className={isBlack ? "text-black" : "text-white"}
+        strokeWidth={1.5}
+      />
+    </motion.div>
+  );
+};
 
 const features = [
   {
@@ -26,7 +63,12 @@ const features = [
 
 export default function Home() {
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 15 }).map((_, i) => (
+          <Star key={i} index={i} />
+        ))}
+      </div>
       <section className="py-20 md:py-32">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
