@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, ArrowRight } from "lucide-react";
+import { FileText, ArrowRight, Calculator } from "lucide-react";
 import Link from "next/link";
 
 const projects = [
@@ -15,6 +15,16 @@ const projects = [
     link: "/projects/pdf-rename",
     type: "tool",
     language: "zh",
+    icon: FileText,
+  },
+  {
+    title: "计算24小游戏",
+    description: "经典数学益智游戏，使用四个数字和基本运算符计算出24。锻炼你的数学思维和计算能力！",
+    tags: ["CHINESE", "游戏", "数学"],
+    link: "/projects/game24",
+    type: "game",
+    language: "zh",
+    icon: Calculator,
   },
 ];
 
@@ -46,7 +56,7 @@ export default function Projects() {
             <Card className="h-full flex flex-col hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                  <FileText className="h-6 w-6 text-primary" />
+                  <project.icon className="h-6 w-6 text-primary" />
                 </div>
                 <CardTitle>{project.title}</CardTitle>
                 <CardDescription>{project.description}</CardDescription>
