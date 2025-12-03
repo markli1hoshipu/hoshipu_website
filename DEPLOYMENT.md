@@ -1,103 +1,81 @@
 # Deployment Guide
 
-## Environment Setup
+## Backend Deployment (Render)
 
-### Frontend (Next.js)
+### Prerequisites
+- GitHub account
+- Code pushed to GitHub repository
 
-1. Copy `.env.example` to `.env.local`:
+### Steps
+
+1. **Sign Up for Render**
+   - Go to https://render.com
+   - Sign up with GitHub
+
+2. **Create New Web Service**
+   - Click **"New +"** ’ **"Web Service"**
+   - Connect your GitHub repository: `hoshipu_website`
+
+3. **Configure Service**
+   - **Name**: `hoshipu-backend`
+   - **Language**: `Python 3`
+   - **Branch**: `hoshipu-1.0`
+   - **Region**: `Oregon (US West)` (or closest to you)
+   - **Root Directory**: `backend`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - **Instance Type**: `Free` (or `Starter` for $7/month - no sleep)
+
+4. **Add Environment Variables**
+   Click **"Advanced"** ’ Add environment variables:
+   ```
+   PORT = 10000
+   ALLOWED_ORIGINS = http://localhost:6001
+   ```
+   (Update `ALLOWED_ORIGINS` after deploying frontend)
+
+5. **Deploy**
+   - Click **"Create Web Service"**
+   - Wait 5-10 minutes for deployment
+   - Your backend URL: `https://hoshipu-backend.onrender.com`
+
+6. **Test Backend**
    ```bash
-   cd frontend
-   cp .env.example .env.local
+   curl https://hoshipu-backend.onrender.com/
    ```
+   Should return: `{"message":"Hoshipu Backend API","version":"1.0.0"}`
 
-2. Update `.env.local` with your production backend URL:
-   ```
-   NEXT_PUBLIC_API_URL=https://your-backend-domain.com
-   ```
+### Important Notes
 
-3. Build and deploy:
-   ```bash
-   npm run build
-   npm start
-   ```
+  **Free tier limitations:**
+- Spins down after 15 minutes of inactivity
+- First request after sleep takes ~30 seconds (cold start)
+- 750 hours/month free
 
-### Backend (FastAPI)
+=¡ **Tips:**
+- Keep backend awake with a cron job (ping every 14 minutes)
+- Or upgrade to Starter tier ($7/month for always-on)
 
-1. Create Python virtual environment:
-   ```bash
-   cd backend
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+### Troubleshooting
 
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+**Build fails?**
+- Check `requirements.txt` is correct
+- Check Python version compatibility
 
-3. Create `.env` file (optional):
-   ```bash
-   cp .env.example .env
-   ```
+**404 errors?**
+- Verify **Root Directory** is set to `backend`
+- Verify **Start Command** is `uvicorn main:app --host 0.0.0.0 --port $PORT`
 
-4. Run the server:
-   ```bash
-   python main.py
-   ```
+**CORS errors?**
+- Update `ALLOWED_ORIGINS` with your actual frontend URL
+- Include both production and development URLs
 
-## Deployment Options
+**500 errors?**
+- Check logs in Render dashboard
+- Verify all dependencies installed
 
-### Frontend Deployment
+---
 
-**Vercel (Recommended)**
-- Connect your GitHub repository
-- Set environment variable: `NEXT_PUBLIC_API_URL`
-- Deploy automatically
+## Frontend Deployment (Coming Soon)
 
-**Netlify**
-- Connect repository
-- Build command: `npm run build`
-- Publish directory: `.next`
-- Set environment variable: `NEXT_PUBLIC_API_URL`
-
-### Backend Deployment
-
-**Railway**
-- Connect repository
-- Detect Python buildpack
-- Set port to environment variable
-
-**Render**
-- Create new Web Service
-- Build command: `pip install -r requirements.txt`
-- Start command: `python main.py`
-
-**Docker (Optional)**
-- Backend includes Dockerfile support
-- Build: `docker build -t backend .`
-- Run: `docker run -p 6101:6101 backend`
-
-## Environment Variables
-
-### Frontend
-- `NEXT_PUBLIC_API_URL`: Backend API URL
-
-### Backend
-- `PORT`: Server port (default: 6101)
-- `ALLOWED_ORIGINS`: CORS allowed origins
-
-## CORS Configuration
-
-Update `backend/main.py` to include your production frontend URL:
-```python
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:6001",
-        "https://your-frontend-domain.com"  # Add your production URL
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-```
+TODO: Add Vercel deployment instructions
