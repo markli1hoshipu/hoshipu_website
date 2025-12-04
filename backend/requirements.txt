@@ -4,3 +4,8 @@ python-dotenv==1.0.1
 python-multipart==0.0.17
 pdfplumber==0.11.4
 pyyaml==6.0.2
+
+# Database dependencies
+psycopg2-binary==2.9.11
+sqlalchemy==2.0.44
+alembic==1.17.2
