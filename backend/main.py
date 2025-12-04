@@ -8,6 +8,7 @@ if src_path not in sys.path:
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers.pdf_router import router as pdf_router
+from routers.messages_router import router as messages_router
 import uvicorn
 import logging
 
@@ -30,6 +31,7 @@ app.add_middleware(
 )
 
 app.include_router(pdf_router, prefix="/api/pdf", tags=["PDF Processing"])
+app.include_router(messages_router)
 
 @app.get("/")
 async def root():
