@@ -42,11 +42,11 @@ export default function Projects() {
   return (
     <>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <motion.div
+        <motion.div 
+          className="mb-12"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="mb-12"
         >
           <h1 className="text-4xl md:text-5xl font-bold mb-6">Projects</h1>
           <p className="text-lg text-muted-foreground max-w-3xl">

@@ -9,22 +9,29 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 const musicNotes = [Music, Music2, Music3, Music4];
 
 const Star = ({ index }: { index: number }) => {
-  const randomDelay = Math.random() * 5;
-  const randomDuration = 15 + Math.random() * 10;
+  const randomDelay = Math.random() * 2;
+  const randomDuration = 8 + Math.random() * 6;
   const randomX = Math.random() * 100;
+  const randomStartY = Math.random() * 60 - 10;
+  const randomEndY = randomStartY + 60 + Math.random() * 40;
   const randomSize = 40 + Math.random() * 40;
   const Note = musicNotes[Math.floor(Math.random() * musicNotes.length)];
   const isBlack = Math.random() > 0.5;
+  
+  const fadeInDuration = 0.15 + Math.random() * 0.1;
+  const fadeOutDuration = 0.15 + Math.random() * 0.1;
+  const fadeInPoint = fadeInDuration;
+  const fadeOutPoint = 1 - fadeOutDuration;
 
   return (
     <motion.div
-      className="absolute"
+      className="absolute -z-10"
       style={{
         left: `${randomX}%`,
-        top: '-5%',
+        top: `${randomStartY}%`,
       }}
       animate={{
-        y: ['0vh', '110vh'],
+        y: [`0vh`, `${randomEndY - randomStartY}vh`],
         opacity: [0, 0.6, 0.6, 0],
       }}
       transition={{
@@ -32,6 +39,10 @@ const Star = ({ index }: { index: number }) => {
         repeat: Infinity,
         delay: randomDelay,
         ease: "linear",
+        opacity: {
+          times: [0, fadeInPoint, fadeOutPoint, 1],
+          ease: "easeInOut"
+        }
       }}
     >
       <Note 

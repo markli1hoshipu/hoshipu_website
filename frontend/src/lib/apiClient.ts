@@ -72,3 +72,57 @@ export async function getTemplates(): Promise<{ templates: Record<string, string
   
   return response.json();
 }
+
+export interface PdfTemplate {
+  id: number;
+  name: string;
+  template_string: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getAllPdfTemplates(): Promise<PdfTemplate[]> {
+  const response = await fetch(`${API_BASE_URL}/api/pdf-templates`);
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+export async function createPdfTemplate(name: string, template_string: string, password: string): Promise<PdfTemplate> {
+  const response = await fetch(`${API_BASE_URL}/api/pdf-templates`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, template_string, password }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to create template');
+  }
+  return response.json();
+}
+
+export async function updatePdfTemplate(id: number, password: string, name?: string, template_string?: string): Promise<PdfTemplate> {
+  const response = await fetch(`${API_BASE_URL}/api/pdf-templates/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, template_string, password }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to update template');
+  }
+  return response.json();
+}
+
+export async function deletePdfTemplate(id: number, password: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/pdf-templates/${id}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to delete template');
+  }
+}
