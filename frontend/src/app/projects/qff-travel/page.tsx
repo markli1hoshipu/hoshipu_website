@@ -12,7 +12,8 @@ import {
   X,
   Plane,
   FileText,
-  Building2
+  Building2,
+  ArrowRight
 } from "lucide-react";
 import { 
   getAllTravelTemplates,
@@ -33,14 +34,20 @@ import {
 } from "@/lib/apiClient";
 import PasswordDialog from "@/components/PasswordDialog";
 
-type TabType = "templates" | "airlines" | "airports";
+type TabType = "translate" | "templates" | "airlines" | "airports";
 
 export default function QFFTravelPage() {
-  const [activeTab, setActiveTab] = useState<TabType>("templates");
+  const [activeTab, setActiveTab] = useState<TabType>("translate");
   const [templates, setTemplates] = useState<TravelTemplate[]>([]);
   const [airlines, setAirlines] = useState<TravelAirline[]>([]);
   const [airports, setAirports] = useState<TravelAirport[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const [inputText, setInputText] = useState("");
+  const [outputText, setOutputText] = useState("");
+  const [selectedTemplateForTranslate, setSelectedTemplateForTranslate] = useState<number | null>(null);
+  const [translating, setTranslating] = useState(false);
+  const [autoCopy, setAutoCopy] = useState(false);
   
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => Promise<void>) | null>(null);
@@ -60,6 +67,22 @@ export default function QFFTravelPage() {
   useEffect(() => {
     loadData();
   }, [activeTab]);
+
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  const loadTemplates = async () => {
+    try {
+      const data = await getAllTravelTemplates();
+      setTemplates(data);
+      if (data.length > 0 && !selectedTemplateForTranslate) {
+        setSelectedTemplateForTranslate(data[0].id);
+      }
+    } catch (error) {
+      console.error("Failed to load templates:", error);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -82,15 +105,68 @@ export default function QFFTravelPage() {
     }
   };
 
+  const handleTranslate = async () => {
+    if (!inputText.trim()) {
+      alert("请输入行程信息");
+      return;
+    }
+    if (!selectedTemplateForTranslate) {
+      alert("请选择输出模板");
+      return;
+    }
+
+    setTranslating(true);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:6101'}/api/qff-travel/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input_text: inputText,
+          template_id: selectedTemplateForTranslate
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('翻译失败');
+      }
+
+      const data = await response.json();
+      setOutputText(data.output_text);
+      
+      if (autoCopy && data.output_text) {
+        try {
+          await navigator.clipboard.writeText(data.output_text);
+          alert("翻译完成并已复制到剪贴板！");
+        } catch (clipboardError) {
+          console.error("Failed to copy to clipboard:", clipboardError);
+          alert("翻译完成，但复制到剪贴板失败");
+        }
+      }
+    } catch (error: any) {
+      console.error("Translation error:", error);
+      alert(error.message || "翻译失败");
+    } finally {
+      setTranslating(false);
+    }
+  };
+
   const handlePasswordSubmit = async (password: string) => {
+    if (password !== "qff123") {
+      throw new Error("密码错误");
+    }
+    
     if (pendingAction) {
       try {
         await pendingAction();
         await loadData();
+        setShowAirlineForm(false);
+        setShowAirportForm(false);
+        setShowTemplateForm(false);
       } catch (error: any) {
-        alert(error.message || "操作失败");
+        throw error;
+      } finally {
+        setPendingAction(null);
       }
-      setPendingAction(null);
     }
   };
 
@@ -208,6 +284,17 @@ export default function QFFTravelPage() {
 
       <div className="mb-6 flex gap-4 border-b">
         <button
+          onClick={() => setActiveTab("translate")}
+          className={`px-4 py-2 font-medium transition-colors ${
+            activeTab === "translate"
+              ? "text-primary border-b-2 border-primary"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <ArrowRight className="inline-block mr-2 h-4 w-4" />
+          航程翻译
+        </button>
+        <button
           onClick={() => setActiveTab("templates")}
           className={`px-4 py-2 font-medium transition-colors ${
             activeTab === "templates"
@@ -241,6 +328,121 @@ export default function QFFTravelPage() {
           机场对照表
         </button>
       </div>
+
+      {activeTab === "translate" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>输入行程信息</CardTitle>
+                <CardDescription>粘贴从系统复制的行程信息（包含序号）</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder="粘贴行程到此处（包含序号）&#10;例如：&#10;1. ZHANG/SAN &#10;2. CA1234 Y TU 15MAR PEKSHA HK1 0800 1030 E -- T2..."
+                  rows={8}
+                  className="font-mono text-sm"
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>输出结果</CardTitle>
+                <CardDescription>翻译后的航程信息</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={outputText}
+                  readOnly
+                  placeholder="此处显示输出内容"
+                  rows={12}
+                  className="font-mono text-sm bg-muted"
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>选择输出模板</CardTitle>
+                <CardDescription>选择航程信息的输出格式</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {templates.length === 0 ? (
+                  <div className="text-sm text-muted-foreground text-center py-4">
+                    暂无模板，请先创建模板
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {templates.map((template) => (
+                      <button
+                        key={template.id}
+                        onClick={() => setSelectedTemplateForTranslate(template.id)}
+                        className={`w-full text-left p-3 border rounded-lg transition-colors ${
+                          selectedTemplateForTranslate === template.id
+                            ? "border-primary bg-primary/5"
+                            : "hover:bg-muted/50"
+                        }`}
+                      >
+                        <div className="font-medium text-sm">{template.name}</div>
+                        {template.description && (
+                          <div className="text-xs text-muted-foreground mt-1">{template.description}</div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <Button 
+                  onClick={handleTranslate} 
+                  disabled={translating || !inputText.trim() || !selectedTemplateForTranslate}
+                  className="w-full"
+                  size="lg"
+                >
+                  {translating ? "翻译中..." : "开始翻译"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>选项设置</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="autoCopy"
+                    checked={autoCopy}
+                    onChange={(e) => setAutoCopy(e.target.checked)}
+                    className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary cursor-pointer"
+                  />
+                  <label htmlFor="autoCopy" className="text-sm font-medium cursor-pointer select-none">
+                    自动复制到剪贴板
+                  </label>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>使用说明</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm text-muted-foreground">
+                <p>1. 从系统中复制完整的行程信息</p>
+                <p>2. 粘贴到输入框中</p>
+                <p>3. 选择输出模板格式</p>
+                <p>4. 点击"开始翻译"按钮</p>
+                <p>5. 复制输出结果使用</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
 
       {activeTab === "templates" && (
         <Card>
@@ -422,14 +624,21 @@ export default function QFFTravelPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <PasswordDialog
-                  isOpen={false}
-                  onClose={() => {}}
-                  onSubmit={handleSaveTemplate}
-                  trigger={<Button className="flex-1">保存</Button>}
-                  title={editingTemplate ? "编辑模板" : "新建模板"}
-                  description="请输入密码以继续"
-                />
+                <Button 
+                  className="flex-1" 
+                  onClick={() => {
+                    if (!templateForm.name.trim() || !templateForm.config_json.trim()) {
+                      alert("请填写完整信息");
+                      return;
+                    }
+                    setShowPasswordDialog(true);
+                    setPendingAction(() => async () => {
+                      await handleSaveTemplate("qff123");
+                    });
+                  }}
+                >
+                  保存
+                </Button>
                 <Button variant="outline" className="flex-1" onClick={() => setShowTemplateForm(false)}>
                   取消
                 </Button>
@@ -463,14 +672,21 @@ export default function QFFTravelPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <PasswordDialog
-                  isOpen={false}
-                  onClose={() => {}}
-                  onSubmit={handleSaveAirline}
-                  trigger={<Button className="flex-1">保存</Button>}
-                  title={editingAirline ? "编辑航司" : "新建航司"}
-                  description="请输入密码以继续"
-                />
+                <Button 
+                  className="flex-1" 
+                  onClick={() => {
+                    if (!airlineForm.code.trim() || !airlineForm.name.trim()) {
+                      alert("请填写完整信息");
+                      return;
+                    }
+                    setShowPasswordDialog(true);
+                    setPendingAction(() => async () => {
+                      await handleSaveAirline("qff123");
+                    });
+                  }}
+                >
+                  保存
+                </Button>
                 <Button variant="outline" className="flex-1" onClick={() => setShowAirlineForm(false)}>
                   取消
                 </Button>
@@ -504,14 +720,21 @@ export default function QFFTravelPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <PasswordDialog
-                  isOpen={false}
-                  onClose={() => {}}
-                  onSubmit={handleSaveAirport}
-                  trigger={<Button className="flex-1">保存</Button>}
-                  title={editingAirport ? "编辑机场" : "新建机场"}
-                  description="请输入密码以继续"
-                />
+                <Button 
+                  className="flex-1" 
+                  onClick={() => {
+                    if (!airportForm.code.trim() || !airportForm.name.trim()) {
+                      alert("请填写完整信息");
+                      return;
+                    }
+                    setShowPasswordDialog(true);
+                    setPendingAction(() => async () => {
+                      await handleSaveAirport("qff123");
+                    });
+                  }}
+                >
+                  保存
+                </Button>
                 <Button variant="outline" className="flex-1" onClick={() => setShowAirportForm(false)}>
                   取消
                 </Button>
