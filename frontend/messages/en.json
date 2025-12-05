@@ -1,0 +1,136 @@
+{
+  "nav": {
+    "home": "Home",
+    "about": "About",
+    "projects": "Projects",
+    "contact": "Contact"
+  },
+  "home": {
+    "hero": {
+      "title": "Hi, I'm Hoshipu",
+      "subtitle": "Full-stack developer crafting exceptional digital experiences",
+      "viewWork": "View My Work",
+      "getInTouch": "Get in Touch"
+    },
+    "features": {
+      "cleanCode": {
+        "title": "Clean Code",
+        "description": "Writing maintainable and efficient code for scalable applications"
+      },
+      "modernDesign": {
+        "title": "Modern Design",
+        "description": "Creating beautiful and intuitive user interfaces"
+      },
+      "performance": {
+        "title": "Performance",
+        "description": "Optimizing for speed and best user experience"
+      }
+    }
+  },
+  "about": {
+    "title": "About Me",
+    "description": "I'm a passionate full-stack developer with expertise in building modern web applications. I love creating efficient, scalable solutions and staying up-to-date with the latest technologies.",
+    "skillsTitle": "Skills",
+    "skills": {
+      "frontendTitle": "Frontend",
+      "frontend": ["React", "Next.js", "TypeScript", "Tailwind CSS", "Framer Motion"],
+      "backendTitle": "Backend",
+      "backend": ["Node.js", "Python", "PostgreSQL", "MongoDB", "REST APIs"],
+      "toolsTitle": "Tools",
+      "tools": ["Git", "Docker", "AWS", "Vercel", "Figma"]
+    },
+    "experienceTitle": "Experience",
+    "experience": {
+      "exp1": {
+        "title": "Senior Developer",
+        "company": "Tech Company",
+        "period": "2022 - Present",
+        "description": "Leading development of scalable web applications"
+      },
+      "exp2": {
+        "title": "Full Stack Developer",
+        "company": "Startup Inc",
+        "period": "2020 - 2022",
+        "description": "Built and maintained multiple client projects"
+      }
+    }
+  },
+  "blog": {
+    "title": "Blog",
+    "description": "Thoughts, tutorials, and insights on web development, programming, and technology.",
+    "readMore": "Read More"
+  },
+  "contact": {
+    "title": "Get in Touch",
+    "description": "Have a project in mind or want to collaborate? Feel free to reach out!",
+    "form": {
+      "title": "Send a Message",
+      "description": "Fill out the form below and I'll get back to you soon.",
+      "nameLabel": "Name",
+      "namePlaceholder": "Your name",
+      "emailLabel": "Email",
+      "emailPlaceholder": "your.email@example.com",
+      "messageLabel": "Message",
+      "messagePlaceholder": "Tell me about your project...",
+      "submitButton": "Send Message"
+    },
+    "info": {
+      "title": "Contact Information",
+      "email": "Email",
+      "phone": "Phone",
+      "location": "Location"
+    },
+    "availability": {
+      "title": "Availability",
+      "status": "Open to opportunities",
+      "description": "Currently available for freelance projects and full-time positions."
+    }
+  },
+  "projects": {
+    "title": "Projects",
+    "description": "A collection of projects I've worked on, showcasing my skills in full-stack development, UI/UX design, and problem-solving.",
+    "pdfRename": {
+      "title": "GJP PDF Rename Tool",
+      "description": "Intelligent PDF batch rename tool that extracts invoice information and renames files using custom templates.",
+      "tags": ["PDF Processing", "Batch Rename"]
+    },
+    "game24": {
+      "title": "Game 24",
+      "description": "Classic math puzzle game where you use four numbers and basic operators to make 24. Train your mathematical thinking and calculation skills!",
+      "tags": ["Game", "Math"]
+    },
+    "qffTravel": {
+      "title": "QFF Travel Itinerary Tool",
+      "description": "Manage travel translation output templates, airline code mappings, and airport code mappings for easy flight information organization.",
+      "tags": ["Aviation", "Data Management"]
+    },
+    "comingSoon": {
+      "title": "Coming Soon",
+      "description": "More exciting projects are in development and will be launched soon...",
+      "tags": ["Coming Soon"]
+    },
+    "openTool": "Open Tool"
+  },
+  "messages": {
+    "title": "Message Board",
+    "placeholder": "Leave a message...",
+    "send": "Send",
+    "noMessages": "No messages yet, be the first to write one!",
+    "reply": "Reply",
+    "delete": "Delete",
+    "deleteConfirm": "Delete Message",
+    "deleteDescription": "Please enter password to confirm deletion",
+    "passwordPlaceholder": "Enter password",
+    "cancel": "Cancel",
+    "confirmDelete": "Confirm Delete",
+    "deleting": "Deleting..."
+  },
+  "footer": {
+    "copyright": "© {year} Hoshipu. All rights reserved."
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  }
+}

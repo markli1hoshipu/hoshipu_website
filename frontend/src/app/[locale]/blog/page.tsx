@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { useTranslations, useLocale } from "next-intl";
 
 const blogPosts = [
   {
@@ -59,6 +60,9 @@ const blogPosts = [
 ];
 
 export default function Blog() {
+  const t = useTranslations('blog');
+  const locale = useLocale();
+
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <motion.div
@@ -67,9 +71,9 @@ export default function Blog() {
         transition={{ duration: 0.6 }}
         className="mb-12"
       >
-        <h1 className="text-4xl md:text-5xl font-bold mb-6">Blog</h1>
+        <h1 className="text-4xl md:text-5xl font-bold mb-6">{t('title')}</h1>
         <p className="text-lg text-muted-foreground max-w-3xl">
-          Thoughts, tutorials, and insights on web development, programming, and technology.
+          {t('description')}
         </p>
       </motion.div>
 
@@ -87,7 +91,7 @@ export default function Blog() {
                 <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    <span>{new Date(post.date).toLocaleDateString()}</span>
+                    <span>{new Date(post.date).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US')}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
@@ -106,8 +110,8 @@ export default function Blog() {
               </CardContent>
               <CardFooter>
                 <Button asChild variant="ghost" className="w-full">
-                  <Link href={`/blog/${post.slug}`}>
-                    Read More <ArrowRight className="ml-2 h-4 w-4" />
+                  <Link href={`/${locale}/blog/${post.slug}`}>
+                    {t('readMore')} <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
               </CardFooter>

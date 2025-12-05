@@ -189,11 +189,6 @@ export default function Messages() {
         >
           <MessageCircle className="h-5 w-5" />
           <span className="writing-mode-vertical text-sm">留言板</span>
-          {messages.length > 0 && (
-            <Badge variant="destructive" className="absolute top-2 right-2">
-              {messages.length}
-            </Badge>
-          )}
         </Button>
       </motion.div>
 

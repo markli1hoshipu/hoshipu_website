@@ -7,27 +7,31 @@ import { motion } from "framer-motion";
 import { Menu, X, Home, User, Briefcase, BookOpen, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useTranslations, useLocale } from "next-intl";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 const navItems = [
-  { name: "Home", href: "/", icon: Home },
-  { name: "About", href: "/about", icon: User },
-  { name: "Projects", href: "/projects", icon: Briefcase },
-  { name: "Blog", href: "/blog", icon: BookOpen },
-  { name: "Contact", href: "/contact", icon: Mail },
+  { name: "home", href: "/", icon: Home },
+  { name: "about", href: "/about", icon: User },
+  { name: "projects", href: "/projects", icon: Briefcase },
+  { name: "blog", href: "/blog", icon: BookOpen },
+  { name: "contact", href: "/contact", icon: Mail },
 ];
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
+  const t = useTranslations('nav');
+  const locale = useLocale();
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center">
-            <Image 
-              src="/hoshipu_logo.png" 
-              alt="Hoshipu" 
-              width={771} 
+          <Link href={`/${locale}`} className="flex items-center">
+            <Image
+              src="/hoshipu_logo.png"
+              alt="Hoshipu"
+              width={771}
               height={323}
               className="h-10 w-auto"
               priority
@@ -38,12 +42,13 @@ export function Navigation() {
             {navItems.map((item) => (
               <Link
                 key={item.name}
-                href={item.href}
+                href={`/${locale}${item.href}`}
                 className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
               >
-                {item.name}
+                {t(item.name)}
               </Link>
             ))}
+            <LanguageSwitcher />
           </div>
 
           <div className="md:hidden">
@@ -60,15 +65,18 @@ export function Navigation() {
                     return (
                       <Link
                         key={item.name}
-                        href={item.href}
+                        href={`/${locale}${item.href}`}
                         onClick={() => setIsOpen(false)}
                         className="flex items-center space-x-3 text-lg font-medium text-foreground/80 hover:text-foreground transition-colors"
                       >
                         <Icon className="h-5 w-5" />
-                        <span>{item.name}</span>
+                        <span>{t(item.name)}</span>
                       </Link>
                     );
                   })}
+                  <div className="pt-4 border-t border-border">
+                    <LanguageSwitcher />
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>

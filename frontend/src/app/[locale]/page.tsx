@@ -5,6 +5,7 @@ import { ArrowRight, Code, Palette, Zap, Music, Music2, Music3, Music4 } from "l
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslations, useLocale } from "next-intl";
 
 const musicNotes = [Music, Music2, Music3, Music4];
 
@@ -54,25 +55,16 @@ const Star = ({ index }: { index: number }) => {
   );
 };
 
-const features = [
-  {
-    icon: Code,
-    title: "Clean Code",
-    description: "Writing maintainable and efficient code for scalable applications",
-  },
-  {
-    icon: Palette,
-    title: "Modern Design",
-    description: "Creating beautiful and intuitive user interfaces",
-  },
-  {
-    icon: Zap,
-    title: "Performance",
-    description: "Optimizing for speed and best user experience",
-  },
+const featuresData = [
+  { icon: Code, id: "cleanCode" },
+  { icon: Palette, id: "modernDesign" },
+  { icon: Zap, id: "performance" },
 ];
 
 export default function Home() {
+  const t = useTranslations('home');
+  const locale = useLocale();
+
   return (
     <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -88,19 +80,19 @@ export default function Home() {
           className="text-center max-w-3xl mx-auto"
         >
           <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/50 bg-clip-text text-transparent">
-            Hi, I'm Hoshipu
+            {t('hero.title')}
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground mb-8">
-            Full-stack developer crafting exceptional digital experiences
+            {t('hero.subtitle')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg">
-              <Link href="/projects">
-                View My Work <ArrowRight className="ml-2 h-4 w-4" />
+              <Link href={`/${locale}/projects`}>
+                {t('hero.viewWork')} <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg">
-              <Link href="/contact">Get in Touch</Link>
+              <Link href={`/${locale}/contact`}>{t('hero.getInTouch')}</Link>
             </Button>
           </div>
         </motion.div>
@@ -114,11 +106,11 @@ export default function Home() {
           transition={{ duration: 0.6 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-6"
         >
-          {features.map((feature, index) => {
+          {featuresData.map((feature, index) => {
             const Icon = feature.icon;
             return (
               <motion.div
-                key={feature.title}
+                key={feature.id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -129,8 +121,8 @@ export default function Home() {
                     <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                       <Icon className="h-6 w-6 text-primary" />
                     </div>
-                    <CardTitle>{feature.title}</CardTitle>
-                    <CardDescription>{feature.description}</CardDescription>
+                    <CardTitle>{t(`features.${feature.id}.title`)}</CardTitle>
+                    <CardDescription>{t(`features.${feature.id}.description`)}</CardDescription>
                   </CardHeader>
                 </Card>
               </motion.div>
