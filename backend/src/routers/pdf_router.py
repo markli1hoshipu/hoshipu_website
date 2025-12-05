@@ -1,5 +1,6 @@
-from fastapi import APIRouter, UploadFile, File, Form
+from fastapi import APIRouter, UploadFile, File, Form, Depends
 from fastapi.responses import JSONResponse, StreamingResponse
+from sqlalchemy.orm import Session
 from typing import List, Optional
 import logging
 import zipfile
@@ -11,6 +12,8 @@ from pdf_processor import (
     validate_required_fields,
     DEFAULT_TEMPLATES
 )
+from database import get_db
+from models import PdfTemplate
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -87,5 +90,9 @@ async def process_and_download(
 
 
 @router.get("/templates")
-async def get_templates():
-    return {"templates": DEFAULT_TEMPLATES}
+async def get_templates(db: Session = Depends(get_db)):
+    db_templates = db.query(PdfTemplate).all()
+    templates_dict = {t.name: t.template_string for t in db_templates}
+    if not templates_dict:
+        templates_dict = DEFAULT_TEMPLATES
+    return {"templates": templates_dict}
