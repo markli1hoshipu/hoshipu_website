@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, ArrowRight, Calculator, Package } from "lucide-react";
+import { FileText, ArrowRight, Calculator, Package, Plane } from "lucide-react";
 import Link from "next/link";
 import Messages from "@/components/Messages";
 
@@ -26,6 +26,15 @@ const projects = [
     type: "game",
     language: "zh",
     icon: Calculator,
+  },
+  {
+    title: "QFF 航程信息整理工具",
+    description: "管理航程翻译输出模板、航司代码对照表和机场代码对照表，方便整理航班信息。",
+    tags: ["CHINESE", "航空", "数据管理"],
+    link: "/projects/qff-travel",
+    type: "tool",
+    language: "zh",
+    icon: Plane,
   },
   {
     title: "敬请期待",
