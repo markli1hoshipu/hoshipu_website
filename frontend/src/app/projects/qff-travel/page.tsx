@@ -51,6 +51,7 @@ export default function QFFTravelPage() {
   
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => Promise<void>) | null>(null);
+  const [passwordDialogType, setPasswordDialogType] = useState<"delete" | "save">("delete");
   
   const [editingTemplate, setEditingTemplate] = useState<TravelTemplate | null>(null);
   const [editingAirline, setEditingAirline] = useState<TravelAirline | null>(null);
@@ -207,6 +208,7 @@ export default function QFFTravelPage() {
     setPendingAction(() => async () => {
       await deleteTravelTemplate(id, "qff123");
     });
+    setPasswordDialogType("delete");
     setShowPasswordDialog(true);
   };
 
@@ -236,6 +238,7 @@ export default function QFFTravelPage() {
     setPendingAction(() => async () => {
       await deleteTravelAirline(id, "qff123");
     });
+    setPasswordDialogType("delete");
     setShowPasswordDialog(true);
   };
 
@@ -265,6 +268,7 @@ export default function QFFTravelPage() {
     setPendingAction(() => async () => {
       await deleteTravelAirport(id, "qff123");
     });
+    setPasswordDialogType("delete");
     setShowPasswordDialog(true);
   };
 
@@ -624,13 +628,14 @@ export default function QFFTravelPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button 
-                  className="flex-1" 
+                <Button
+                  className="flex-1"
                   onClick={() => {
                     if (!templateForm.name.trim() || !templateForm.config_json.trim()) {
                       alert("请填写完整信息");
                       return;
                     }
+                    setPasswordDialogType("save");
                     setShowPasswordDialog(true);
                     setPendingAction(() => async () => {
                       await handleSaveTemplate("qff123");
@@ -672,13 +677,14 @@ export default function QFFTravelPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button 
-                  className="flex-1" 
+                <Button
+                  className="flex-1"
                   onClick={() => {
                     if (!airlineForm.code.trim() || !airlineForm.name.trim()) {
                       alert("请填写完整信息");
                       return;
                     }
+                    setPasswordDialogType("save");
                     setShowPasswordDialog(true);
                     setPendingAction(() => async () => {
                       await handleSaveAirline("qff123");
@@ -720,13 +726,14 @@ export default function QFFTravelPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button 
-                  className="flex-1" 
+                <Button
+                  className="flex-1"
                   onClick={() => {
                     if (!airportForm.code.trim() || !airportForm.name.trim()) {
                       alert("请填写完整信息");
                       return;
                     }
+                    setPasswordDialogType("save");
                     setShowPasswordDialog(true);
                     setPendingAction(() => async () => {
                       await handleSaveAirport("qff123");
@@ -751,8 +758,8 @@ export default function QFFTravelPage() {
           setPendingAction(null);
         }}
         onSubmit={handlePasswordSubmit}
-        title="确认删除"
-        description="请输入密码以删除"
+        title={passwordDialogType === "delete" ? "确认删除" : "确认保存"}
+        description={passwordDialogType === "delete" ? "请输入密码以删除" : "请输入密码以保存"}
       />
     </div>
   );

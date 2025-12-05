@@ -13,13 +13,16 @@ import {
   Send,
   MessageCircle,
   Loader2,
-  Trash2
+  Trash2,
+  Reply,
+  X
 } from "lucide-react";
 
 interface Message {
   id: number;
   content: string;
   created_at: string;
+  quote_id?: number | null;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
@@ -34,6 +37,7 @@ export default function Messages() {
   const [deleteMessageId, setDeleteMessageId] = useState<number | null>(null);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
 
   // Fetch messages
   const fetchMessages = async () => {
@@ -70,11 +74,15 @@ export default function Messages() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ content: newMessage }),
+        body: JSON.stringify({
+          content: newMessage,
+          quote_id: replyingTo?.id || null
+        }),
       });
 
       if (response.ok) {
         setNewMessage("");
+        setReplyingTo(null);
         fetchMessages(); // Refresh messages
       }
     } catch (error) {
@@ -83,6 +91,16 @@ export default function Messages() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Handle reply button click
+  const handleReplyClick = (message: Message) => {
+    setReplyingTo(message);
+  };
+
+  // Get quoted message content
+  const getQuotedMessage = (quoteId: number) => {
+    return messages.find((m) => m.id === quoteId);
   };
 
   // Handle delete button click
@@ -221,33 +239,55 @@ export default function Messages() {
                 </CardHeader>
                 <CardContent className="flex-1 overflow-hidden flex flex-col gap-4 p-6">
                   {/* New Message Form */}
-                  <form onSubmit={handleSubmit} className="flex gap-2 items-end flex-shrink-0">
-                    <Textarea
-                      placeholder="在此留言..."
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      maxLength={1000}
-                      disabled={submitting}
-                      className="!h-[120px]"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          if (newMessage.trim()) {
-                            handleSubmit(e as any);
+                  <form onSubmit={handleSubmit} className="flex flex-col gap-2 flex-shrink-0">
+                    {/* Reply indicator */}
+                    {replyingTo && (
+                      <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg border border-muted">
+                        <Reply className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-muted-foreground">回复</p>
+                          <p className="text-sm truncate">{replyingTo.content}</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 shrink-0"
+                          onClick={() => setReplyingTo(null)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 items-end">
+                      <Textarea
+                        placeholder="在此留言..."
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        maxLength={1000}
+                        disabled={submitting}
+                        className="!h-[120px]"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            if (newMessage.trim()) {
+                              handleSubmit(e as any);
+                            }
                           }
-                        }
-                      }}
-                    />
-                    <Button type="submit" disabled={submitting || !newMessage.trim()} className="shrink-0">
-                      {submitting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Send className="h-4 w-4 mr-1" />
-                          发送
-                        </>
-                      )}
-                    </Button>
+                        }}
+                      />
+                      <Button type="submit" disabled={submitting || !newMessage.trim()} className="shrink-0">
+                        {submitting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4 mr-1" />
+                            发送
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </form>
 
                   {/* Messages List */}
@@ -261,27 +301,50 @@ export default function Messages() {
                         还没有留言，来写第一条吧！
                       </div>
                     ) : (
-                      messages.map((message) => (
-                        <motion.div
-                          key={message.id}
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          className="p-4 rounded-lg bg-muted/50 relative group"
-                        >
-                          <p className="text-sm mb-2 break-words pr-8">{message.content}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(message.created_at)}
-                          </p>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => handleDeleteClick(message.id)}
+                      messages.map((message) => {
+                        const quotedMsg = message.quote_id ? getQuotedMessage(message.quote_id) : null;
+                        return (
+                          <motion.div
+                            key={message.id}
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="p-4 rounded-lg bg-muted/50 relative group"
                           >
-                            <Trash2 className="h-3 w-3 text-destructive" />
-                          </Button>
-                        </motion.div>
-                      ))
+                            <p className="text-sm mb-2 break-words pr-8">
+                              {/* Quoted message - small gray line */}
+                              {quotedMsg && (
+                                <span className="block text-xs text-muted-foreground/70 mb-1 italic truncate overflow-hidden whitespace-nowrap">
+                                  回复: {quotedMsg.content}
+                                </span>
+                              )}
+                              {message.content}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDate(message.created_at)}
+                            </p>
+
+                            {/* Action buttons - vertical layout */}
+                            <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => handleReplyClick(message)}
+                              >
+                                <Reply className="h-3 w-3 text-blue-500" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => handleDeleteClick(message.id)}
+                              >
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </Button>
+                            </div>
+                          </motion.div>
+                        );
+                      })
                     )}
                   </div>
                 </CardContent>
