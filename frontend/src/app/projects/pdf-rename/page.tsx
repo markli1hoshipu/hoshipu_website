@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,24 @@ import {
   AlertCircle,
   CheckCircle,
   Loader2,
-  Settings
+  Settings,
+  Plus,
+  Edit,
+  X
 } from "lucide-react";
 import { saveAs } from "file-saver";
-import { processPDFs, processPDFsAndDownload, type ProcessedPDFResult } from "@/lib/apiClient";
+import { 
+  processPDFs, 
+  processPDFsAndDownload, 
+  type ProcessedPDFResult,
+  getAllPdfTemplates,
+  createPdfTemplate,
+  updatePdfTemplate,
+  deletePdfTemplate,
+  type PdfTemplate
+} from "@/lib/apiClient";
+import TemplateBuilder from "@/components/TemplateBuilder";
+import PasswordDialog from "@/components/PasswordDialog";
 
 interface ProcessedFile {
   originalFile: File;
@@ -36,17 +50,69 @@ interface ProcessedFile {
   error?: string;
 }
 
-const DEFAULT_TEMPLATES = [
-  { name: "行程信息", pattern: "{buyer} {name} {origin}-{destination} {amount}.pdf" },
-  { name: "仅发票号", pattern: "{invoice_number}.pdf" },
-];
-
 export default function PDFRenamePage() {
   const [files, setFiles] = useState<File[]>([]);
   const [processing, setProcessing] = useState(false);
   const [processedFiles, setProcessedFiles] = useState<ProcessedFile[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState(DEFAULT_TEMPLATES[0].pattern);
+  const [templates, setTemplates] = useState<PdfTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
   const [customTemplate, setCustomTemplate] = useState("");
+  const [showTemplateBuilder, setShowTemplateBuilder] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<PdfTemplate | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  const loadTemplates = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllPdfTemplates();
+      setTemplates(data);
+      if (data.length > 0 && !selectedTemplateId) {
+        setSelectedTemplateId(data[0].id);
+      }
+    } catch (error) {
+      console.error("Failed to load templates:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveTemplate = async (template: { id?: number; name: string; template_string: string }, password: string) => {
+    if (template.id) {
+      await updatePdfTemplate(template.id, password, template.name, template.template_string);
+    } else {
+      await createPdfTemplate(template.name, template.template_string, password);
+    }
+    await loadTemplates();
+    setEditingTemplate(null);
+  };
+
+  const handleDeleteTemplate = (id: number) => {
+    setPendingDeleteId(id);
+    setShowPasswordDialog(true);
+  };
+
+  const handlePasswordSubmit = async (password: string) => {
+    if (pendingDeleteId === null) return;
+    
+    await deletePdfTemplate(pendingDeleteId, password);
+    await loadTemplates();
+    if (selectedTemplateId === pendingDeleteId) {
+      setSelectedTemplateId(templates.length > 1 ? templates[0].id : null);
+    }
+    setPendingDeleteId(null);
+  };
+
+  const getSelectedTemplate = (): string => {
+    if (customTemplate) return customTemplate;
+    const template = templates.find(t => t.id === selectedTemplateId);
+    return template?.template_string || "";
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFiles = Array.from(e.target.files || []);
@@ -62,7 +128,7 @@ export default function PDFRenamePage() {
     setProcessedFiles([]);
 
     try {
-      const template = customTemplate || selectedTemplate;
+      const template = getSelectedTemplate();
       const response = await processPDFs(files, template);
       
       const results: ProcessedFile[] = response.results.map((result, index) => ({
@@ -85,7 +151,7 @@ export default function PDFRenamePage() {
 
   const downloadAll = async () => {
     try {
-      const template = customTemplate || selectedTemplate;
+      const template = getSelectedTemplate();
       const blob = await processPDFsAndDownload(files, template);
       saveAs(blob, "renamed_pdfs.zip");
     } catch (error) {
@@ -189,8 +255,8 @@ export default function PDFRenamePage() {
                   <div>
                     <CardTitle>已处理文件</CardTitle>
                     <CardDescription>
-                      成功 {processedFiles.filter(f => f.status === "success").length} 个，{" "}
-                      不完整 {processedFiles.filter(f => f.status === "incomplete").length} 个，{" "}
+                      成功 {processedFiles.filter(f => f.status === "success").length} 个， 
+                      不完整 {processedFiles.filter(f => f.status === "incomplete").length} 个， 
                       错误 {processedFiles.filter(f => f.status === "error").length} 个
                     </CardDescription>
                   </div>
@@ -254,31 +320,84 @@ export default function PDFRenamePage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>模板设置</CardTitle>
-              <CardDescription>选择或创建命名模板</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>模板设置</CardTitle>
+                  <CardDescription>选择或创建命名模板</CardDescription>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setEditingTemplate(null);
+                    setShowTemplateBuilder(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  新建
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">预设模板</label>
-                <div className="space-y-2">
-                  {DEFAULT_TEMPLATES.map((template, index) => (
-                    <Button
-                      key={index}
-                      variant={selectedTemplate === template.pattern ? "default" : "outline"}
-                      className="w-full justify-start"
-                      onClick={() => {
-                        setSelectedTemplate(template.pattern);
-                        setCustomTemplate("");
-                      }}
-                    >
-                      {template.name}
-                    </Button>
-                  ))}
-                </div>
+                <label className="text-sm font-medium mb-2 block">模板列表</label>
+                {loading ? (
+                  <div className="text-sm text-muted-foreground text-center py-4">
+                    加载中...
+                  </div>
+                ) : templates.length === 0 ? (
+                  <div className="text-sm text-muted-foreground text-center py-4">
+                    暂无模板，请创建一个
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {templates.map((template) => (
+                      <div
+                        key={template.id}
+                        className={`flex items-center justify-between p-3 border rounded-lg ${
+                          selectedTemplateId === template.id && !customTemplate
+                            ? "border-primary bg-primary/5"
+                            : "hover:bg-muted/50"
+                        }`}
+                      >
+                        <button
+                          className="flex-1 text-left"
+                          onClick={() => {
+                            setSelectedTemplateId(template.id);
+                            setCustomTemplate("");
+                          }}
+                        >
+                          <div className="font-medium text-sm">{template.name}</div>
+                          <div className="text-xs text-muted-foreground font-mono mt-1">
+                            {template.template_string}
+                          </div>
+                        </button>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditingTemplate(template);
+                              setShowTemplateBuilder(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteTemplate(template.id)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">自定义模板</label>
+                <label className="text-sm font-medium mb-2 block">自定义模板（临时）</label>
                 <Input
                   placeholder="{buyer} {name} {origin}-{destination}.pdf"
                   value={customTemplate}
@@ -325,6 +444,27 @@ export default function PDFRenamePage() {
           </Card>
         </div>
       </div>
+
+      <TemplateBuilder
+        isOpen={showTemplateBuilder}
+        onClose={() => {
+          setShowTemplateBuilder(false);
+          setEditingTemplate(null);
+        }}
+        onSave={handleSaveTemplate}
+        editingTemplate={editingTemplate}
+      />
+
+      <PasswordDialog
+        isOpen={showPasswordDialog}
+        onClose={() => {
+          setShowPasswordDialog(false);
+          setPendingDeleteId(null);
+        }}
+        onSubmit={handlePasswordSubmit}
+        title="删除模板"
+        description="请输入密码以删除此模板"
+      />
     </div>
   );
 }
