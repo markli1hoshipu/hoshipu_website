@@ -1,0 +1,136 @@
+{
+  "nav": {
+    "home": "首页",
+    "about": "关于",
+    "projects": "项目",
+    "contact": "联系"
+  },
+  "home": {
+    "hero": {
+      "title": "你好，我是 Hoshipu",
+      "subtitle": "全栈开发者，致力于打造卓越的数字体验",
+      "viewWork": "查看作品",
+      "getInTouch": "联系我"
+    },
+    "features": {
+      "cleanCode": {
+        "title": "简洁代码",
+        "description": "编写可维护和高效的代码，构建可扩展的应用程序"
+      },
+      "modernDesign": {
+        "title": "现代设计",
+        "description": "创造美观直观的用户界面"
+      },
+      "performance": {
+        "title": "性能优化",
+        "description": "优化速度和用户体验"
+      }
+    }
+  },
+  "about": {
+    "title": "关于我",
+    "description": "我是一位充满热情的全栈开发者，专注于构建现代化的网络应用程序。我热爱创造高效、可扩展的解决方案，并紧跟最新技术趋势。",
+    "skillsTitle": "技能",
+    "skills": {
+      "frontendTitle": "前端",
+      "frontend": ["React", "Next.js", "TypeScript", "Tailwind CSS", "Framer Motion"],
+      "backendTitle": "后端",
+      "backend": ["Node.js", "Python", "PostgreSQL", "MongoDB", "REST APIs"],
+      "toolsTitle": "工具",
+      "tools": ["Git", "Docker", "AWS", "Vercel", "Figma"]
+    },
+    "experienceTitle": "工作经验",
+    "experience": {
+      "exp1": {
+        "title": "高级开发工程师",
+        "company": "科技公司",
+        "period": "2022 - 至今",
+        "description": "领导可扩展网络应用程序的开发"
+      },
+      "exp2": {
+        "title": "全栈开发工程师",
+        "company": "创业公司",
+        "period": "2020 - 2022",
+        "description": "构建和维护多个客户项目"
+      }
+    }
+  },
+  "blog": {
+    "title": "博客",
+    "description": "关于网络开发、编程和技术的想法、教程和见解。",
+    "readMore": "阅读更多"
+  },
+  "contact": {
+    "title": "联系我",
+    "description": "有项目想法或想要合作？欢迎联系！",
+    "form": {
+      "title": "发送消息",
+      "description": "填写下面的表格，我会尽快回复您。",
+      "nameLabel": "姓名",
+      "namePlaceholder": "您的姓名",
+      "emailLabel": "邮箱",
+      "emailPlaceholder": "your.email@example.com",
+      "messageLabel": "消息",
+      "messagePlaceholder": "告诉我您的项目...",
+      "submitButton": "发送消息"
+    },
+    "info": {
+      "title": "联系信息",
+      "email": "邮箱",
+      "phone": "电话",
+      "location": "位置"
+    },
+    "availability": {
+      "title": "可用性",
+      "status": "开放机会",
+      "description": "目前可接受自由职业项目和全职职位。"
+    }
+  },
+  "projects": {
+    "title": "项目",
+    "description": "我参与过的项目合集，展示了我在全栈开发、UI/UX设计和问题解决方面的技能。",
+    "pdfRename": {
+      "title": "GJP PDF 重命名工具",
+      "description": "智能PDF批量重命名工具，可提取发票信息并使用自定义模板重命名文件。",
+      "tags": ["PDF处理", "批量重命名"]
+    },
+    "game24": {
+      "title": "计算24小游戏",
+      "description": "经典数学益智游戏，使用四个数字和基本运算符计算出24。锻炼你的数学思维和计算能力！",
+      "tags": ["游戏", "数学"]
+    },
+    "qffTravel": {
+      "title": "QFF 航程信息整理工具",
+      "description": "管理航程翻译输出模板、航司代码对照表和机场代码对照表，方便整理航班信息。",
+      "tags": ["航空", "数据管理"]
+    },
+    "comingSoon": {
+      "title": "敬请期待",
+      "description": "更多精彩项目正在开发中，即将上线...",
+      "tags": ["即将推出"]
+    },
+    "openTool": "打开工具"
+  },
+  "messages": {
+    "title": "留言板",
+    "placeholder": "在此留言...",
+    "send": "发送",
+    "noMessages": "还没有留言，来写第一条吧！",
+    "reply": "回复",
+    "delete": "删除",
+    "deleteConfirm": "删除留言",
+    "deleteDescription": "请输入密码以确认删除此留言",
+    "passwordPlaceholder": "请输入密码",
+    "cancel": "取消",
+    "confirmDelete": "确认删除",
+    "deleting": "删除中..."
+  },
+  "footer": {
+    "copyright": "© {year} Hoshipu. All rights reserved."
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功"
+  }
+}

@@ -4,29 +4,19 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Code2, Database, Globe, Server } from "lucide-react";
+import { useTranslations } from "next-intl";
 
-const skills = {
-  frontend: ["React", "Next.js", "TypeScript", "Tailwind CSS", "Framer Motion"],
-  backend: ["Node.js", "Python", "PostgreSQL", "MongoDB", "REST APIs"],
-  tools: ["Git", "Docker", "AWS", "Vercel", "Figma"],
-};
-
-const experience = [
-  {
-    title: "Senior Developer",
-    company: "Tech Company",
-    period: "2022 - Present",
-    description: "Leading development of scalable web applications",
-  },
-  {
-    title: "Full Stack Developer",
-    company: "Startup Inc",
-    period: "2020 - 2022",
-    description: "Built and maintained multiple client projects",
-  },
-];
+const experienceIds = ["exp1", "exp2"];
 
 export default function About() {
+  const t = useTranslations('about');
+
+  const skills = {
+    frontend: t.raw('skills.frontend') as string[],
+    backend: t.raw('skills.backend') as string[],
+    tools: t.raw('skills.tools') as string[],
+  };
+
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <motion.div
@@ -34,10 +24,9 @@ export default function About() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        <h1 className="text-4xl md:text-5xl font-bold mb-6">About Me</h1>
+        <h1 className="text-4xl md:text-5xl font-bold mb-6">{t('title')}</h1>
         <p className="text-lg text-muted-foreground mb-12 max-w-3xl">
-          I'm a passionate full-stack developer with expertise in building modern web applications.
-          I love creating efficient, scalable solutions and staying up-to-date with the latest technologies.
+          {t('description')}
         </p>
       </motion.div>
 
@@ -48,13 +37,13 @@ export default function About() {
         transition={{ duration: 0.6 }}
         className="mb-16"
       >
-        <h2 className="text-3xl font-bold mb-8">Skills</h2>
+        <h2 className="text-3xl font-bold mb-8">{t('skillsTitle')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Globe className="h-5 w-5 text-primary" />
-                <CardTitle>Frontend</CardTitle>
+                <CardTitle>{t('skills.frontendTitle')}</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
@@ -70,7 +59,7 @@ export default function About() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Server className="h-5 w-5 text-primary" />
-                <CardTitle>Backend</CardTitle>
+                <CardTitle>{t('skills.backendTitle')}</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
@@ -86,7 +75,7 @@ export default function About() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Code2 className="h-5 w-5 text-primary" />
-                <CardTitle>Tools</CardTitle>
+                <CardTitle>{t('skills.toolsTitle')}</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
@@ -106,11 +95,11 @@ export default function About() {
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
       >
-        <h2 className="text-3xl font-bold mb-8">Experience</h2>
+        <h2 className="text-3xl font-bold mb-8">{t('experienceTitle')}</h2>
         <div className="space-y-6">
-          {experience.map((exp, index) => (
+          {experienceIds.map((expId, index) => (
             <motion.div
-              key={exp.title}
+              key={expId}
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
@@ -118,14 +107,14 @@ export default function About() {
             >
               <Card>
                 <CardHeader>
-                  <CardTitle>{exp.title}</CardTitle>
+                  <CardTitle>{t(`experience.${expId}.title`)}</CardTitle>
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>{exp.company}</span>
-                    <span>{exp.period}</span>
+                    <span>{t(`experience.${expId}.company`)}</span>
+                    <span>{t(`experience.${expId}.period`)}</span>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">{exp.description}</p>
+                  <p className="text-muted-foreground">{t(`experience.${expId}.description`)}</p>
                 </CardContent>
               </Card>
             </motion.div>
