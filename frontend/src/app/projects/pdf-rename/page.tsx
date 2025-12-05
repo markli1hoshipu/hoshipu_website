@@ -119,6 +119,24 @@ export default function PDFRenamePage() {
     setFiles((prev) => [...prev, ...uploadedFiles]);
   };
 
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const droppedFiles = Array.from(e.dataTransfer.files).filter(
+      file => file.type === "application/pdf"
+    );
+    
+    if (droppedFiles.length > 0) {
+      setFiles((prev) => [...prev, ...droppedFiles]);
+    }
+  };
+
   const removeFile = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
@@ -188,7 +206,11 @@ export default function PDFRenamePage() {
               <CardDescription>选择一个或多个PDF文件进行处理</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
+              <div 
+                className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors"
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+              >
                 <Input
                   type="file"
                   accept=".pdf"

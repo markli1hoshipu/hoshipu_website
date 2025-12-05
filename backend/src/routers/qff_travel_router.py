@@ -4,6 +4,8 @@ Router for QFF Travel management - templates, airlines, airports
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from pydantic import BaseModel
+import json
 from database import get_db
 from models import TravelOutputTemplate, TravelAirline, TravelAirport
 from schemas import (
@@ -11,10 +13,20 @@ from schemas import (
     TravelAirlineCreate, TravelAirlineUpdate, TravelAirlineDelete, TravelAirlineResponse,
     TravelAirportCreate, TravelAirportUpdate, TravelAirportDelete, TravelAirportResponse
 )
+from travel_translator import translate_itinerary
 
 router = APIRouter(prefix="/api/qff-travel", tags=["qff-travel"])
 
 PASSWORD = "qff123"
+
+
+class TranslateRequest(BaseModel):
+    input_text: str
+    template_id: int
+
+
+class TranslateResponse(BaseModel):
+    output_text: str
 
 
 @router.get("/templates", response_model=List[TravelTemplateResponse])
@@ -346,3 +358,36 @@ def delete_airport(airport_id: int, delete_data: TravelAirportDelete, db: Sessio
     db.delete(airport)
     db.commit()
     return None
+
+
+@router.post("/translate", response_model=TranslateResponse)
+def translate_travel_itinerary(request: TranslateRequest, db: Session = Depends(get_db)):
+    """Translate travel itinerary using selected template"""
+    template = db.query(TravelOutputTemplate).filter(TravelOutputTemplate.id == request.template_id).first()
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Template with id {request.template_id} not found"
+        )
+    
+    airlines_query = db.query(TravelAirline).filter(TravelAirline.is_active == True).all()
+    airlines_dict = {airline.code: airline.name for airline in airlines_query}
+    
+    airports_query = db.query(TravelAirport).filter(TravelAirport.is_active == True).all()
+    airports_dict = {airport.code: airport.name for airport in airports_query}
+    
+    template_config = json.loads(template.config_json)
+    
+    try:
+        output_text = translate_itinerary(
+            request.input_text,
+            template_config,
+            airlines_dict,
+            airports_dict
+        )
+        return TranslateResponse(output_text=output_text)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Translation failed: {str(e)}"
+        )

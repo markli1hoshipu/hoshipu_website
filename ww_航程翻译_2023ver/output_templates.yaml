@@ -1,0 +1,58 @@
+# 航程翻译输出模板配置文件
+# 模板支持以下占位符：
+# {pnr_code} - PNR编号
+# {greeting} - 问候语
+# {flights} - 航班信息列表
+# {tickets} - 票号信息列表
+
+templates:
+  2023式模板:
+    description: "标准2023版输出格式"
+    greeting: "尊敬的客户，您的行程如下，请按机场要求提前抵达办理登机。"
+    show_pnr_code: true
+    pnr_format: "编号：{pnr_code}"
+    
+    flight_format: "{month}{day}日: {dep_airport}{dep_terminal}{dep_hour}点{dep_min}分出发 --  {arr_airport}{arr_terminal}{arr_hour}点{arr_min}分到达; {airline_name} 航班号：{flight_number}"
+    flight_format_no_airline: "{month}{day}日: {dep_airport}{dep_terminal}{dep_hour}点{dep_min}分出发 --  {arr_airport}{arr_terminal}{arr_hour}点{arr_min}分到达; 航班号：{flight_number}"
+    
+    terminal_format: "(航站楼{terminal})"
+    terminal_empty: ""
+    
+    ticket_format: "{passenger_name}: {ticket_number}"
+    
+    structure:
+      - pnr_code
+      - greeting
+      - flights
+      - tickets
+
+  民航信息式模板:
+    description: "中国民航信息格式，单行紧凑输出"
+    header: "【中国民航信息】"
+    footer: ",已出票请准时登机"
+    show_pnr_code: true
+    pnr_format: "编号{pnr_code}"
+    price_format: "含税"
+    
+    # 乘客名用分号分隔
+    passenger_separator: "；"
+    passenger_format: "{name}"
+    
+    # 航班格式: (航司名) 航班号/日期/机场-机场 时间-时间
+    flight_format: "({airline_name}) {flight_number}/{month}{day}日/{dep_airport}-{arr_airport}{arr_terminal} {dep_hour}:{dep_min}-{arr_hour}:{arr_min}"
+    flight_format_no_airline: "{flight_number}/{month}{day}日/{dep_airport}-{arr_airport}{arr_terminal} {dep_hour}:{dep_min}-{arr_hour}:{arr_min}"
+    
+    # 多段航班用分号分隔
+    flight_separator: "；"
+    
+    # 航站楼格式
+    terminal_format: "{terminal}航站楼"
+    terminal_empty: ""
+    
+    # 票号格式: 票号xxx-xxx/编号xxx
+    ticket_separator: "-"
+    ticket_format: "{ticket}"
+    tickets_prefix: "/票号"
+    
+    # 输出结构: 一行显示
+    single_line: true
