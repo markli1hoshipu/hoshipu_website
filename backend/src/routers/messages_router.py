@@ -29,9 +29,16 @@ def create_message(message: MessageCreate, db: Session = Depends(get_db)):
     Create a new message
 
     - **content**: Message content (1-1000 characters)
+    - **quote_id**: Optional ID of message being replied to
     """
+    # Validate quote_id if provided
+    if message.quote_id is not None:
+        quoted_message = db.query(Message).filter(Message.id == message.quote_id).first()
+        if quoted_message is None:
+            raise HTTPException(status_code=404, detail="Quoted message not found")
+
     # Create new message
-    db_message = Message(content=message.content)
+    db_message = Message(content=message.content, quote_id=message.quote_id)
     db.add(db_message)
     db.commit()
     db.refresh(db_message)

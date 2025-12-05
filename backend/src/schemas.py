@@ -9,6 +9,7 @@ from typing import Optional
 class MessageCreate(BaseModel):
     """Schema for creating a new message"""
     content: str = Field(..., min_length=1, max_length=1000, description="Message content")
+    quote_id: Optional[int] = Field(None, description="ID of message being replied to")
 
 
 class MessageResponse(BaseModel):
@@ -16,6 +17,7 @@ class MessageResponse(BaseModel):
     id: int
     content: str
     created_at: datetime
+    quote_id: Optional[int]
 
     class Config:
         from_attributes = True

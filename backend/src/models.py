@@ -1,7 +1,7 @@
 """
 SQLAlchemy models for database tables
 """
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey
 from sqlalchemy.sql import func
 from database import Base
 
@@ -16,6 +16,7 @@ class Message(Base):
     content = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     is_visible = Column(Boolean, default=True, nullable=False)
+    quote_id = Column(Integer, ForeignKey("messages.id"), nullable=True, comment="引用的消息ID，用于回复功能")
 
     def __repr__(self):
         return f"<Message(id={self.id}, created_at={self.created_at})>"
