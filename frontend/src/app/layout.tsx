@@ -3,6 +3,7 @@ import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import { RouteChangeProvider } from "./providers";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -31,7 +32,9 @@ export default function RootLayout({
       >
         <Navigation />
         <main className="min-h-screen pt-16">
-          {children}
+          <RouteChangeProvider>
+            {children}
+          </RouteChangeProvider>
         </main>
         <Footer />
       </body>
