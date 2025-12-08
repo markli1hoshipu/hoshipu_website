@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Menu, X, Home, User, Briefcase, BookOpen, Mail } from "lucide-react";
@@ -27,7 +27,7 @@ export function Navigation() {
     <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href={`/${locale}`} className="flex items-center">
+          <Link href="/" className="flex items-center">
             <Image
               src="/hoshipu_logo.png"
               alt="Hoshipu"
@@ -42,7 +42,7 @@ export function Navigation() {
             {navItems.map((item) => (
               <Link
                 key={item.name}
-                href={`/${locale}${item.href}`}
+                href={item.href}
                 className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
               >
                 {t(item.name)}
@@ -65,7 +65,7 @@ export function Navigation() {
                     return (
                       <Link
                         key={item.name}
-                        href={`/${locale}${item.href}`}
+                        href={item.href}
                         onClick={() => setIsOpen(false)}
                         className="flex items-center space-x-3 text-lg font-medium text-foreground/80 hover:text-foreground transition-colors"
                       >
