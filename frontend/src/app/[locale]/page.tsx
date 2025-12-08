@@ -9,18 +9,24 @@ import { useTranslations, useLocale } from "next-intl";
 
 const musicNotes = [Music, Music2, Music3, Music4];
 
+// Seeded random function for consistent SSR/CSR
+const seededRandom = (seed: number) => {
+  const x = Math.sin(seed) * 10000;
+  return Number((x - Math.floor(x)).toFixed(4));
+};
+
 const Star = ({ index }: { index: number }) => {
-  const randomDelay = Math.random() * 2;
-  const randomDuration = 8 + Math.random() * 6;
-  const randomX = Math.random() * 100;
-  const randomStartY = Math.random() * 60 - 10;
-  const randomEndY = randomStartY + 60 + Math.random() * 40;
-  const randomSize = 40 + Math.random() * 40;
-  const Note = musicNotes[Math.floor(Math.random() * musicNotes.length)];
-  const isBlack = Math.random() > 0.5;
+  const randomDelay = Number((seededRandom(index * 1) * 2).toFixed(2));
+  const randomDuration = Number((8 + seededRandom(index * 2) * 6).toFixed(2));
+  const randomX = Number((seededRandom(index * 3) * 100).toFixed(2));
+  const randomStartY = Number((seededRandom(index * 4) * 60 - 10).toFixed(2));
+  const randomEndY = Number((randomStartY + 60 + seededRandom(index * 5) * 40).toFixed(2));
+  const randomSize = Number((40 + seededRandom(index * 6) * 40).toFixed(2));
+  const Note = musicNotes[Math.floor(seededRandom(index * 7) * musicNotes.length)];
+  const isBlack = seededRandom(index * 8) > 0.5;
   
-  const fadeInDuration = 0.15 + Math.random() * 0.1;
-  const fadeOutDuration = 0.15 + Math.random() * 0.1;
+  const fadeInDuration = Number((0.15 + seededRandom(index * 9) * 0.1).toFixed(3));
+  const fadeOutDuration = Number((0.15 + seededRandom(index * 10) * 0.1).toFixed(3));
   const fadeInPoint = fadeInDuration;
   const fadeOutPoint = 1 - fadeOutDuration;
 

@@ -49,12 +49,12 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
 
   // Providing all messages to the client side is the easiest way to get started
-  const messages = await getMessages();
+  const messages = await getMessages({ locale });
 
   return (
     <html lang={locale} suppressHydrationWarning className={`${inter.variable} ${manrope.variable}`}>
       <body className="antialiased font-sans">
-        <NextIntlClientProvider messages={messages}>
+        <NextIntlClientProvider messages={messages} locale={locale}>
           <Navigation />
           <main className="min-h-screen pt-16">
             <RouteChangeProvider>

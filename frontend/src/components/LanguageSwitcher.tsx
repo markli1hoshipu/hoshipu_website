@@ -1,38 +1,59 @@
 "use client";
 
 import { useLocale } from 'next-intl';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter } from '@/i18n/routing';
 import { routing } from '@/i18n/routing';
-import { Button } from './ui/button';
 import { Globe } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from './ui/button';
+import { useTransition } from 'react';
+
+const localeNames = {
+  zh: '中文',
+  en: 'English'
+};
 
 export function LanguageSwitcher() {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
 
-  const switchLocale = (newLocale: string) => {
-    // Remove current locale from pathname
-    const segments = pathname.split('/');
-    segments[1] = newLocale; // Replace locale segment
-    const newPath = segments.join('/');
-    router.push(newPath);
+  const switchLocale = (newLocale: 'zh' | 'en') => {
+    if (newLocale === locale) return;
+    
+    const currentPath = window.location.pathname;
+    const pathWithoutLocale = currentPath.replace(/^\/(zh|en)/, '') || '/';
+    const newPath = `/${newLocale}${pathWithoutLocale}`;
+    window.location.href = newPath;
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <Globe className="h-4 w-4 text-muted-foreground" />
-      {routing.locales.map((loc) => (
-        <Button
-          key={loc}
-          variant={locale === loc ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => switchLocale(loc)}
-          className="text-xs"
-        >
-          {loc.toUpperCase()}
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="gap-2" disabled={isPending}>
+          <Globe className="h-4 w-4" />
+          <span className="text-xs">{localeNames[locale as keyof typeof localeNames]}</span>
         </Button>
-      ))}
-    </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {routing.locales.map((loc) => (
+          <DropdownMenuItem
+            key={loc}
+            onClick={() => switchLocale(loc)}
+            className="cursor-pointer"
+            disabled={loc === locale || isPending}
+          >
+            {localeNames[loc as keyof typeof localeNames]}
+            {loc === locale && ' ✓'}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
