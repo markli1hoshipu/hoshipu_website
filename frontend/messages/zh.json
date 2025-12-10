@@ -2,7 +2,7 @@
   "nav": {
     "home": "首页",
     "about": "关于",
-    "blog": "博客",
+    "collection": "收藏",
     "projects": "项目",
     "contact": "联系"
   },
@@ -56,10 +56,11 @@
       }
     }
   },
-  "blog": {
-    "title": "博客",
-    "description": "关于网络开发、编程和技术的想法、教程和见解。",
-    "readMore": "阅读更多"
+  "collection": {
+    "title": "收藏",
+    "description": "我的收藏和精选内容。",
+    "readMore": "查看更多",
+    "createNew": "创建新收藏"
   },
   "contact": {
     "title": "联系我",

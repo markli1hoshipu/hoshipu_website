@@ -14,7 +14,7 @@ const navItems = [
   { name: "home", href: "/", icon: Home },
   { name: "about", href: "/about", icon: User },
   { name: "projects", href: "/projects", icon: Briefcase },
-  { name: "blog", href: "/blog", icon: BookOpen },
+  { name: "collection", href: "/collection", icon: BookOpen },
   { name: "contact", href: "/contact", icon: Mail },
 ];
 

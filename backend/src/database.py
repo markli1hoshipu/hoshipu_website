@@ -35,3 +35,10 @@ def get_db():
         yield db
     finally:
         db.close()
+
+# For direct psycopg2 connections
+import psycopg2
+
+def get_db_connection():
+    """Get a psycopg2 connection"""
+    return psycopg2.connect(DATABASE_URL)
