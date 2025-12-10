@@ -47,6 +47,8 @@ export default function CreateCollection() {
     e.preventDefault();
     setUploading(true);
 
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:6101';
+
     try {
       const formData = new FormData();
       formData.append('title', title);
@@ -57,7 +59,7 @@ export default function CreateCollection() {
         formData.append('files', file);
       });
 
-      const response = await fetch('http://localhost:6101/api/collection/', {
+      const response = await fetch(`${API_BASE_URL}/api/collection/`, {
         method: 'POST',
         body: formData,
       });

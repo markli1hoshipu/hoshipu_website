@@ -87,8 +87,9 @@ export default function Collection() {
   }, []);
 
   const fetchCollections = async () => {
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:6101';
     try {
-      const response = await fetch('http://localhost:6101/api/collection/');
+      const response = await fetch(`${API_BASE_URL}/api/collection/`);
       const data = await response.json();
       setCollections(data.collections);
     } catch (error) {
