@@ -2,7 +2,7 @@
   "nav": {
     "home": "Home",
     "about": "About",
-    "blog": "Blog",
+    "collection": "Collection",
     "projects": "Projects",
     "contact": "Contact"
   },
@@ -56,10 +56,11 @@
       }
     }
   },
-  "blog": {
-    "title": "Blog",
-    "description": "Thoughts, tutorials, and insights on web development, programming, and technology.",
-    "readMore": "Read More"
+  "collection": {
+    "title": "Collection",
+    "description": "My curated collection and featured content.",
+    "readMore": "Read More",
+    "createNew": "Create New"
   },
   "contact": {
     "title": "Get in Touch",

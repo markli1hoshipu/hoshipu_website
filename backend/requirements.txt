@@ -9,3 +9,6 @@ pyyaml==6.0.2
 psycopg2-binary==2.9.11
 sqlalchemy==2.0.44
 alembic==1.17.2
+
+# R2 Storage
+boto3==1.35.0
