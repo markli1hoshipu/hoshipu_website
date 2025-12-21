@@ -1,5 +1,5 @@
 import sys
-from PySide2.QtWidgets import QApplication, QMainWindow,  QTabWidget, QPushButton, QPlainTextEdit,  QScrollArea, QWidget, QVBoxLayout,QTableWidget, QCheckBox, QTableWidgetItem
+from PySide6.QtWidgets import QApplication, QMainWindow,  QTabWidget, QPushButton, QPlainTextEdit,  QScrollArea, QWidget, QVBoxLayout,QTableWidget, QCheckBox, QTableWidgetItem
 from ious_page import ious_main
 from ious_search_page import ious_search
 from payment_page import payment_main
@@ -91,4 +91,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = YIFIOUApp()
     window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

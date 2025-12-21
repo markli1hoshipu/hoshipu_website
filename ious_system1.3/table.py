@@ -6,8 +6,8 @@
 '''
 import sys
 
-from PySide2.QtWidgets import QApplication, QWidget,  QVBoxLayout,  QTableWidget, QCheckBox, QHeaderView, QStyle, QStyleOptionButton, QTableWidgetItem
-from PySide2.QtCore import Qt, Signal, QRect
+from PySide6.QtWidgets import QApplication, QWidget,  QVBoxLayout,  QTableWidget, QCheckBox, QHeaderView, QStyle, QStyleOptionButton, QTableWidgetItem
+from PySide6.QtCore import Qt, Signal, QRect
 
 # 表头字段，全局变量
 header_field = ['全选', '时间', '单号', '内容']
@@ -128,5 +128,5 @@ class TableDemo(QWidget):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     ta = TableDemo()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 

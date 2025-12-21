@@ -12,6 +12,8 @@ from routers.messages_router import router as messages_router
 from routers.pdf_template_router import router as pdf_template_router
 from routers.qff_travel_router import router as qff_travel_router
 from routers.collection_router import router as collection_router
+from routers.yif_router import router as yif_router
+from routers.yif_data_router import router as yif_data_router
 import uvicorn
 import logging
 
@@ -38,6 +40,8 @@ app.include_router(messages_router)
 app.include_router(pdf_template_router)
 app.include_router(qff_travel_router)
 app.include_router(collection_router)
+app.include_router(yif_router)
+app.include_router(yif_data_router)
 
 @app.get("/")
 async def root():

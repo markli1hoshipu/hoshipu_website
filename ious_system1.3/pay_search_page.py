@@ -1,4 +1,4 @@
-from PySide2.QtWidgets import QApplication, QMainWindow, QPushButton, QPlainTextEdit, QFileDialog, QScrollArea, QWidget, QVBoxLayout
+from PySide6.QtWidgets import QApplication, QMainWindow, QPushButton, QPlainTextEdit, QFileDialog, QScrollArea, QWidget, QVBoxLayout
 import all_func as afunc
 import time
 
@@ -238,4 +238,4 @@ if __name__ == "__main__":
     app = QApplication([])
     general = pay_search()
     general.window.show()
-    app.exec_()
+    app.exec()

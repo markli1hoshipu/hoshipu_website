@@ -1,4 +1,4 @@
-from PySide2.QtWidgets import QApplication, QMainWindow, QPushButton, QPlainTextEdit,  QScrollArea, QWidget, QVBoxLayout,QTableWidget, QCheckBox, QTableWidgetItem
+from PySide6.QtWidgets import QApplication, QMainWindow, QPushButton, QPlainTextEdit,  QScrollArea, QWidget, QVBoxLayout,QTableWidget, QCheckBox, QTableWidgetItem
 import all_func as afunc
 
 
@@ -502,4 +502,4 @@ if __name__ == "__main__":
     app = QApplication([])
     payment = better_pay()
     payment.window.show()
-    app.exec_()
+    app.exec()

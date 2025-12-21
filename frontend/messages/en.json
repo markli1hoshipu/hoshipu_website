@@ -106,6 +106,11 @@
       "description": "Manage travel translation output templates, airline code mappings, and airport code mappings for easy flight information organization.",
       "tags": ["Aviation", "Data Management"]
     },
+    "yifPayment": {
+      "title": "YIF Payment Management",
+      "description": "Secure payment tracking and management tool with multi-user access control.",
+      "tags": ["Finance", "Management"]
+    },
     "comingSoon": {
       "title": "Coming Soon",
       "description": "More exciting projects are in development and will be launched soon...",

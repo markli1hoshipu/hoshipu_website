@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, ArrowRight, Calculator, Package, Plane } from "lucide-react";
+import { FileText, ArrowRight, Calculator, Package, Plane, DollarSign } from "lucide-react";
 import Link from "next/link";
 import Messages from "@/components/Messages";
 import { useTranslations, useLocale } from "next-intl";
@@ -24,6 +24,11 @@ const projectsData = [
     id: "qffTravel",
     link: "/projects/qff-travel",
     icon: Plane,
+  },
+  {
+    id: "yifPayment",
+    link: "/projects/yif/login",
+    icon: DollarSign,
   },
   {
     id: "comingSoon",

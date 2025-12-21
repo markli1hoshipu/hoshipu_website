@@ -1,4 +1,4 @@
-from PySide2.QtWidgets import QApplication, QMainWindow, QPushButton, QPlainTextEdit, QFileDialog, QScrollArea, QWidget, QVBoxLayout
+from PySide6.QtWidgets import QApplication, QMainWindow, QPushButton, QPlainTextEdit, QFileDialog, QScrollArea, QWidget, QVBoxLayout
 import xlrd
 import all_func as afunc
 
@@ -243,4 +243,4 @@ if __name__ == "__main__":
     app = QApplication([])
     ious = ious_main()
     ious.window.show()
-    app.exec_()
+    app.exec()
