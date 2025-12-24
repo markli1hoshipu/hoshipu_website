@@ -127,3 +127,27 @@
     text-orientation: mixed;
   }
 }
+
+/* Dark scrollbar for YIF sidebar */
+.dark-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dark-scrollbar::-webkit-scrollbar-track {
+  background: rgb(15 23 42); /* slate-900 */
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background: rgb(51 65 85); /* slate-700 */
+  border-radius: 3px;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgb(71 85 105); /* slate-600 */
+}
+
+/* Firefox */
+.dark-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(51 65 85) rgb(15 23 42);
+}

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,11 +11,22 @@ import { Lock, User } from "lucide-react";
 
 export default function YIFLogin() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const locale = useLocale();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // 获取 redirect 参数，登录成功后跳转回原页面
+  // 验证 redirect URL 安全性：必须是相对路径，不能包含协议或双斜杠
+  const rawRedirect = searchParams.get('redirect');
+  const isValidRedirect = (url: string | null): boolean => {
+    if (!url) return false;
+    // Must start with / and not contain protocol or double slashes
+    return url.startsWith('/') && !url.includes('://') && !url.startsWith('//');
+  };
+  const redirectPath = isValidRedirect(rawRedirect) ? rawRedirect! : `/${locale}/projects/yif`;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,15 +46,18 @@ export default function YIFLogin() {
 
       const data = await response.json();
 
-      if (response.ok && data.success) {
-        // 保存登录状态到sessionStorage
-        sessionStorage.setItem('yif_user', JSON.stringify(data.user));
-        router.push(`/${locale}/projects/yif`);
+      if (response.ok && data.access_token) {
+        // 保存JWT token和用户信息到localStorage
+        localStorage.setItem('yif_access_token', data.access_token);
+        localStorage.setItem('yif_user', JSON.stringify(data.user));
+        // 跳转到原页面或默认页面 (完整页面跳转以重置 auth context)
+        // 使用 router.push 代替直接 href 赋值，更安全
+        window.location.href = redirectPath;
       } else {
-        setError(data.detail || "Invalid username or password");
+        setError(data.detail || "用户名或密码错误");
       }
     } catch (err) {
-      setError("Failed to connect to server");
+      setError("无法连接到服务器");
     } finally {
       setLoading(false);
     }
@@ -59,20 +73,20 @@ export default function YIFLogin() {
       >
         <Card>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">YIF Payment Management</CardTitle>
+            <CardTitle className="text-2xl text-center">YIF 付款管理系统</CardTitle>
             <CardDescription className="text-center">
-              Enter your credentials to access the system
+              请输入您的账号密码登录系统
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Username</label>
+                <label className="text-sm font-medium">用户名</label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="text"
-                    placeholder="Enter username"
+                    placeholder="请输入用户名"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="pl-10"
@@ -82,12 +96,12 @@ export default function YIFLogin() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Password</label>
+                <label className="text-sm font-medium">密码</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="password"
-                    placeholder="Enter password"
+                    placeholder="请输入密码"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
@@ -103,7 +117,7 @@ export default function YIFLogin() {
               )}
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Logging in..." : "Login"}
+                {loading ? "登录中..." : "登录"}
               </Button>
             </form>
           </CardContent>

@@ -17,6 +17,59 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+// 安全的数学表达式计算器 - 替代 eval()
+function safeEvaluate(expression: string): number {
+  // 移除所有空格
+  const expr = expression.replace(/\s+/g, '');
+
+  let pos = 0;
+
+  function parseExpression(): number {
+    let result = parseTerm();
+    while (pos < expr.length && (expr[pos] === '+' || expr[pos] === '-')) {
+      const op = expr[pos++];
+      const term = parseTerm();
+      result = op === '+' ? result + term : result - term;
+    }
+    return result;
+  }
+
+  function parseTerm(): number {
+    let result = parseFactor();
+    while (pos < expr.length && (expr[pos] === '*' || expr[pos] === '/')) {
+      const op = expr[pos++];
+      const factor = parseFactor();
+      result = op === '*' ? result * factor : result / factor;
+    }
+    return result;
+  }
+
+  function parseFactor(): number {
+    if (expr[pos] === '(') {
+      pos++; // skip '('
+      const result = parseExpression();
+      pos++; // skip ')'
+      return result;
+    }
+
+    // Handle negative numbers
+    let sign = 1;
+    if (expr[pos] === '-') {
+      sign = -1;
+      pos++;
+    }
+
+    // Parse number
+    let numStr = '';
+    while (pos < expr.length && (expr[pos] >= '0' && expr[pos] <= '9' || expr[pos] === '.')) {
+      numStr += expr[pos++];
+    }
+    return sign * parseFloat(numStr);
+  }
+
+  return parseExpression();
+}
+
 interface GameState {
   numbers: number[];
   userInput: string;
@@ -98,9 +151,8 @@ export default function Game24Page() {
         return { valid: false, error: "必须使用给定的所有数字，每个数字使用一次" };
       }
 
-      // 计算结果
-      // eslint-disable-next-line no-eval
-      const result = eval(expression);
+      // 安全计算表达式 - 不使用 eval()
+      const result = safeEvaluate(expression);
 
       if (Math.abs(result - 24) < 0.0001) {
         return { valid: true, result };
@@ -370,7 +422,7 @@ export default function Game24Page() {
                         placeholder="输入表达式，如: (1+2)*3-4"
                         value={gameState.userInput}
                         onChange={(e) => setGameState(prev => ({ ...prev, userInput: e.target.value }))}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                         className="text-lg"
                         disabled={!gameState.isPlaying}
                       />

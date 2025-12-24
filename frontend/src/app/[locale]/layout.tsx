@@ -2,8 +2,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
-import { Navigation } from "@/components/Navigation";
-import { Footer } from "@/components/Footer";
+import { ConditionalLayout } from "@/components/ConditionalLayout";
 import { RouteChangeProvider } from "./providers";
 import { Inter, Manrope } from "next/font/google";
 import "../globals.css";
@@ -55,13 +54,11 @@ export default async function LocaleLayout({
     <html lang={locale} suppressHydrationWarning className={`${inter.variable} ${manrope.variable}`}>
       <body className="antialiased font-sans">
         <NextIntlClientProvider messages={messages} locale={locale}>
-          <Navigation />
-          <main className="min-h-screen pt-16">
+          <ConditionalLayout>
             <RouteChangeProvider>
               {children}
             </RouteChangeProvider>
-          </main>
-          <Footer />
+          </ConditionalLayout>
         </NextIntlClientProvider>
       </body>
     </html>

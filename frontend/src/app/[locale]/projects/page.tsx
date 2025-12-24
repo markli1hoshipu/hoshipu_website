@@ -27,7 +27,7 @@ const projectsData = [
   },
   {
     id: "yifPayment",
-    link: "/projects/yif/login",
+    link: "/projects/yif",
     icon: DollarSign,
   },
   {
