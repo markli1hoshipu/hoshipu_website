@@ -44,7 +44,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 allowed_origins = os.getenv(
     "ALLOWED_ORIGINS",
-    "http://localhost:6001,http://localhost:3000,http://10.0.0.122:6001"
+    "http://localhost:6001,http://localhost:3000,http://10.0.0.122:6001,https://www.hoshipu.top,https://hoshipu.top"
 ).split(",")
 
 app.add_middleware(
