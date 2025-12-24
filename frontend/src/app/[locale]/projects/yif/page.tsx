@@ -219,7 +219,7 @@ export default function YIFDashboard() {
                         tickFormatter={(value) => `¥${(value / 1000).toFixed(0)}k`}
                       />
                       <Tooltip
-                        formatter={(value: number) => [`¥${value.toLocaleString()}`, "未清总额"]}
+                        formatter={(value) => [`¥${(value as number)?.toLocaleString() ?? 0}`, "未清总额"]}
                       />
                       <Line
                         type="monotone"
@@ -274,7 +274,7 @@ export default function YIFDashboard() {
                           tickFormatter={(value) => `¥${(value / 1000).toFixed(0)}k`}
                         />
                         <Tooltip
-                          formatter={(value: number) => `¥${value.toLocaleString()}`}
+                          formatter={(value) => `¥${(value as number)?.toLocaleString() ?? 0}`}
                         />
                         <Legend />
                         <Bar dataKey="ious" name="欠条金额" fill="#f97316" />
