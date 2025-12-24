@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
 import { motion } from "framer-motion";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Lock, User } from "lucide-react";
 
-export default function YIFLogin() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = useLocale();
@@ -51,7 +51,6 @@ export default function YIFLogin() {
         localStorage.setItem('yif_access_token', data.access_token);
         localStorage.setItem('yif_user', JSON.stringify(data.user));
         // 跳转到原页面或默认页面 (完整页面跳转以重置 auth context)
-        // 使用 router.push 代替直接 href 赋值，更安全
         window.location.href = redirectPath;
       } else {
         setError(data.detail || "用户名或密码错误");
@@ -64,65 +63,88 @@ export default function YIFLogin() {
   };
 
   return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="w-full max-w-md"
+    >
+      <Card>
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl text-center">YIF 付款管理系统</CardTitle>
+          <CardDescription className="text-center">
+            请输入您的账号密码登录系统
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">用户名</label>
+              <div className="relative">
+                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="请输入用户名"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">密码</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="password"
+                  placeholder="请输入密码"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md">
+                {error}
+              </div>
+            )}
+
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "登录中..." : "登录"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+function LoginFallback() {
+  return (
+    <div className="w-full max-w-md">
+      <Card>
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl text-center">YIF 付款管理系统</CardTitle>
+          <CardDescription className="text-center">
+            加载中...
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    </div>
+  );
+}
+
+export default function YIFLogin() {
+  return (
     <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[80vh]">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="w-full max-w-md"
-      >
-        <Card>
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">YIF 付款管理系统</CardTitle>
-            <CardDescription className="text-center">
-              请输入您的账号密码登录系统
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">用户名</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    placeholder="请输入用户名"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">密码</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="password"
-                    placeholder="请输入密码"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-
-              {error && (
-                <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md">
-                  {error}
-                </div>
-              )}
-
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "登录中..." : "登录"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </motion.div>
+      <Suspense fallback={<LoginFallback />}>
+        <LoginForm />
+      </Suspense>
     </div>
   );
 }
