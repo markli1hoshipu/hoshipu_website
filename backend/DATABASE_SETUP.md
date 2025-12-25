@@ -16,7 +16,7 @@
 
 ```bash
 # 当前配置（需要替换为实际的External URL）
-DATABASE_URL=postgresql://hoshipu_admin:REDACTED_DB_PASSWORD@[EXTERNAL-HOST]:5432/hoshipu_website_db
+DATABASE_URL=postgresql://[USERNAME]:[PASSWORD]@[EXTERNAL-HOST]:5432/[DATABASE_NAME]
 ```
 
 **如何获取 External URL：**
@@ -33,12 +33,11 @@ DATABASE_URL=postgresql://hoshipu_admin:REDACTED_DB_PASSWORD@[EXTERNAL-HOST]:543
 
 ## 数据库连接信息
 
-```
-Database: hoshipu_website_db
-Username: hoshipu_admin
-Password: REDACTED_DB_PASSWORD
-Port: 5432
-```
+从 Render Dashboard 获取以下信息：
+- Database name
+- Username
+- Password
+- Port (通常是 5432)
 
 ## 使用方式
 

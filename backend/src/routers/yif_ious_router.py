@@ -1082,7 +1082,7 @@ async def export_ious(
             query += " AND i.worker_id = %s"
             params.append(user_id)
 
-        query += " GROUP BY i.id ORDER BY i.ious_date DESC, i.ious_id DESC"
+        query += " GROUP BY i.id ORDER BY i.ious_date ASC, i.ious_id ASC"
 
         cursor.execute(query, params)
         ious_list = cursor.fetchall()

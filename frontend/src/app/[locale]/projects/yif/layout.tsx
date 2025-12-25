@@ -17,7 +17,7 @@ function YIFLayoutContent({ children }: { children: React.ReactNode }) {
   // Login page: no sidebar
   if (isLoginPage) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-slate-200">
         {children}
       </div>
     );
@@ -25,7 +25,7 @@ function YIFLayoutContent({ children }: { children: React.ReactNode }) {
 
   // Other pages: with sidebar
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-slate-200">
       <YIFSidebar />
       <main className="flex-1 lg:ml-0 min-h-screen">
         {children}

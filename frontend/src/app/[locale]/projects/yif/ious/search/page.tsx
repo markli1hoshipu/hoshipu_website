@@ -61,6 +61,7 @@ export default function IOUSearchPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [total, setTotal] = useState(0);
+  const [exportFileName, setExportFileName] = useState("");
 
   // All hooks must be before early returns
   const handleSearch = useCallback(async () => {
@@ -162,7 +163,8 @@ export default function IOUSearchPage() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `ious_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        const fileName = exportFileName.trim() || `ious_export_${new Date().toISOString().slice(0, 10)}`;
+        a.download = `${fileName}.xlsx`;
         a.click();
         window.URL.revokeObjectURL(url);
       }
@@ -332,7 +334,7 @@ export default function IOUSearchPage() {
               </div>
             </div>
 
-            <div className="flex gap-2 pt-2">
+            <div className="flex gap-2 pt-2 items-end">
               <Button onClick={handleSearch} disabled={isSearching}>
                 {isSearching ? (
                   <>
@@ -346,17 +348,25 @@ export default function IOUSearchPage() {
                   </>
                 )}
               </Button>
-              <Select onValueChange={(value) => handleExport(value)} disabled={isExporting}>
-                <SelectTrigger className="w-[180px]">
-                  <Download className="mr-2 h-4 w-4" />
-                  <SelectValue placeholder="导出Excel" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="summary">摘要</SelectItem>
-                  <SelectItem value="detailed">详细</SelectItem>
-                  <SelectItem value="full">完整 (含付款)</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2 items-center">
+                <Input
+                  placeholder="文件名（可选）"
+                  value={exportFileName}
+                  onChange={(e) => setExportFileName(e.target.value)}
+                  className="w-[160px]"
+                />
+                <Select onValueChange={(value) => handleExport(value)} disabled={isExporting}>
+                  <SelectTrigger className="w-[180px]">
+                    <Download className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="导出Excel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="summary">摘要</SelectItem>
+                    <SelectItem value="detailed">详细</SelectItem>
+                    <SelectItem value="full">完整 (含付款)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>

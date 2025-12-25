@@ -2,16 +2,39 @@
 frontend/node_modules/
 frontend/.next/
 frontend/.env.local
+frontend/.env
 
-# Backend  
+# Backend
 backend/venv/
 backend/__pycache__/
 backend/**/__pycache__/
 backend/*.pyc
 backend/.env
+backend/.env.production
+backend/.env.local
+
+# Sensitive documentation (contains credentials)
+DATABASE_SETUP.md
+COLLECTION_SYSTEM_SUMMARY.md
+SECURITY_KEY_ROTATION.md
 
 # Old folder
 personal-website/
 
-# Reference folder
+# Reference folder (contains third-party credentials)
 ref/
+
+# IDE
+.idea/
+
+# System files
+nul
+*.pyc
+__pycache__/
+
+# Pickle data files
+*.pkl
+
+# Backup files
+*_backup_*.txt
+*_BACKUP*.pkl

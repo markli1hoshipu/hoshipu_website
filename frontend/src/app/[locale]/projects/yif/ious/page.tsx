@@ -177,12 +177,8 @@ export default function IOUEntryPage() {
         if (data.ious) {
           setCreatedIOUs((prev) => [...data.ious, ...prev]);
         }
-        // Clear file input
-        setExcelFile(null);
+        // Only clear sheet name, keep Excel file for continuous import
         setSheetName("");
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
       } else {
         setMessage({ type: "error", text: data.detail || "导入失败" });
       }

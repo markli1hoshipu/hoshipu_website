@@ -128,6 +128,11 @@
   }
 }
 
+/* YIF card background - lighter gray to match slate-200 background */
+.bg-slate-200 {
+  --card: oklch(0.97 0 0);
+}
+
 /* Dark scrollbar for YIF sidebar */
 .dark-scrollbar::-webkit-scrollbar {
   width: 6px;

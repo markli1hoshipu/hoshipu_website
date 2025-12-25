@@ -1,12 +1,15 @@
 """
 API router for messages/comments
 """
+import os
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
 from models import Message
 from schemas import MessageCreate, MessageResponse, MessageDelete
+
+MESSAGE_DELETE_PASSWORD = os.getenv("MESSAGE_DELETE_PASSWORD", "")
 
 router = APIRouter(prefix="/api/messages", tags=["messages"])
 
@@ -63,10 +66,10 @@ def delete_message(message_id: int, delete_data: MessageDelete, db: Session = De
     Soft delete a message by ID (requires password)
 
     - **message_id**: ID of the message to delete
-    - **password**: Password required to delete (200631)
+    - **password**: Password required to delete
     """
     # Verify password
-    if delete_data.password != "200631":
+    if not MESSAGE_DELETE_PASSWORD or delete_data.password != MESSAGE_DELETE_PASSWORD:
         raise HTTPException(status_code=403, detail="Invalid password")
 
     # Find message

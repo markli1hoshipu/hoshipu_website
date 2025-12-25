@@ -43,6 +43,7 @@ export default function PaymentSearchPage() {
   const [adminPassword, setAdminPassword] = useState("");
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [total, setTotal] = useState(0);
+  const [exportFileName, setExportFileName] = useState("");
 
   // All hooks must be before early returns
   const handleSearch = useCallback(async () => {
@@ -120,7 +121,8 @@ export default function PaymentSearchPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `payments_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      const fileName = exportFileName.trim() || `payments_export_${new Date().toISOString().slice(0, 10)}`;
+      a.download = `${fileName}.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -267,7 +269,7 @@ export default function PaymentSearchPage() {
                 />
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-end">
               <Button onClick={handleSearch} disabled={isSearching}>
                 {isSearching ? (
                   <>
@@ -281,10 +283,18 @@ export default function PaymentSearchPage() {
                   </>
                 )}
               </Button>
-              <Button variant="outline" onClick={handleExport} disabled={searchResults.length === 0}>
-                <Download className="mr-2 h-4 w-4" />
-                导出Excel
-              </Button>
+              <div className="flex gap-2 items-center">
+                <Input
+                  placeholder="文件名（可选）"
+                  value={exportFileName}
+                  onChange={(e) => setExportFileName(e.target.value)}
+                  className="w-[160px]"
+                />
+                <Button variant="outline" onClick={handleExport} disabled={searchResults.length === 0}>
+                  <Download className="mr-2 h-4 w-4" />
+                  导出Excel
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

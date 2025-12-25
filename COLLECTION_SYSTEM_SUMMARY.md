@@ -19,7 +19,7 @@ POST   /api/collection/test-upload - 测试单文件上传
 
 #### 3. R2 存储配置
 - ✅ Cloudflare R2 已配置
-- ✅ 公开访问URL: https://pub-0b6ed44aa4934ff9b11c7880995f9185.r2.dev
+- ✅ 公开访问URL: (在 .env 中配置)
 - ✅ CORS 已配置
 - ✅ 支持的文件类型：
   - 图片: JPG, PNG, GIF, WebP (max 10MB)
@@ -93,15 +93,14 @@ frontend/src/app/[locale]/
 ## 🔧 配置文件
 
 ### backend/.env
-```env
-DATABASE_URL=postgresql://...
-R2_ACCOUNT_ID=REDACTED_R2_ACCOUNT_ID
-R2_ACCESS_KEY_ID=REDACTED_R2_ACCESS_KEY
-R2_SECRET_ACCESS_KEY=REDACTED_R2_SECRET_KEY
-R2_BUCKET_NAME=hoshipu-website
-R2_ENDPOINT=https://REDACTED_R2_ACCOUNT_ID.r2.cloudflarestorage.com
-R2_PUBLIC_URL=https://pub-0b6ed44aa4934ff9b11c7880995f9185.r2.dev
-```
+参考 `backend/.env.example` 配置以下环境变量：
+- DATABASE_URL
+- R2_ACCOUNT_ID
+- R2_ACCESS_KEY_ID
+- R2_SECRET_ACCESS_KEY
+- R2_BUCKET_NAME
+- R2_ENDPOINT
+- R2_PUBLIC_URL
 
 ## 📊 数据流
 
