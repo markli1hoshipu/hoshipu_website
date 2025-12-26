@@ -2,6 +2,7 @@
   "nav": {
     "home": "Home",
     "about": "About",
+    "oc": "OC",
     "collection": "Collection",
     "projects": "Projects",
     "contact": "Contact"
@@ -54,6 +55,31 @@
         "period": "2020 - 2022",
         "description": "Built and maintained multiple client projects"
       }
+    }
+  },
+  "oc": {
+    "title": "Hoshipu",
+    "subtitle": "My original character, a cute little creature",
+    "basicInfo": {
+      "title": "Basic Info",
+      "nameLabel": "Name",
+      "name": "Hoshipu",
+      "speciesLabel": "Species",
+      "species": "Star Spirit",
+      "genderLabel": "Gender",
+      "gender": "None",
+      "colorLabel": "Main Color",
+      "color": "Purple / Starry"
+    },
+    "personality": {
+      "title": "Personality"
+    },
+    "traits": ["Curious", "Friendly", "A bit lazy", "Foodie", "Loves coding"],
+    "likesTitle": "Likes",
+    "likes": ["Starry sky", "Music", "Code", "Sweets", "Sleeping"],
+    "story": {
+      "title": "Background Story",
+      "content": "Hoshipu is a little spirit from the stars who came to Earth out of curiosity about the human world. It loves observing human life and has developed a strong interest in programming and creation. Although sometimes lazy, once engaged in something interesting, it gives its all. Its name comes from the Japanese word 'hoshi' (star) and 'pu', symbolizing writing stories with starlight."
     }
   },
   "collection": {

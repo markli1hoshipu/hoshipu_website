@@ -2,6 +2,7 @@
   "nav": {
     "home": "首页",
     "about": "关于",
+    "oc": "自设",
     "collection": "收藏",
     "projects": "项目",
     "contact": "联系"
@@ -54,6 +55,31 @@
         "period": "2020 - 2022",
         "description": "构建和维护多个客户项目"
       }
+    }
+  },
+  "oc": {
+    "title": "Hoshipu",
+    "subtitle": "我的原创角色，一只可爱的小生物",
+    "basicInfo": {
+      "title": "基本信息",
+      "nameLabel": "名字",
+      "name": "Hoshipu (星谱)",
+      "speciesLabel": "种族",
+      "species": "星灵",
+      "genderLabel": "性别",
+      "gender": "无",
+      "colorLabel": "主色调",
+      "color": "紫色 / 星空色"
+    },
+    "personality": {
+      "title": "性格特点"
+    },
+    "traits": ["好奇", "友善", "有点懒", "爱吃", "喜欢编程"],
+    "likesTitle": "喜欢的事物",
+    "likes": ["星空", "音乐", "代码", "甜食", "睡觉"],
+    "story": {
+      "title": "背景故事",
+      "content": "Hoshipu 是一只来自星空的小精灵，因为对人类世界充满好奇而来到了地球。它喜欢观察人类的生活，尤其对编程和创作产生了浓厚的兴趣。虽然有时候会犯懒，但一旦投入到感兴趣的事情中就会全力以赴。它的名字来源于日语的「星」(hoshi) 和「谱」(pu)，象征着用星光谱写故事。"
     }
   },
   "collection": {
