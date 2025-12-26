@@ -111,6 +111,11 @@
       "description": "Secure payment tracking and management tool with multi-user access control.",
       "tags": ["Finance", "Management"]
     },
+    "accounting": {
+      "title": "Accounting",
+      "description": "Personal income and expense tracking tool for efficiently managing daily spending.",
+      "tags": ["Accounting", "Personal"]
+    },
     "comingSoon": {
       "title": "Coming Soon",
       "description": "More exciting projects are in development and will be launched soon...",
