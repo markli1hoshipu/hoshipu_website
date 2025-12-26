@@ -2,10 +2,10 @@ import { Github, Linkedin, Twitter, Mail } from "lucide-react";
 import Link from "next/link";
 
 const socialLinks = [
-  { name: "GitHub", href: "#", icon: Github },
-  { name: "LinkedIn", href: "#", icon: Linkedin },
-  { name: "Twitter", href: "#", icon: Twitter },
-  { name: "Email", href: "#", icon: Mail },
+  { name: "GitHub", href: process.env.NEXT_PUBLIC_GITHUB_URL || "#", icon: Github },
+  { name: "LinkedIn", href: process.env.NEXT_PUBLIC_LINKEDIN_URL || "#", icon: Linkedin },
+  { name: "Twitter", href: process.env.NEXT_PUBLIC_TWITTER_URL || "#", icon: Twitter },
+  { name: "Email", href: process.env.NEXT_PUBLIC_EMAIL ? `mailto:${process.env.NEXT_PUBLIC_EMAIL}` : "#", icon: Mail },
 ];
 
 export function Footer() {
