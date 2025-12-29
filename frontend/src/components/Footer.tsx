@@ -1,5 +1,9 @@
-import { Github, Linkedin, Mail, Phone } from "lucide-react";
+"use client";
+
+import { Github, Linkedin, Mail, Phone, ChevronDown } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Custom Bilibili icon
 const BilibiliIcon = ({ className }: { className?: string }) => (
@@ -47,52 +51,32 @@ const contactInfo = {
   discord: process.env.NEXT_PUBLIC_DISCORD || "",
 };
 
+const hasContactInfo = contactInfo.phoneCA || contactInfo.phoneCN || contactInfo.email || contactInfo.qq || contactInfo.wechat || contactInfo.discord;
+
 export function Footer() {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   return (
     <footer className="border-t border-border bg-background">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Contact Information */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6 text-sm">
-          {(contactInfo.phoneCA || contactInfo.phoneCN) && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Phone className="h-4 w-4 flex-shrink-0" />
-              <div className="flex flex-col">
-                {contactInfo.phoneCA && <span>{contactInfo.phoneCA}</span>}
-                {contactInfo.phoneCN && <span>{contactInfo.phoneCN}</span>}
-              </div>
-            </div>
-          )}
-          {contactInfo.email && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Mail className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">{contactInfo.email}</span>
-            </div>
-          )}
-          {contactInfo.qq && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <QQIcon className="h-4 w-4 flex-shrink-0" />
-              <span>{contactInfo.qq}</span>
-            </div>
-          )}
-          {contactInfo.wechat && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <WeChatIcon className="h-4 w-4 flex-shrink-0" />
-              <span>{contactInfo.wechat}</span>
-            </div>
-          )}
-          {contactInfo.discord && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <DiscordIcon className="h-4 w-4 flex-shrink-0" />
-              <span>{contactInfo.discord}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Copyright and Social Links */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4 border-t border-border">
-          <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Zhiyuan Li. All rights reserved.
-          </p>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        {/* Main footer row */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <p className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} Zhiyuan Li
+            </p>
+            {hasContactInfo && (
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Contact
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                />
+              </button>
+            )}
+          </div>
           <div className="flex items-center space-x-6">
             {socialLinks.map((link) => {
               const Icon = link.icon;
@@ -109,6 +93,52 @@ export function Footer() {
             })}
           </div>
         </div>
+
+        {/* Expandable contact info */}
+        <AnimatePresence>
+          {isExpanded && hasContactInfo && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="flex flex-wrap gap-x-6 gap-y-2 pt-4 mt-4 border-t border-border text-sm text-muted-foreground">
+                {(contactInfo.phoneCA || contactInfo.phoneCN) && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    <span>{contactInfo.phoneCA}{contactInfo.phoneCA && contactInfo.phoneCN && ' / '}{contactInfo.phoneCN}</span>
+                  </div>
+                )}
+                {contactInfo.email && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    <span>{contactInfo.email}</span>
+                  </div>
+                )}
+                {contactInfo.qq && (
+                  <div className="flex items-center gap-2">
+                    <QQIcon className="h-4 w-4" />
+                    <span>{contactInfo.qq}</span>
+                  </div>
+                )}
+                {contactInfo.wechat && (
+                  <div className="flex items-center gap-2">
+                    <WeChatIcon className="h-4 w-4" />
+                    <span>{contactInfo.wechat}</span>
+                  </div>
+                )}
+                {contactInfo.discord && (
+                  <div className="flex items-center gap-2">
+                    <DiscordIcon className="h-4 w-4" />
+                    <span>{contactInfo.discord}</span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </footer>
   );
