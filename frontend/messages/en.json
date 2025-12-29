@@ -106,6 +106,7 @@
       "title": "Contact Information",
       "email": "Email",
       "phone": "Phone",
+      "wechat": "WeChat",
       "location": "Location"
     },
     "availability": {

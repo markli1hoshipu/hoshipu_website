@@ -106,6 +106,7 @@
       "title": "联系信息",
       "email": "邮箱",
       "phone": "电话",
+      "wechat": "微信",
       "location": "位置"
     },
     "availability": {
