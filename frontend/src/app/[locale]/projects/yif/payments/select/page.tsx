@@ -1,14 +1,22 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CheckSquare, Search, Upload, FileText, CheckCircle, AlertCircle, Square, CheckSquare2, ArrowRight } from "lucide-react";
+import { CheckSquare, Search, Upload, FileText, CheckCircle, AlertCircle, Square, CheckSquare2, ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 import { useYIFAuth } from "@/hooks/useYIFAuth";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
+
+interface IOUItem {
+  client: string;
+  amount: number;
+  flight: string;
+  ticket_number: string;
+  remark: string;
+}
 
 interface IOU {
   id: number;
@@ -16,7 +24,7 @@ interface IOU {
   ious_date: string;
   total_amount: number;
   rest: number;
-  items: { client: string }[];
+  items: IOUItem[];
 }
 
 interface AllocationPreview {
@@ -48,6 +56,7 @@ export default function SelectivePaymentPage() {
   });
   const [searchResults, setSearchResults] = useState<IOU[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -163,6 +172,7 @@ export default function SelectivePaymentPage() {
           .sort((a: IOU, b: IOU) => b.ious_date.localeCompare(a.ious_date) || b.ious_id.localeCompare(a.ious_id));
         setSearchResults(ious);
         setSelectedIds(new Set());
+        setExpandedRows(new Set());
       } else {
         setMessage({ type: "error", text: data.detail || "搜索失败" });
       }
@@ -190,6 +200,17 @@ export default function SelectivePaymentPage() {
     } else {
       setSelectedIds(new Set(searchResults.map((iou) => iou.id)));
     }
+  };
+
+  const toggleExpand = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    setExpandedRows(newExpanded);
   };
 
   const handleSubmit = async () => {
@@ -439,42 +460,84 @@ export default function SelectivePaymentPage() {
           </CardContent>
         </Card>
 
-        {/* Selection Summary */}
+        {/* Summary and Submit - MOVED ABOVE IOU SELECTION */}
+        {selectedIOUs.length > 0 && (
+          <Card className={allocationPreview.length > 0 ? "border-green-200 bg-green-50" : ""}>
+            <CardContent className="pt-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <p className="text-lg font-medium">付款汇总</p>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>已选: <span className="font-bold">{selectedIds.size}</span> 条欠条</p>
+                    <p>
+                      合计金额: <span className={`font-bold ${selectedTotal < 0 ? "text-blue-600" : "text-red-600"}`}>
+                        ¥{selectedTotal.toLocaleString()}
+                      </span>
+                      {negativeTotal > 0 && (
+                        <span className="text-xs ml-2">(负数: -¥{negativeTotal.toLocaleString()}, 正数: ¥{positiveTotal.toLocaleString()})</span>
+                      )}
+                    </p>
+                    {allocationPreview.length > 0 && (
+                      <>
+                        <p className="text-green-700">
+                          ¥{paymentAmount.toLocaleString()} 将分配到 {allocationPreview.length} 条欠条
+                        </p>
+                        {allocationPreview.filter((a) => a.is_negative).length > 0 && (
+                          <p className="text-blue-600">
+                            {allocationPreview.filter((a) => a.is_negative).length} 条负数欠条将被清算
+                          </p>
+                        )}
+                        <p className="text-green-600">
+                          {allocationPreview.filter((a) => !a.is_negative && a.rest_after === 0).length} 条正数欠条将全额付清
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || !isPaymentValid || selectedIOUs.length === 0}
+                  size="lg"
+                  className="whitespace-nowrap"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      处理中...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      确认付款
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Selection Table */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div>
               <CardTitle>选择欠条</CardTitle>
-              <CardDescription>勾选要包含在付款中的欠条</CardDescription>
+              <CardDescription>勾选要包含在付款中的欠条，点击展开按钮查看明细</CardDescription>
             </div>
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleSelectAll}
-                className="gap-2"
-                disabled={searchResults.length === 0}
-              >
-                {selectedIds.size === searchResults.length && searchResults.length > 0 ? (
-                  <CheckSquare2 className="h-4 w-4" />
-                ) : (
-                  <Square className="h-4 w-4" />
-                )}
-                全选
-              </Button>
-              <div className="text-sm text-right">
-                <p>已选: <span className="font-bold">{selectedIds.size}</span> 条</p>
-                <p>
-                  合计: <span className={`font-bold ${selectedTotal < 0 ? "text-blue-600" : "text-red-600"}`}>
-                    ¥{selectedTotal.toLocaleString()}
-                  </span>
-                </p>
-                {negativeTotal > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    (负数: -¥{negativeTotal.toLocaleString()}, 正数: ¥{positiveTotal.toLocaleString()})
-                  </p>
-                )}
-              </div>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleSelectAll}
+              className="gap-2"
+              disabled={searchResults.length === 0}
+            >
+              {selectedIds.size === searchResults.length && searchResults.length > 0 ? (
+                <CheckSquare2 className="h-4 w-4" />
+              ) : (
+                <Square className="h-4 w-4" />
+              )}
+              全选
+            </Button>
           </CardHeader>
           <CardContent>
             {searchResults.length === 0 ? (
@@ -489,6 +552,7 @@ export default function SelectivePaymentPage() {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-3 px-2 w-8">选择</th>
+                      <th className="text-left py-3 px-2 w-8">明细</th>
                       <th className="text-left py-3 px-2">日期</th>
                       <th className="text-left py-3 px-2">欠条ID</th>
                       <th className="text-left py-3 px-2">客户</th>
@@ -499,45 +563,80 @@ export default function SelectivePaymentPage() {
                   <tbody>
                     {searchResults.map((iou) => {
                       const isSelected = selectedIds.has(iou.id);
+                      const isExpanded = expandedRows.has(iou.id);
                       const allocation = allocationPreview.find((a) => a.db_id === iou.id);
                       const isNegative = iou.rest < 0;
 
                       return (
-                        <tr
-                          key={iou.id}
-                          className={`border-b hover:bg-muted/30 cursor-pointer ${
-                            isSelected ? (isNegative ? "bg-blue-50" : "bg-green-50") : ""
-                          }`}
-                          onClick={() => toggleSelect(iou.id)}
-                        >
-                          <td className="py-2 px-2">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleSelect(iou.id)}
-                              onClick={(e) => e.stopPropagation()}
-                              className="h-4 w-4"
-                            />
-                          </td>
-                          <td className="py-2 px-2">{iou.ious_date}</td>
-                          <td className="py-2 px-2 font-mono">{iou.ious_id}</td>
-                          <td className="py-2 px-2">{iou.items[0]?.client || "-"}</td>
-                          <td className={`py-2 px-2 text-right ${isNegative ? "text-blue-600" : "text-red-600"}`}>
-                            ¥{iou.rest.toLocaleString()}
-                          </td>
-                          <td className="py-2 px-2 text-center">
-                            {allocation ? (
-                              <span className={`inline-flex items-center gap-1 ${allocation.is_negative ? "text-blue-600" : "text-green-600"}`}>
-                                <ArrowRight className="h-4 w-4" />
-                                ¥{allocation.payment.toLocaleString()}
-                              </span>
-                            ) : isSelected ? (
-                              <span className="text-muted-foreground text-xs">等待中...</span>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </td>
-                        </tr>
+                        <React.Fragment key={iou.id}>
+                          <tr
+                            className={`border-b hover:bg-muted/30 cursor-pointer ${
+                              isSelected ? (isNegative ? "bg-blue-50" : "bg-green-50") : ""
+                            }`}
+                            onClick={() => toggleSelect(iou.id)}
+                          >
+                            <td className="py-2 px-2">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleSelect(iou.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="h-4 w-4"
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <button
+                                onClick={(e) => toggleExpand(iou.id, e)}
+                                className="p-1 hover:bg-muted rounded"
+                              >
+                                {isExpanded ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
+                              </button>
+                            </td>
+                            <td className="py-2 px-2">{iou.ious_date}</td>
+                            <td className="py-2 px-2 font-mono">{iou.ious_id}</td>
+                            <td className="py-2 px-2">{iou.items[0]?.client || "-"}</td>
+                            <td className={`py-2 px-2 text-right ${isNegative ? "text-blue-600" : "text-red-600"}`}>
+                              ¥{iou.rest.toLocaleString()}
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              {allocation ? (
+                                <span className={`inline-flex items-center gap-1 ${allocation.is_negative ? "text-blue-600" : "text-green-600"}`}>
+                                  <ArrowRight className="h-4 w-4" />
+                                  ¥{allocation.payment.toLocaleString()}
+                                </span>
+                              ) : isSelected ? (
+                                <span className="text-muted-foreground text-xs">等待中...</span>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                          </tr>
+                          {/* Expanded row showing IOU details */}
+                          {isExpanded && (
+                            <tr className="bg-muted/20">
+                              <td colSpan={7} className="p-4">
+                                <div className="text-sm">
+                                  <h4 className="font-medium mb-2">欠条明细</h4>
+                                  <div className="grid grid-cols-1 gap-2">
+                                    {iou.items.map((item, idx) => (
+                                      <div key={idx} className="flex flex-wrap gap-x-4 gap-y-1 p-2 bg-background rounded border">
+                                        <span><strong>客户:</strong> {item.client}</span>
+                                        <span><strong>金额:</strong> ¥{item.amount.toLocaleString()}</span>
+                                        {item.ticket_number && <span><strong>票号:</strong> {item.ticket_number}</span>}
+                                        {item.flight && <span><strong>航班:</strong> {item.flight}</span>}
+                                        {item.remark && <span><strong>备注:</strong> {item.remark}</span>}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
@@ -557,43 +656,6 @@ export default function SelectivePaymentPage() {
             </ol>
           </div>
         </div>
-
-        {/* Summary and Submit */}
-        {allocationPreview.length > 0 && (
-          <Card className="border-green-200 bg-green-50">
-            <CardContent className="pt-6">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-lg font-medium">分配汇总</p>
-                  <p className="text-sm text-muted-foreground">
-                    ¥{paymentAmount.toLocaleString()} 将分配到 {allocationPreview.length} 条欠条
-                  </p>
-                  {allocationPreview.filter((a) => a.is_negative).length > 0 && (
-                    <p className="text-sm text-blue-600">
-                      {allocationPreview.filter((a) => a.is_negative).length} 条负数欠条将被清算
-                    </p>
-                  )}
-                  <p className="text-sm text-green-600">
-                    {allocationPreview.filter((a) => !a.is_negative && a.rest_after === 0).length} 条正数欠条将全额付清
-                  </p>
-                </div>
-                <Button onClick={handleSubmit} disabled={isSubmitting || !isPaymentValid || selectedIOUs.length === 0} size="lg">
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      处理中...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="mr-2 h-4 w-4" />
-                      确认付款
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </motion.div>
     </div>
   );
