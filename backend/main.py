@@ -28,6 +28,7 @@ from routers.yif_migration_router import router as yif_migration_router
 from routers.yif_stats_router import router as yif_stats_router
 from routers.yif_team_router import router as yif_team_router
 from routers.accounting_router import router as accounting_router
+from routers.contact_router import router as contact_router
 from database import init_yif_triggers
 import uvicorn
 import logging
@@ -68,6 +69,7 @@ app.include_router(yif_migration_router)
 app.include_router(yif_stats_router)
 app.include_router(yif_team_router)
 app.include_router(accounting_router)
+app.include_router(contact_router)
 
 # Initialize YIF triggers (backup safety net, auto-creates if not exists)
 init_yif_triggers()

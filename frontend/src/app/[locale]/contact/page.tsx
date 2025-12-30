@@ -5,9 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Mail, MapPin, Phone, Send } from "lucide-react";
+import { Mail, MapPin, Phone, Send, Loader2, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
 
 // Custom QQ icon
 const QQIcon = ({ className }: { className?: string }) => (
@@ -43,15 +45,44 @@ const contactInfo = {
 
 export default function Contact() {
   const t = useTranslations('contact');
+  const tCommon = useTranslations('common');
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     message: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
+    setIsSubmitting(true);
+    setSubmitStatus('idle');
+    setErrorMessage("");
+
+    try {
+      const response = await fetch(`${API_URL}/api/contact/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.detail || "Failed to send message");
+      }
+
+      setSubmitStatus('success');
+      setFormData({ name: "", email: "", message: "" });
+    } catch (error) {
+      setSubmitStatus('error');
+      setErrorMessage(error instanceof Error ? error.message : "Failed to send message");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -132,8 +163,28 @@ export default function Contact() {
                     required
                   />
                 </div>
-                <Button type="submit" size="lg" className="w-full">
-                  {t('form.submitButton')} <Send className="ml-2 h-4 w-4" />
+                {submitStatus === 'success' && (
+                  <div className="flex items-center gap-2 text-green-600 bg-green-50 dark:bg-green-950 dark:text-green-400 p-3 rounded-md">
+                    <CheckCircle className="h-5 w-5" />
+                    <span>{tCommon('success')}! Message sent.</span>
+                  </div>
+                )}
+                {submitStatus === 'error' && (
+                  <div className="text-red-600 bg-red-50 dark:bg-red-950 dark:text-red-400 p-3 rounded-md">
+                    {tCommon('error')}: {errorMessage}
+                  </div>
+                )}
+                <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {tCommon('loading')}
+                    </>
+                  ) : (
+                    <>
+                      {t('form.submitButton')} <Send className="ml-2 h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               </form>
             </CardContent>
