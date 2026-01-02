@@ -125,6 +125,18 @@ export default function SelectivePaymentPage() {
   // 待清理欠条队列
   const [pendingQueue, setPendingQueue] = useState<PendingIOU[]>([]);
 
+  // 拖拽排序传感器 - 必须在早期 return 之前
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   // 排序切换函数
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -348,18 +360,6 @@ export default function SelectivePaymentPage() {
   const clearPendingQueue = () => {
     setPendingQueue([]);
   };
-
-  // 拖拽排序传感器
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
 
   // 拖拽结束处理
   const handleDragEnd = (event: DragEndEvent) => {
