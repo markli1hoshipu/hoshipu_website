@@ -437,11 +437,16 @@ export default function IOUSearchPage() {
                                     <h4 className="font-medium mb-2">欠条明细</h4>
                                     <div className="space-y-1 text-sm">
                                       {iou.items.map((item, idx) => (
-                                        <div key={idx} className="flex justify-between">
-                                          <span>
-                                            {item.client} | {item.flight || "-"} | {item.ticket_number || "-"}
-                                          </span>
-                                          <span>¥{item.amount.toLocaleString()}</span>
+                                        <div key={idx}>
+                                          <div className="flex justify-between">
+                                            <span>
+                                              {item.client} | {item.flight || "-"} | {item.ticket_number || "-"}
+                                            </span>
+                                            <span>¥{item.amount.toLocaleString()}</span>
+                                          </div>
+                                          {item.remark && (
+                                            <div className="text-muted-foreground text-xs pl-2">└ {item.remark}</div>
+                                          )}
                                         </div>
                                       ))}
                                     </div>
@@ -454,11 +459,16 @@ export default function IOUSearchPage() {
                                     ) : (
                                       <div className="space-y-1 text-sm">
                                         {iou.payments.map((p, idx) => (
-                                          <div key={idx} className="flex justify-between">
-                                            <span>
-                                              {p.payment_date} | {p.payer_name}
-                                            </span>
-                                            <span className="text-green-600">¥{p.amount.toLocaleString()}</span>
+                                          <div key={idx}>
+                                            <div className="flex justify-between">
+                                              <span>
+                                                {p.payment_date} | {p.payer_name}
+                                              </span>
+                                              <span className="text-green-600">¥{p.amount.toLocaleString()}</span>
+                                            </div>
+                                            {p.remark && (
+                                              <div className="text-muted-foreground text-xs pl-2">└ {p.remark}</div>
+                                            )}
                                           </div>
                                         ))}
                                       </div>

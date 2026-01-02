@@ -5,8 +5,12 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CheckSquare, Search, Upload, FileText, CheckCircle, AlertCircle, Square, CheckSquare2, ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckSquare, Search, Upload, FileText, CheckCircle, AlertCircle, Square, CheckSquare2, ArrowRight, ChevronDown, ChevronUp, ArrowUpDown, ArrowUp, ArrowDown, Settings2, Plus, X, ListOrdered, GripVertical } from "lucide-react";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useYIFAuth } from "@/hooks/useYIFAuth";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
 
@@ -18,13 +22,24 @@ interface IOUItem {
   remark: string;
 }
 
+interface Payment {
+  payment_date: string;
+  payer_name: string;
+  amount: number;
+  remark?: string;
+}
+
 interface IOU {
   id: number;
   ious_id: string;
   ious_date: string;
   total_amount: number;
   rest: number;
+  status: number;
+  user_code: string;
+  created_at: string;
   items: IOUItem[];
+  payments?: Payment[];
 }
 
 interface AllocationPreview {
@@ -35,6 +50,45 @@ interface AllocationPreview {
   rest_after: number;
   is_negative: boolean;
 }
+
+// 待清理队列中的欠条（支持排序和手动分配金额）
+interface PendingIOU extends IOU {
+  manualAmount?: number;  // 手动指定的分配金额（可选）
+  order: number;          // 排序顺序
+}
+
+// 排序类型
+type SortField = 'ious_date' | 'ious_id' | 'rest' | 'total_amount' | 'created_at' | 'status';
+type SortOrder = 'asc' | 'desc';
+
+// 可选列定义
+const OPTIONAL_COLUMNS = [
+  { key: 'status', label: '状态' },
+  { key: 'total_amount', label: '总金额' },
+  { key: 'user_code', label: '录入人' },
+  { key: 'created_at', label: '创建时间' },
+] as const;
+
+// 状态标签映射
+const getStatusLabel = (status: number) => {
+  const labels: Record<number, string> = {
+    0: '未付款',
+    1: '部分付款',
+    2: '已付清',
+    3: '负数',
+    4: '多付',
+  };
+  return labels[status] || '未知';
+};
+
+// 时间格式化
+const formatDateTime = (dateStr: string) => {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleString('zh-CN', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit'
+  });
+};
 
 export default function SelectivePaymentPage() {
   const { user, loading: authLoading, getToken } = useYIFAuth();
@@ -61,42 +115,108 @@ export default function SelectivePaymentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Selected IOUs - must be before early returns
-  const selectedIOUs = useMemo(() => {
-    return searchResults.filter((iou) => selectedIds.has(iou.id));
-  }, [searchResults, selectedIds]);
+  // 排序状态
+  const [sortField, setSortField] = useState<SortField>('ious_date');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
-  // Calculate allocation preview - must be before early returns
+  // 可选列显示状态
+  const [visibleOptionalColumns, setVisibleOptionalColumns] = useState<Set<string>>(new Set());
+
+  // 待清理欠条队列
+  const [pendingQueue, setPendingQueue] = useState<PendingIOU[]>([]);
+
+  // 排序切换函数
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+
+  // 排序后的数据
+  const sortedIOUs = useMemo(() => {
+    return [...searchResults].sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case 'ious_date':
+          comparison = a.ious_date.localeCompare(b.ious_date);
+          break;
+        case 'ious_id':
+          comparison = a.ious_id.localeCompare(b.ious_id);
+          break;
+        case 'rest':
+          comparison = a.rest - b.rest;
+          break;
+        case 'total_amount':
+          comparison = a.total_amount - b.total_amount;
+          break;
+        case 'created_at':
+          comparison = (a.created_at || '').localeCompare(b.created_at || '');
+          break;
+        case 'status':
+          comparison = a.status - b.status;
+          break;
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [searchResults, sortField, sortOrder]);
+
+  // Selected IOUs from search results (for adding to pending queue)
+  const selectedIOUs = useMemo(() => {
+    return sortedIOUs.filter((iou) => selectedIds.has(iou.id));
+  }, [sortedIOUs, selectedIds]);
+
+  // Calculate allocation preview based on pendingQueue
   const allocationPreview = useMemo((): AllocationPreview[] => {
     const amount = parseFloat(paymentData.amount) || 0;
-    if (amount <= 0 || selectedIOUs.length === 0) return [];
-
-    // Separate negative and positive
-    const negativeIOUs = selectedIOUs.filter((iou) => iou.rest < 0);
-    const positiveIOUs = selectedIOUs.filter((iou) => iou.rest > 0);
+    if (amount <= 0 || pendingQueue.length === 0) return [];
 
     let remaining = amount;
     const preview: AllocationPreview[] = [];
 
-    // First, allocate to negative IOUs (pay their absolute value)
+    // 负数欠条优先处理
+    const negativeIOUs = pendingQueue.filter((iou) => iou.rest < 0);
+    const positiveIOUs = pendingQueue.filter((iou) => iou.rest > 0);
+
+    // 处理负数欠条
     for (const iou of negativeIOUs) {
-      const negativePayment = iou.rest; // This is already negative
+      const payment = iou.rest; // 负数
       preview.push({
         iou_id: iou.ious_id,
         db_id: iou.id,
         rest_before: iou.rest,
-        payment: negativePayment,
+        payment,
         rest_after: 0,
         is_negative: true,
       });
-      remaining -= negativePayment; // Subtracting negative = adding
+      remaining -= payment; // 减去负数 = 加上绝对值
     }
 
-    // Then allocate to positive IOUs
+    // 按队列顺序处理正数欠条
     for (const iou of positiveIOUs) {
-      if (remaining <= 0) break;
+      if (remaining <= 0) {
+        preview.push({
+          iou_id: iou.ious_id,
+          db_id: iou.id,
+          rest_before: iou.rest,
+          payment: 0,
+          rest_after: iou.rest,
+          is_negative: false,
+        });
+        continue;
+      }
 
-      const payment = Math.min(iou.rest, remaining);
+      let payment: number;
+      if (iou.manualAmount !== undefined && iou.manualAmount > 0) {
+        // 手动指定金额
+        payment = Math.min(iou.manualAmount, remaining, iou.rest);
+      } else {
+        // 自动分配
+        payment = Math.min(iou.rest, remaining);
+      }
+
       preview.push({
         iou_id: iou.ious_id,
         db_id: iou.id,
@@ -109,14 +229,14 @@ export default function SelectivePaymentPage() {
     }
 
     return preview;
-  }, [paymentData.amount, selectedIOUs]);
+  }, [paymentData.amount, pendingQueue]);
 
-  // Calculate totals - must be before early returns
-  const selectedTotal = useMemo(() => selectedIOUs.reduce((sum, iou) => sum + iou.rest, 0), [selectedIOUs]);
-  const negativeTotal = useMemo(() => selectedIOUs.filter((iou) => iou.rest < 0).reduce((sum, iou) => sum + Math.abs(iou.rest), 0), [selectedIOUs]);
-  const positiveTotal = useMemo(() => selectedIOUs.filter((iou) => iou.rest > 0).reduce((sum, iou) => sum + iou.rest, 0), [selectedIOUs]);
+  // Calculate totals based on pendingQueue
+  const pendingTotal = useMemo(() => pendingQueue.reduce((sum, iou) => sum + iou.rest, 0), [pendingQueue]);
+  const negativeTotal = useMemo(() => pendingQueue.filter((iou) => iou.rest < 0).reduce((sum, iou) => sum + Math.abs(iou.rest), 0), [pendingQueue]);
+  const positiveTotal = useMemo(() => pendingQueue.filter((iou) => iou.rest > 0).reduce((sum, iou) => sum + iou.rest, 0), [pendingQueue]);
   const paymentAmount = parseFloat(paymentData.amount) || 0;
-  const isPaymentValid = paymentAmount > 0 && paymentAmount <= selectedTotal;
+  const isPaymentValid = paymentAmount > 0 && paymentAmount <= pendingTotal;
 
   if (authLoading) {
     return (
@@ -195,12 +315,186 @@ export default function SelectivePaymentPage() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === searchResults.length) {
+    if (selectedIds.size === sortedIOUs.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(searchResults.map((iou) => iou.id)));
+      setSelectedIds(new Set(sortedIOUs.map((iou) => iou.id)));
     }
   };
+
+  // 待清理队列操作函数
+  const addToPending = (iou: IOU) => {
+    if (pendingQueue.some(p => p.id === iou.id)) return;
+    setPendingQueue(prev => [
+      ...prev,
+      { ...iou, order: prev.length, manualAmount: undefined }
+    ]);
+  };
+
+  const removeFromPending = (id: number) => {
+    setPendingQueue(prev => prev.filter(p => p.id !== id).map((item, i) => ({ ...item, order: i })));
+  };
+
+  const addSelectedToPending = () => {
+    const selected = sortedIOUs.filter(iou => selectedIds.has(iou.id));
+    const newItems = selected.filter(iou => !pendingQueue.some(p => p.id === iou.id));
+    setPendingQueue(prev => [
+      ...prev,
+      ...newItems.map((iou, idx) => ({ ...iou, order: prev.length + idx, manualAmount: undefined }))
+    ]);
+    setSelectedIds(new Set());
+  };
+
+  const clearPendingQueue = () => {
+    setPendingQueue([]);
+  };
+
+  // 拖拽排序传感器
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // 拖拽结束处理
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setPendingQueue((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex).map((item, i) => ({ ...item, order: i }));
+      });
+    }
+  };
+
+  const updateManualAmount = (id: number, value: string) => {
+    const amount = value === '' ? undefined : parseFloat(value);
+    setPendingQueue(prev =>
+      prev.map(iou => iou.id === id ? { ...iou, manualAmount: amount } : iou)
+    );
+  };
+
+  const getPreviewAllocation = (id: number): number => {
+    const preview = allocationPreview.find(p => p.db_id === id);
+    return preview?.payment ?? 0;
+  };
+
+  const isInPendingQueue = (id: number): boolean => {
+    return pendingQueue.some(p => p.id === id);
+  };
+
+  // 可拖拽的待清理欠条项组件
+  const SortablePendingItem = ({ iou, index }: { iou: PendingIOU; index: number }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: iou.id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+      zIndex: isDragging ? 1000 : 'auto',
+    };
+
+    const allocation = getPreviewAllocation(iou.id);
+    const isNegative = iou.rest < 0;
+
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={`flex items-center gap-2 p-3 rounded-lg border ${
+          isNegative ? "bg-blue-50 border-blue-200" : "bg-white border-gray-200"
+        } ${isDragging ? "shadow-lg" : ""}`}
+      >
+        {/* 拖拽手柄 */}
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+
+        {/* 序号 */}
+        <span className="text-xs text-muted-foreground w-6">{index + 1}.</span>
+
+        {/* 欠条信息 */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-sm">{iou.ious_id}</span>
+            <span className="text-sm text-muted-foreground">{iou.items[0]?.client || '-'}</span>
+            <span className={`text-sm font-medium ${isNegative ? "text-blue-600" : "text-red-600"}`}>
+              ¥{iou.rest.toLocaleString()}
+            </span>
+          </div>
+        </div>
+
+        {/* 手动分配金额 */}
+        {!isNegative && (
+          <div className="flex items-center gap-1">
+            <Input
+              type="number"
+              placeholder="自动"
+              className="w-20 h-8 text-sm"
+              value={iou.manualAmount ?? ''}
+              onChange={(e) => updateManualAmount(iou.id, e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+
+        {/* 预览分配 */}
+        <div className={`w-24 text-right text-sm font-medium ${
+          allocation > 0 ? (isNegative ? "text-blue-600" : "text-green-600") : "text-muted-foreground"
+        }`}>
+          {allocation !== 0 ? (
+            <>→ ¥{Math.abs(allocation).toLocaleString()}</>
+          ) : (
+            <span className="text-xs">等待分配</span>
+          )}
+        </div>
+
+        {/* 移除按钮 */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0"
+          onClick={() => removeFromPending(iou.id)}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  };
+
+  // 可排序表头组件
+  const SortableHeader = ({ field, label, className = "" }: { field: SortField; label: string; className?: string }) => (
+    <th
+      className={`py-3 px-2 cursor-pointer hover:bg-muted/50 select-none ${className}`}
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        {sortField === field ? (
+          sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+        ) : (
+          <ArrowUpDown className="h-3 w-3 opacity-30" />
+        )}
+      </div>
+    </th>
+  );
 
   const toggleExpand = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -227,8 +521,8 @@ export default function SelectivePaymentPage() {
       setMessage({ type: "error", text: "付款人姓名必填" });
       return;
     }
-    if (selectedIOUs.length === 0) {
-      setMessage({ type: "error", text: "请至少选择一条欠条" });
+    if (pendingQueue.length === 0) {
+      setMessage({ type: "error", text: "请添加欠条到待清理列表" });
       return;
     }
     if (!isPaymentValid) {
@@ -241,10 +535,10 @@ export default function SelectivePaymentPage() {
 
     try {
       const token = getToken();
-      // Get IOU IDs in order (negative first, then positive)
+      // Get IOU IDs in order (negative first, then positive by queue order)
       const iouDbIds = [
-        ...selectedIOUs.filter((iou) => iou.rest < 0).map((iou) => iou.id),
-        ...selectedIOUs.filter((iou) => iou.rest > 0).map((iou) => iou.id),
+        ...pendingQueue.filter((iou) => iou.rest < 0).map((iou) => iou.id),
+        ...pendingQueue.filter((iou) => iou.rest > 0).map((iou) => iou.id),
       ];
 
       const response = await fetch(`${API_BASE_URL}/api/yif/payments/selective`, {
@@ -267,12 +561,13 @@ export default function SelectivePaymentPage() {
 
       if (response.ok && data.success) {
         setMessage({ type: "success", text: `${data.message}: 创建了 ${data.payments.length} 条付款记录` });
-        // Clear form and selection
+        // Clear form and pending queue
         setPaymentData((prev) => ({
           ...prev,
           amount: "",
           remark: "",
         }));
+        setPendingQueue([]);
         setSelectedIds(new Set());
         // Refresh search
         handleSearch();
@@ -371,6 +666,83 @@ export default function SelectivePaymentPage() {
           </CardContent>
         </Card>
 
+        {/* Pending Queue - 待清理欠条 */}
+        <Card className={pendingQueue.length > 0 ? "border-orange-200 bg-orange-50/30" : ""}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <ListOrdered className="h-5 w-5" />
+                待清理欠条 ({pendingQueue.length})
+              </CardTitle>
+              <CardDescription>调整顺序控制分配优先级，输入金额手动分配</CardDescription>
+            </div>
+            {pendingQueue.length > 0 && (
+              <Button variant="outline" size="sm" onClick={clearPendingQueue}>
+                <X className="h-4 w-4 mr-1" />
+                全部清空
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent>
+            {pendingQueue.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <ListOrdered className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <p>从下方搜索结果中选择欠条添加到这里</p>
+              </div>
+            ) : (
+              <>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={pendingQueue.map(iou => iou.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-2">
+                      {pendingQueue.map((iou, index) => (
+                        <SortablePendingItem key={iou.id} iou={iou} index={index} />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+
+                {/* 汇总信息 */}
+                <div className="mt-4 pt-4 border-t flex justify-between items-center text-sm">
+                  <div className="space-y-1">
+                    <p>合计: <span className={`font-bold ${pendingTotal < 0 ? "text-blue-600" : "text-red-600"}`}>
+                      ¥{pendingTotal.toLocaleString()}
+                    </span></p>
+                    {negativeTotal > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        负数: -¥{negativeTotal.toLocaleString()} | 正数: ¥{positiveTotal.toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || !isPaymentValid || pendingQueue.length === 0}
+                    className="whitespace-nowrap"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        处理中...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="mr-2 h-4 w-4" />
+                        确认付款
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Search Section */}
         <Card>
           <CardHeader>
@@ -460,63 +832,6 @@ export default function SelectivePaymentPage() {
           </CardContent>
         </Card>
 
-        {/* Summary and Submit - MOVED ABOVE IOU SELECTION */}
-        {selectedIOUs.length > 0 && (
-          <Card className={allocationPreview.length > 0 ? "border-green-200 bg-green-50" : ""}>
-            <CardContent className="pt-6">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <p className="text-lg font-medium">付款汇总</p>
-                  <div className="text-sm text-muted-foreground space-y-1">
-                    <p>已选: <span className="font-bold">{selectedIds.size}</span> 条欠条</p>
-                    <p>
-                      合计金额: <span className={`font-bold ${selectedTotal < 0 ? "text-blue-600" : "text-red-600"}`}>
-                        ¥{selectedTotal.toLocaleString()}
-                      </span>
-                      {negativeTotal > 0 && (
-                        <span className="text-xs ml-2">(负数: -¥{negativeTotal.toLocaleString()}, 正数: ¥{positiveTotal.toLocaleString()})</span>
-                      )}
-                    </p>
-                    {allocationPreview.length > 0 && (
-                      <>
-                        <p className="text-green-700">
-                          ¥{paymentAmount.toLocaleString()} 将分配到 {allocationPreview.length} 条欠条
-                        </p>
-                        {allocationPreview.filter((a) => a.is_negative).length > 0 && (
-                          <p className="text-blue-600">
-                            {allocationPreview.filter((a) => a.is_negative).length} 条负数欠条将被清算
-                          </p>
-                        )}
-                        <p className="text-green-600">
-                          {allocationPreview.filter((a) => !a.is_negative && a.rest_after === 0).length} 条正数欠条将全额付清
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting || !isPaymentValid || selectedIOUs.length === 0}
-                  size="lg"
-                  className="whitespace-nowrap"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      处理中...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="mr-2 h-4 w-4" />
-                      确认付款
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Selection Table */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -524,20 +839,59 @@ export default function SelectivePaymentPage() {
               <CardTitle>选择欠条</CardTitle>
               <CardDescription>勾选要包含在付款中的欠条，点击展开按钮查看明细</CardDescription>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleSelectAll}
-              className="gap-2"
-              disabled={searchResults.length === 0}
-            >
-              {selectedIds.size === searchResults.length && searchResults.length > 0 ? (
-                <CheckSquare2 className="h-4 w-4" />
-              ) : (
-                <Square className="h-4 w-4" />
+            <div className="flex gap-2 flex-wrap">
+              {/* 添加选中到待清理 */}
+              {selectedIds.size > 0 && (
+                <Button
+                  size="sm"
+                  onClick={addSelectedToPending}
+                  className="gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  添加 {selectedIds.size} 条到待清理
+                </Button>
               )}
-              全选
-            </Button>
+
+              {/* 列选择下拉菜单 */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Settings2 className="h-4 w-4 mr-2" />
+                    显示列
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {OPTIONAL_COLUMNS.map(col => (
+                    <DropdownMenuCheckboxItem
+                      key={col.key}
+                      checked={visibleOptionalColumns.has(col.key)}
+                      onCheckedChange={(checked) => {
+                        const next = new Set(visibleOptionalColumns);
+                        checked ? next.add(col.key) : next.delete(col.key);
+                        setVisibleOptionalColumns(next);
+                      }}
+                    >
+                      {col.label}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleSelectAll}
+                className="gap-2"
+                disabled={sortedIOUs.length === 0}
+              >
+                {selectedIds.size === sortedIOUs.length && sortedIOUs.length > 0 ? (
+                  <CheckSquare2 className="h-4 w-4" />
+                ) : (
+                  <Square className="h-4 w-4" />
+                )}
+                全选
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {searchResults.length === 0 ? (
@@ -553,35 +907,45 @@ export default function SelectivePaymentPage() {
                     <tr className="border-b">
                       <th className="text-left py-3 px-2 w-8">选择</th>
                       <th className="text-left py-3 px-2 w-8">明细</th>
-                      <th className="text-left py-3 px-2">日期</th>
-                      <th className="text-left py-3 px-2">欠条ID</th>
+                      <SortableHeader field="ious_date" label="日期" className="text-left" />
+                      <SortableHeader field="ious_id" label="欠条ID" className="text-left" />
                       <th className="text-left py-3 px-2">客户</th>
-                      <th className="text-right py-3 px-2">剩余金额</th>
-                      <th className="text-center py-3 px-2">分配金额</th>
+                      {visibleOptionalColumns.has('status') && <SortableHeader field="status" label="状态" className="text-left" />}
+                      {visibleOptionalColumns.has('total_amount') && <SortableHeader field="total_amount" label="总金额" className="text-right" />}
+                      {visibleOptionalColumns.has('user_code') && <th className="text-left py-3 px-2">录入人</th>}
+                      {visibleOptionalColumns.has('created_at') && <SortableHeader field="created_at" label="创建时间" className="text-left" />}
+                      <SortableHeader field="rest" label="剩余金额" className="text-right" />
+                      <th className="text-center py-3 px-2">操作</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {searchResults.map((iou) => {
+                    {sortedIOUs.map((iou) => {
                       const isSelected = selectedIds.has(iou.id);
                       const isExpanded = expandedRows.has(iou.id);
-                      const allocation = allocationPreview.find((a) => a.db_id === iou.id);
                       const isNegative = iou.rest < 0;
+                      const optionalColCount = visibleOptionalColumns.size;
+                      const inQueue = isInPendingQueue(iou.id);
 
                       return (
                         <React.Fragment key={iou.id}>
                           <tr
                             className={`border-b hover:bg-muted/30 cursor-pointer ${
-                              isSelected ? (isNegative ? "bg-blue-50" : "bg-green-50") : ""
+                              inQueue
+                                ? "bg-orange-50 opacity-60"
+                                : isSelected
+                                ? (isNegative ? "bg-blue-50" : "bg-green-50")
+                                : ""
                             }`}
-                            onClick={() => toggleSelect(iou.id)}
+                            onClick={() => !inQueue && toggleSelect(iou.id)}
                           >
                             <td className="py-2 px-2">
                               <input
                                 type="checkbox"
                                 checked={isSelected}
+                                disabled={inQueue}
                                 onChange={() => toggleSelect(iou.id)}
                                 onClick={(e) => e.stopPropagation()}
-                                className="h-4 w-4"
+                                className="h-4 w-4 disabled:opacity-30"
                               />
                             </td>
                             <td className="py-2 px-2">
@@ -599,38 +963,86 @@ export default function SelectivePaymentPage() {
                             <td className="py-2 px-2">{iou.ious_date}</td>
                             <td className="py-2 px-2 font-mono">{iou.ious_id}</td>
                             <td className="py-2 px-2">{iou.items[0]?.client || "-"}</td>
+                            {visibleOptionalColumns.has('status') && (
+                              <td className="py-2 px-2">{getStatusLabel(iou.status)}</td>
+                            )}
+                            {visibleOptionalColumns.has('total_amount') && (
+                              <td className="py-2 px-2 text-right">¥{iou.total_amount.toLocaleString()}</td>
+                            )}
+                            {visibleOptionalColumns.has('user_code') && (
+                              <td className="py-2 px-2">{iou.user_code || '-'}</td>
+                            )}
+                            {visibleOptionalColumns.has('created_at') && (
+                              <td className="py-2 px-2">{formatDateTime(iou.created_at)}</td>
+                            )}
                             <td className={`py-2 px-2 text-right ${isNegative ? "text-blue-600" : "text-red-600"}`}>
                               ¥{iou.rest.toLocaleString()}
                             </td>
                             <td className="py-2 px-2 text-center">
-                              {allocation ? (
-                                <span className={`inline-flex items-center gap-1 ${allocation.is_negative ? "text-blue-600" : "text-green-600"}`}>
-                                  <ArrowRight className="h-4 w-4" />
-                                  ¥{allocation.payment.toLocaleString()}
+                              {inQueue ? (
+                                <span className="inline-flex items-center gap-1 text-orange-600 text-xs">
+                                  <CheckCircle className="h-3 w-3" />
+                                  已添加
                                 </span>
-                              ) : isSelected ? (
-                                <span className="text-muted-foreground text-xs">等待中...</span>
                               ) : (
-                                <span className="text-muted-foreground">-</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    addToPending(iou);
+                                  }}
+                                >
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  添加
+                                </Button>
                               )}
                             </td>
                           </tr>
                           {/* Expanded row showing IOU details */}
                           {isExpanded && (
                             <tr className="bg-muted/20">
-                              <td colSpan={7} className="p-4">
-                                <div className="text-sm">
-                                  <h4 className="font-medium mb-2">欠条明细</h4>
-                                  <div className="grid grid-cols-1 gap-2">
-                                    {iou.items.map((item, idx) => (
-                                      <div key={idx} className="flex flex-wrap gap-x-4 gap-y-1 p-2 bg-background rounded border">
-                                        <span><strong>客户:</strong> {item.client}</span>
-                                        <span><strong>金额:</strong> ¥{item.amount.toLocaleString()}</span>
-                                        {item.ticket_number && <span><strong>票号:</strong> {item.ticket_number}</span>}
-                                        {item.flight && <span><strong>航班:</strong> {item.flight}</span>}
-                                        {item.remark && <span><strong>备注:</strong> {item.remark}</span>}
+                              <td colSpan={7 + optionalColCount} className="p-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {/* 欠条明细 - 左列 */}
+                                  <div>
+                                    <h4 className="font-medium mb-2">欠条明细</h4>
+                                    <div className="space-y-1 text-sm">
+                                      {iou.items.map((item, idx) => (
+                                        <div key={idx}>
+                                          <div className="flex justify-between">
+                                            <span>{item.client} | {item.flight || "-"} | {item.ticket_number || "-"}</span>
+                                            <span>¥{item.amount.toLocaleString()}</span>
+                                          </div>
+                                          {item.remark && (
+                                            <div className="text-muted-foreground text-xs pl-2">└ {item.remark}</div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* 付款记录 - 右列 */}
+                                  <div>
+                                    <h4 className="font-medium mb-2">付款记录 ({iou.payments?.length || 0})</h4>
+                                    {!iou.payments || iou.payments.length === 0 ? (
+                                      <p className="text-sm text-muted-foreground">暂无付款</p>
+                                    ) : (
+                                      <div className="space-y-1 text-sm">
+                                        {iou.payments.map((payment, idx) => (
+                                          <div key={idx}>
+                                            <div className="flex justify-between">
+                                              <span>{payment.payment_date} | {payment.payer_name}</span>
+                                              <span className="text-green-600">¥{payment.amount.toLocaleString()}</span>
+                                            </div>
+                                            {payment.remark && (
+                                              <div className="text-muted-foreground text-xs pl-2">└ {payment.remark}</div>
+                                            )}
+                                          </div>
+                                        ))}
                                       </div>
-                                    ))}
+                                    )}
                                   </div>
                                 </div>
                               </td>

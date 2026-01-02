@@ -30,6 +30,7 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   roles?: string[]; // If undefined, visible to all
+  disabled?: boolean; // If true, item is visible but not clickable
 }
 
 interface NavGroup {
@@ -54,9 +55,9 @@ const getNavGroups = (locale: string): NavGroup[] => [
   {
     title: "付款管理",
     items: [
-      { title: "付款录入", href: `/${locale}/projects/yif/payments`, icon: DollarSign },
+      { title: "付款录入", href: `/${locale}/projects/yif/payments`, icon: DollarSign, disabled: true },
       { title: "付款查询与导出", href: `/${locale}/projects/yif/payments/search`, icon: Search },
-      { title: "多笔付款录入", href: `/${locale}/projects/yif/payments/batch`, icon: ListOrdered },
+      { title: "多笔付款录入", href: `/${locale}/projects/yif/payments/batch`, icon: ListOrdered, disabled: true },
       { title: "自选付款录入", href: `/${locale}/projects/yif/payments/select`, icon: CheckSquare },
     ],
   },
@@ -129,6 +130,18 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
+
+                if (item.disabled) {
+                  return (
+                    <li key={item.href}>
+                      <span className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-500 cursor-not-allowed">
+                        <Icon className="h-5 w-5" />
+                        {item.title}
+                      </span>
+                    </li>
+                  );
+                }
+
                 return (
                   <li key={item.href}>
                     <Link
