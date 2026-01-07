@@ -4,10 +4,11 @@ import json
 import csv
 import io
 import hashlib
-from datetime import datetime
+import jwt
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Header
 from pydantic import BaseModel
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -15,6 +16,9 @@ from psycopg2.extras import RealDictCursor
 router = APIRouter(prefix="/api/accounting", tags=["accounting"])
 
 ACCOUNTING_PASSWORD = os.getenv("ACCOUNTING_PASSWORD", "")
+LIFE_MGMT_SECRET = os.getenv("LIFE_MGMT_SECRET_KEY", os.getenv("JWT_SECRET_KEY", "fallback-life-mgmt-secret"))
+TOKEN_EXPIRE_DAYS = 30  # 记住设备时的有效期
+TOKEN_EXPIRE_HOURS_SHORT = 8  # 不记住时的有效期
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 
@@ -32,6 +36,11 @@ def generate_dup_hash(date: str, description: str, amount: float) -> str:
 
 class VerifyRequest(BaseModel):
     password: str
+
+
+class LoginRequest(BaseModel):
+    password: str
+    remember_device: bool = False
 
 
 class CategoryCreate(BaseModel):
@@ -65,7 +74,7 @@ class ImportResult(BaseModel):
 
 @router.post("/verify")
 async def verify_password(data: VerifyRequest):
-    """Verify accounting module password"""
+    """Verify accounting module password (legacy endpoint)"""
     if not ACCOUNTING_PASSWORD:
         raise HTTPException(status_code=500, detail="Password not configured")
 
@@ -73,6 +82,57 @@ async def verify_password(data: VerifyRequest):
         raise HTTPException(status_code=401, detail="Invalid password")
 
     return {"success": True, "message": "Password verified"}
+
+
+@router.post("/login")
+async def login(data: LoginRequest):
+    """登录并获取JWT token"""
+    if not ACCOUNTING_PASSWORD:
+        raise HTTPException(status_code=500, detail="Password not configured")
+
+    if data.password != ACCOUNTING_PASSWORD:
+        raise HTTPException(status_code=401, detail="密码错误")
+
+    # 根据是否记住设备设置过期时间
+    if data.remember_device:
+        expire = datetime.now(timezone.utc) + timedelta(days=TOKEN_EXPIRE_DAYS)
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(hours=TOKEN_EXPIRE_HOURS_SHORT)
+
+    token = jwt.encode(
+        {"exp": expire, "type": "life_management", "iat": datetime.now(timezone.utc)},
+        LIFE_MGMT_SECRET,
+        algorithm="HS256"
+    )
+
+    return {
+        "success": True,
+        "token": token,
+        "expires_at": expire.isoformat(),
+        "remember_device": data.remember_device
+    }
+
+
+@router.get("/verify-token")
+async def verify_token(authorization: Optional[str] = Header(None)):
+    """验证JWT token有效性"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Missing authorization header")
+
+    try:
+        # 支持 "Bearer xxx" 或直接 "xxx" 格式
+        token = authorization.replace("Bearer ", "").strip()
+        payload = jwt.decode(token, LIFE_MGMT_SECRET, algorithms=["HS256"])
+
+        # 验证token类型
+        if payload.get("type") != "life_management":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+
+        return {"success": True, "valid": True}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 # ========== Categories ==========
@@ -616,6 +676,217 @@ async def get_stats(
             },
             "by_category": by_category,
             "by_source": by_source
+        }
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ========== Notes (备忘录) ==========
+
+class NoteCreate(BaseModel):
+    type: str  # 'daily' or 'longterm'
+    content: str
+
+
+@router.get("/notes")
+async def get_notes(type: str = "daily"):
+    """获取任务列表
+    - daily: 只返回今天的每日任务
+    - longterm: 返回所有未完成的长期任务
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        if type == "daily":
+            cursor.execute("""
+                SELECT id, type, content, is_completed, date, created_at, completed_at
+                FROM hoshipu_notes
+                WHERE type = 'daily' AND date = CURRENT_DATE
+                ORDER BY created_at ASC
+            """)
+        else:  # longterm
+            cursor.execute("""
+                SELECT id, type, content, is_completed, date, created_at, completed_at
+                FROM hoshipu_notes
+                WHERE type = 'longterm' AND is_completed = FALSE
+                ORDER BY created_at ASC
+            """)
+
+        notes = cursor.fetchall()
+
+        # Convert datetime objects to ISO format strings
+        for note in notes:
+            if note['date']:
+                note['date'] = note['date'].isoformat()
+            if note['created_at']:
+                note['created_at'] = note['created_at'].isoformat()
+            if note['completed_at']:
+                note['completed_at'] = note['completed_at'].isoformat()
+
+        return {"success": True, "notes": notes}
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@router.post("/notes")
+async def create_note(data: NoteCreate):
+    """创建新任务"""
+    if data.type not in ('daily', 'longterm'):
+        raise HTTPException(400, "Type must be 'daily' or 'longterm'")
+
+    if not data.content.strip():
+        raise HTTPException(400, "Content cannot be empty")
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        # 每日任务需要设置当天日期
+        if data.type == 'daily':
+            cursor.execute("""
+                INSERT INTO hoshipu_notes (type, content, date)
+                VALUES (%s, %s, CURRENT_DATE)
+                RETURNING id, type, content, is_completed, date, created_at
+            """, (data.type, data.content.strip()))
+        else:
+            cursor.execute("""
+                INSERT INTO hoshipu_notes (type, content)
+                VALUES (%s, %s)
+                RETURNING id, type, content, is_completed, date, created_at
+            """, (data.type, data.content.strip()))
+
+        note = cursor.fetchone()
+        conn.commit()
+
+        if note['date']:
+            note['date'] = note['date'].isoformat()
+        if note['created_at']:
+            note['created_at'] = note['created_at'].isoformat()
+
+        return {"success": True, "note": note}
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@router.put("/notes/{note_id}/toggle")
+async def toggle_note(note_id: int):
+    """切换任务完成状态"""
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        # 切换状态，如果变为完成则设置 completed_at
+        cursor.execute("""
+            UPDATE hoshipu_notes
+            SET is_completed = NOT is_completed,
+                completed_at = CASE
+                    WHEN is_completed = FALSE THEN NOW()
+                    ELSE NULL
+                END
+            WHERE id = %s
+            RETURNING id, type, content, is_completed, date, created_at, completed_at
+        """, (note_id,))
+
+        note = cursor.fetchone()
+        if not note:
+            raise HTTPException(404, "Note not found")
+
+        conn.commit()
+
+        if note['date']:
+            note['date'] = note['date'].isoformat()
+        if note['created_at']:
+            note['created_at'] = note['created_at'].isoformat()
+        if note['completed_at']:
+            note['completed_at'] = note['completed_at'].isoformat()
+
+        return {"success": True, "note": note}
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@router.delete("/notes/{note_id}")
+async def delete_note(note_id: int):
+    """删除任务"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM hoshipu_notes WHERE id = %s", (note_id,))
+        if cursor.rowcount == 0:
+            raise HTTPException(404, "Note not found")
+        conn.commit()
+        return {"success": True, "message": "Note deleted"}
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@router.get("/notes/history/daily")
+async def get_daily_history(days: int = 7):
+    """获取每日任务历史（按日期分组）"""
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        # 获取最近N天的每日任务
+        cursor.execute("""
+            SELECT date,
+                   json_agg(json_build_object(
+                       'id', id,
+                       'content', content,
+                       'is_completed', is_completed,
+                       'completed_at', completed_at
+                   ) ORDER BY created_at ASC) as tasks,
+                   COUNT(*) as total,
+                   COUNT(*) FILTER (WHERE is_completed = TRUE) as completed
+            FROM hoshipu_notes
+            WHERE type = 'daily'
+              AND date >= CURRENT_DATE - INTERVAL '%s days'
+            GROUP BY date
+            ORDER BY date DESC
+        """, (days,))
+
+        history = cursor.fetchall()
+
+        # Format dates
+        for item in history:
+            if item['date']:
+                item['date'] = item['date'].isoformat()
+
+        return {"success": True, "history": history}
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@router.get("/notes/history/longterm")
+async def get_longterm_history():
+    """获取长期任务完成历史"""
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        # 获取所有已完成的长期任务
+        cursor.execute("""
+            SELECT id, content, completed_at, created_at
+            FROM hoshipu_notes
+            WHERE type = 'longterm' AND is_completed = TRUE
+            ORDER BY completed_at DESC
+        """)
+
+        completed_tasks = cursor.fetchall()
+
+        # Format datetimes
+        for task in completed_tasks:
+            if task['completed_at']:
+                task['completed_at'] = task['completed_at'].isoformat()
+            if task['created_at']:
+                task['created_at'] = task['created_at'].isoformat()
+
+        return {
+            "success": True,
+            "completed_tasks": completed_tasks,
+            "total_completed": len(completed_tasks)
         }
     finally:
         cursor.close()

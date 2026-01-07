@@ -7,9 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Lock, Wallet, AlertCircle, Upload, Plus, List, Settings,
-  Trash2, CheckCircle, X, ChevronLeft, ChevronRight, Eye, ArrowLeft, Columns
+  Lock, LayoutDashboard, AlertCircle, Upload, Plus, List, Settings,
+  Trash2, CheckCircle, X, ChevronLeft, ChevronRight, Eye, ArrowLeft, Columns,
+  ClipboardList, Circle, History, Calendar
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
 
@@ -31,24 +41,49 @@ interface Category {
   keywords: string[];
 }
 
-type TabType = "browse" | "import" | "add" | "categories";
+type TabType = "browse" | "import" | "add" | "categories" | "notes";
 
-export default function AccountingPage() {
+export default function LifeManagementPage() {
   const [password, setPassword] = useState("");
   const [isVerified, setIsVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingToken, setIsCheckingToken] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>("browse");
+  const [rememberDevice, setRememberDevice] = useState(true);
 
-  // Check session storage on mount
+  // Check for existing token on mount
   useEffect(() => {
-    const verified = sessionStorage.getItem("accounting_verified");
-    if (verified === "true") {
-      setIsVerified(true);
-    }
+    const verifyExistingToken = async () => {
+      const token = localStorage.getItem("life_mgmt_token");
+      if (!token) {
+        setIsCheckingToken(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/accounting/verify-token`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (response.ok) {
+          setIsVerified(true);
+        } else {
+          // Token invalid or expired, remove it
+          localStorage.removeItem("life_mgmt_token");
+        }
+      } catch (err) {
+        console.error("Token verification failed:", err);
+        localStorage.removeItem("life_mgmt_token");
+      } finally {
+        setIsCheckingToken(false);
+      }
+    };
+
+    verifyExistingToken();
   }, []);
 
-  const handleVerify = async () => {
+  const handleLogin = async () => {
     if (!password.trim()) {
       setError("请输入密码");
       return;
@@ -58,20 +93,22 @@ export default function AccountingPage() {
     setError("");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/accounting/verify`, {
+      const response = await fetch(`${API_BASE_URL}/api/accounting/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password, remember_device: rememberDevice }),
       });
 
-      if (response.ok) {
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        localStorage.setItem("life_mgmt_token", data.token);
         setIsVerified(true);
-        sessionStorage.setItem("accounting_verified", "true");
       } else {
-        setError("密码错误");
+        setError(data.detail || "密码错误");
       }
     } catch (err) {
-      console.error("Verification failed:", err);
+      console.error("Login failed:", err);
       setError("验证失败，请重试");
     } finally {
       setIsLoading(false);
@@ -80,11 +117,29 @@ export default function AccountingPage() {
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      handleVerify();
+      handleLogin();
     }
   };
 
-  // Password verification screen
+  const handleLogout = () => {
+    localStorage.removeItem("life_mgmt_token");
+    setIsVerified(false);
+    setPassword("");
+  };
+
+  // Loading state while checking token
+  if (isCheckingToken) {
+    return (
+      <div className="container mx-auto px-4 py-12 max-w-md">
+        <div className="flex flex-col items-center justify-center gap-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">验证中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Login screen
   if (!isVerified) {
     return (
       <div className="container mx-auto px-4 py-12 max-w-md">
@@ -98,7 +153,7 @@ export default function AccountingPage() {
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <Lock className="h-8 w-8 text-primary" />
               </div>
-              <CardTitle>记账本</CardTitle>
+              <CardTitle>生活管理</CardTitle>
               <CardDescription>请输入密码以访问</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -110,13 +165,26 @@ export default function AccountingPage() {
                 onKeyPress={handleKeyPress}
                 disabled={isLoading}
               />
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remember"
+                  checked={rememberDevice}
+                  onCheckedChange={(checked) => setRememberDevice(checked === true)}
+                />
+                <label
+                  htmlFor="remember"
+                  className="text-sm text-muted-foreground cursor-pointer select-none"
+                >
+                  记住此设备（30天内免登录）
+                </label>
+              </div>
               {error && (
                 <div className="flex items-center gap-2 text-red-500 text-sm">
                   <AlertCircle className="h-4 w-4" />
                   {error}
                 </div>
               )}
-              <Button onClick={handleVerify} disabled={isLoading} className="w-full">
+              <Button onClick={handleLogin} disabled={isLoading} className="w-full">
                 {isLoading ? "验证中..." : "进入"}
               </Button>
             </CardContent>
@@ -131,6 +199,7 @@ export default function AccountingPage() {
     { id: "import" as TabType, label: "导入CSV", icon: Upload },
     { id: "add" as TabType, label: "手动添加", icon: Plus },
     { id: "categories" as TabType, label: "分类管理", icon: Settings },
+    { id: "notes" as TabType, label: "备忘录", icon: ClipboardList },
   ];
 
   return (
@@ -142,14 +211,19 @@ export default function AccountingPage() {
         className="space-y-6"
       >
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Wallet className="h-6 w-6 text-primary" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+              <LayoutDashboard className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">生活管理</h1>
+              <p className="text-muted-foreground">记账 · 任务 · 日程</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold">记账本</h1>
-            <p className="text-muted-foreground">个人收支管理</p>
-          </div>
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+            退出登录
+          </Button>
         </div>
 
         {/* Tabs */}
@@ -175,6 +249,7 @@ export default function AccountingPage() {
         {activeTab === "import" && <ImportTab />}
         {activeTab === "add" && <AddTab />}
         {activeTab === "categories" && <CategoriesTab />}
+        {activeTab === "notes" && <NotesTab />}
       </motion.div>
     </div>
   );
@@ -1331,5 +1406,398 @@ function CategoriesTab() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+
+// ========== Notes Tab ==========
+interface Note {
+  id: number;
+  type: string;
+  content: string;
+  is_completed: boolean;
+  date: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+interface DailyHistoryItem {
+  date: string;
+  tasks: { id: number; content: string; is_completed: boolean; completed_at: string | null }[];
+  total: number;
+  completed: number;
+}
+
+interface LongtermHistoryItem {
+  id: number;
+  content: string;
+  completed_at: string;
+  created_at: string;
+}
+
+function NotesTab() {
+  const [dailyNotes, setDailyNotes] = useState<Note[]>([]);
+  const [longtermNotes, setLongtermNotes] = useState<Note[]>([]);
+  const [newDailyTask, setNewDailyTask] = useState("");
+  const [newLongtermTask, setNewLongtermTask] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyTab, setHistoryTab] = useState<"daily" | "longterm">("daily");
+  const [dailyHistory, setDailyHistory] = useState<DailyHistoryItem[]>([]);
+  const [longtermHistory, setLongtermHistory] = useState<LongtermHistoryItem[]>([]);
+
+  const loadNotes = useCallback(async () => {
+    try {
+      const [dailyRes, longtermRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/accounting/notes?type=daily`),
+        fetch(`${API_BASE_URL}/api/accounting/notes?type=longterm`),
+      ]);
+
+      if (dailyRes.ok) {
+        const data = await dailyRes.json();
+        setDailyNotes(data.notes || []);
+      }
+      if (longtermRes.ok) {
+        const data = await longtermRes.json();
+        setLongtermNotes(data.notes || []);
+      }
+    } catch (err) {
+      console.error("Failed to load notes:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadNotes();
+  }, [loadNotes]);
+
+  const loadHistory = async () => {
+    try {
+      const [dailyRes, longtermRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/accounting/notes/history/daily?days=30`),
+        fetch(`${API_BASE_URL}/api/accounting/notes/history/longterm`),
+      ]);
+
+      if (dailyRes.ok) {
+        const data = await dailyRes.json();
+        setDailyHistory(data.history || []);
+      }
+      if (longtermRes.ok) {
+        const data = await longtermRes.json();
+        setLongtermHistory(data.completed_tasks || []);
+      }
+    } catch (err) {
+      console.error("Failed to load history:", err);
+    }
+  };
+
+  const handleAddTask = async (type: "daily" | "longterm") => {
+    const content = type === "daily" ? newDailyTask : newLongtermTask;
+    if (!content.trim()) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/accounting/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, content: content.trim() }),
+      });
+
+      if (response.ok) {
+        if (type === "daily") {
+          setNewDailyTask("");
+        } else {
+          setNewLongtermTask("");
+        }
+        loadNotes();
+      }
+    } catch (err) {
+      console.error("Failed to add task:", err);
+    }
+  };
+
+  const handleToggle = async (noteId: number) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/accounting/notes/${noteId}/toggle`, {
+        method: "PUT",
+      });
+
+      if (response.ok) {
+        loadNotes();
+      }
+    } catch (err) {
+      console.error("Failed to toggle task:", err);
+    }
+  };
+
+  const handleDelete = async (noteId: number) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/accounting/notes/${noteId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        loadNotes();
+      }
+    } catch (err) {
+      console.error("Failed to delete task:", err);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent, type: "daily" | "longterm") => {
+    if (e.key === "Enter") {
+      handleAddTask(type);
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return "今天";
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return "昨天";
+    } else {
+      return date.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+    }
+  };
+
+  if (isLoading) {
+    return <div className="text-center py-8">加载中...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header with History Button */}
+      <div className="flex justify-end">
+        <Dialog open={historyOpen} onOpenChange={(open) => {
+          setHistoryOpen(open);
+          if (open) loadHistory();
+        }}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <History className="h-4 w-4" />
+              查看历史
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>任务完成历史</DialogTitle>
+              <DialogDescription>查看每日任务和长期任务的完成记录</DialogDescription>
+            </DialogHeader>
+
+            {/* History Tabs */}
+            <div className="flex gap-2 border-b pb-2 mb-4">
+              <Button
+                variant={historyTab === "daily" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setHistoryTab("daily")}
+              >
+                每日任务历史
+              </Button>
+              <Button
+                variant={historyTab === "longterm" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setHistoryTab("longterm")}
+              >
+                长期任务历史
+              </Button>
+            </div>
+
+            {/* Daily History */}
+            {historyTab === "daily" && (
+              <div className="space-y-4">
+                {dailyHistory.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4">暂无历史记录</p>
+                ) : (
+                  dailyHistory.map((day) => (
+                    <div key={day.date} className="border rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{formatDate(day.date)}</span>
+                          <span className="text-muted-foreground text-sm">({day.date})</span>
+                        </div>
+                        <Badge variant={day.completed === day.total ? "default" : "secondary"}>
+                          完成 {day.completed}/{day.total}
+                        </Badge>
+                      </div>
+                      <div className="space-y-1 pl-6">
+                        {day.tasks.map((task) => (
+                          <div
+                            key={task.id}
+                            className={`flex items-center gap-2 text-sm ${task.is_completed ? "text-muted-foreground line-through" : ""}`}
+                          >
+                            {task.is_completed ? (
+                              <CheckCircle className="h-3 w-3 text-green-500" />
+                            ) : (
+                              <Circle className="h-3 w-3" />
+                            )}
+                            {task.content}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* Longterm History */}
+            {historyTab === "longterm" && (
+              <div className="space-y-2">
+                {longtermHistory.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4">暂无完成的长期任务</p>
+                ) : (
+                  longtermHistory.map((task) => (
+                    <div key={task.id} className="flex items-center justify-between border rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <span>{task.content}</span>
+                      </div>
+                      <span className="text-muted-foreground text-sm">
+                        完成于 {new Date(task.completed_at).toLocaleDateString("zh-CN")}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Daily Tasks */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              每日任务
+            </CardTitle>
+            <CardDescription>今天的待办事项（每天自动重置）</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Add Task Input */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="添加新任务..."
+                value={newDailyTask}
+                onChange={(e) => setNewDailyTask(e.target.value)}
+                onKeyPress={(e) => handleKeyPress(e, "daily")}
+              />
+              <Button onClick={() => handleAddTask("daily")} size="icon">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Task List */}
+            <div className="space-y-2">
+              {dailyNotes.length === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-4">暂无任务</p>
+              ) : (
+                dailyNotes.map((note) => (
+                  <div
+                    key={note.id}
+                    className={`flex items-center justify-between p-2 rounded-lg border ${note.is_completed ? "bg-muted/50" : ""}`}
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      <button
+                        onClick={() => handleToggle(note.id)}
+                        className="hover:scale-110 transition-transform"
+                      >
+                        {note.is_completed ? (
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                        ) : (
+                          <Circle className="h-5 w-5 text-muted-foreground" />
+                        )}
+                      </button>
+                      <span className={note.is_completed ? "line-through text-muted-foreground" : ""}>
+                        {note.content}
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 hover:text-red-500"
+                      onClick={() => handleDelete(note.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Long-term Tasks */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ClipboardList className="h-5 w-5" />
+              长期任务
+            </CardTitle>
+            <CardDescription>长期目标和计划</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Add Task Input */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="添加新任务..."
+                value={newLongtermTask}
+                onChange={(e) => setNewLongtermTask(e.target.value)}
+                onKeyPress={(e) => handleKeyPress(e, "longterm")}
+              />
+              <Button onClick={() => handleAddTask("longterm")} size="icon">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Task List */}
+            <div className="space-y-2">
+              {longtermNotes.length === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-4">暂无任务</p>
+              ) : (
+                longtermNotes.map((note) => (
+                  <div
+                    key={note.id}
+                    className={`flex items-center justify-between p-2 rounded-lg border ${note.is_completed ? "bg-muted/50" : ""}`}
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      <button
+                        onClick={() => handleToggle(note.id)}
+                        className="hover:scale-110 transition-transform"
+                      >
+                        {note.is_completed ? (
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                        ) : (
+                          <Circle className="h-5 w-5 text-muted-foreground" />
+                        )}
+                      </button>
+                      <span className={note.is_completed ? "line-through text-muted-foreground" : ""}>
+                        {note.content}
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 hover:text-red-500"
+                      onClick={() => handleDelete(note.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }

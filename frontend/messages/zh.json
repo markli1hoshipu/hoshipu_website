@@ -138,10 +138,10 @@
       "description": "安全的款项记录和管理工具，支持多用户访问控制。",
       "tags": ["财务", "管理"]
     },
-    "accounting": {
-      "title": "记账本",
-      "description": "个人收支记录和管理工具，简单高效地追踪日常开销。",
-      "tags": ["记账", "个人"]
+    "lifeManagement": {
+      "title": "生活管理",
+      "description": "个人生活管理系统，包含记账、任务管理等功能。",
+      "tags": ["生活", "管理"]
     },
     "comingSoon": {
       "title": "敬请期待",

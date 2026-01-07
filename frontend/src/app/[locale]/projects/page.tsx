@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, ArrowRight, Calculator, Plane, DollarSign, Wallet } from "lucide-react";
+import { FileText, ArrowRight, Calculator, Plane, DollarSign, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import Messages from "@/components/Messages";
 import { useTranslations, useLocale } from "next-intl";
@@ -34,9 +34,9 @@ const projectGroups: ProjectGroup[] = [
   },
   {
     groupId: "personal",
-    groupTitle: "个人程序",
+    groupTitle: "个人工具",
     projects: [
-      { id: "accounting", link: "/projects/accounting", icon: Wallet },
+      { id: "lifeManagement", link: "/projects/life-management", icon: LayoutDashboard },
     ],
   },
   {

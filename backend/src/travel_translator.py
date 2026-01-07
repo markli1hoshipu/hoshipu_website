@@ -52,6 +52,8 @@ def translate_itinerary(input_text: str, template_config: dict, airlines: dict, 
             content_after_num = line.split('.', 1)[1].strip() if '.' in line else ''
             
             if re.match(r'^[A-Z0-9]{2}\d{3,4}\s', content_after_num):
+                # 格式1: 完整格式 (带航站楼信息)
+                # 如: MU2978 Y TH 08 JAN DLCCZX RR1 1635 1820 E -- T2
                 flight_match = re.match(r'^([A-Z0-9]{2}\d{3,4})\s+([A-Z]\d?)\s+([A-Z]{2})\s*(\d{2})([A-Z]{3})\s+([A-Z]{3})([A-Z]{3})\s+\w+\s+(\d{4})\s+(\d{4})\s+E\s+(--|\w+|T?\d?)\s+([T\d\-]+)', content_after_num)
                 if flight_match:
                     flights.append({
@@ -66,12 +68,39 @@ def translate_itinerary(input_text: str, template_config: dict, airlines: dict, 
                         'dep_terminal': flight_match.group(10),
                         'arr_terminal': flight_match.group(11)
                     })
+                else:
+                    # 格式2: 简化格式 (无 E 和航站楼信息)
+                    # 如: MU2978 Y TH08JAN DLCCZX RR1 1635 1820
+                    flight_match_simple = re.match(
+                        r'^([A-Z0-9]{2}\d{3,4})\s+([A-Z]\d?)\s+([A-Z]{2})\s*(\d{2})([A-Z]{3})\s+([A-Z]{3})([A-Z]{3})\s+\w+\s+(\d{4})\s+(\d{4})\s*$',
+                        content_after_num
+                    )
+                    if flight_match_simple:
+                        flights.append({
+                            'flight_number': flight_match_simple.group(1),
+                            'cabin': flight_match_simple.group(2),
+                            'weekday': flight_match_simple.group(3),
+                            'day': flight_match_simple.group(4),
+                            'month': flight_match_simple.group(5),
+                            'route': flight_match_simple.group(6) + flight_match_simple.group(7),
+                            'dep_time': flight_match_simple.group(8),
+                            'arr_time': flight_match_simple.group(9),
+                            'dep_terminal': '--',
+                            'arr_terminal': '--'
+                        })
             else:
+                # 乘客姓名: 中文名 或 西文名(LASTNAME/FIRSTNAME)
                 pax_matches = re.finditer(r'(\d+)\.([\u4e00-\u9fa5]+|[A-Z]+/[A-Z]+)', line)
                 for match in pax_matches:
                     pax_num = match.group(1)
-                    pax_name = match.group(2).replace('/', ' ')
-                    passengers[pax_num] = pax_name
+                    pax_name = match.group(2)
+                    # 排除非乘客行: FN/, FP/, TN/, FC/, 机场代码/T 等
+                    if pax_name.startswith(('FN/', 'FP/', 'TN/', 'FC/', 'CA/', 'OSI', 'SSR', 'RMK')):
+                        continue
+                    # 排除 机场代码/航站楼 格式 (如 DLC/T, PEK/T)
+                    if re.match(r'^[A-Z]{3}/[A-Z]$', pax_name):
+                        continue
+                    passengers[pax_num] = pax_name.replace('/', ' ')
         
         if 'SSR TKNE' in line:
             ticket_match = re.search(r'(\d{13})/\d+/P(\d+)', line)
