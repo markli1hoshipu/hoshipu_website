@@ -1496,6 +1496,32 @@ function NotesTab() {
     const content = type === "daily" ? newDailyTask : newLongtermTask;
     if (!content.trim()) return;
 
+    // 1. 立即清空输入框
+    if (type === "daily") {
+      setNewDailyTask("");
+    } else {
+      setNewLongtermTask("");
+    }
+
+    // 2. 创建临时任务，立即显示
+    const tempId = -Date.now();
+    const tempNote: Note = {
+      id: tempId,
+      type,
+      content: content.trim(),
+      is_completed: false,
+      date: type === "daily" ? new Date().toISOString().split("T")[0] : null,
+      created_at: new Date().toISOString(),
+      completed_at: null,
+    };
+
+    if (type === "daily") {
+      setDailyNotes((prev) => [...prev, tempNote]);
+    } else {
+      setLongtermNotes((prev) => [...prev, tempNote]);
+    }
+
+    // 3. 后台发送请求
     try {
       const response = await fetch(`${API_BASE_URL}/api/accounting/notes`, {
         method: "POST",
@@ -1504,42 +1530,109 @@ function NotesTab() {
       });
 
       if (response.ok) {
+        const data = await response.json();
+        // 替换临时任务为真实任务
         if (type === "daily") {
-          setNewDailyTask("");
+          setDailyNotes((prev) =>
+            prev.map((n) => (n.id === tempId ? data.note : n))
+          );
         } else {
-          setNewLongtermTask("");
+          setLongtermNotes((prev) =>
+            prev.map((n) => (n.id === tempId ? data.note : n))
+          );
         }
-        loadNotes();
+      } else {
+        // 失败：移除临时任务
+        if (type === "daily") {
+          setDailyNotes((prev) => prev.filter((n) => n.id !== tempId));
+        } else {
+          setLongtermNotes((prev) => prev.filter((n) => n.id !== tempId));
+        }
       }
     } catch (err) {
+      // 网络错误：移除临时任务
+      if (type === "daily") {
+        setDailyNotes((prev) => prev.filter((n) => n.id !== tempId));
+      } else {
+        setLongtermNotes((prev) => prev.filter((n) => n.id !== tempId));
+      }
       console.error("Failed to add task:", err);
     }
   };
 
-  const handleToggle = async (noteId: number) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/accounting/notes/${noteId}/toggle`, {
-        method: "PUT",
-      });
+  const handleToggle = async (noteId: number, type: "daily" | "longterm") => {
+    // 1. 立即更新本地状态
+    const updateNotes = (notes: Note[]) =>
+      notes.map((n) =>
+        n.id === noteId
+          ? {
+              ...n,
+              is_completed: !n.is_completed,
+              completed_at: !n.is_completed ? new Date().toISOString() : null,
+            }
+          : n
+      );
 
-      if (response.ok) {
-        loadNotes();
+    if (type === "daily") {
+      setDailyNotes(updateNotes);
+    } else {
+      setLongtermNotes(updateNotes);
+    }
+
+    // 2. 后台发送请求
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/accounting/notes/${noteId}/toggle`,
+        { method: "PUT" }
+      );
+
+      if (!response.ok) {
+        // 失败：回滚
+        if (type === "daily") {
+          setDailyNotes(updateNotes);
+        } else {
+          setLongtermNotes(updateNotes);
+        }
       }
     } catch (err) {
+      // 网络错误：回滚
+      if (type === "daily") {
+        setDailyNotes(updateNotes);
+      } else {
+        setLongtermNotes(updateNotes);
+      }
       console.error("Failed to toggle task:", err);
     }
   };
 
-  const handleDelete = async (noteId: number) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/accounting/notes/${noteId}`, {
-        method: "DELETE",
-      });
+  const handleDelete = async (noteId: number, type: "daily" | "longterm") => {
+    // 1. 保存原始数据用于回滚
+    const originalDailyNotes = dailyNotes;
+    const originalLongtermNotes = longtermNotes;
 
-      if (response.ok) {
-        loadNotes();
+    // 2. 立即从列表移除
+    if (type === "daily") {
+      setDailyNotes((prev) => prev.filter((n) => n.id !== noteId));
+    } else {
+      setLongtermNotes((prev) => prev.filter((n) => n.id !== noteId));
+    }
+
+    // 3. 后台发送请求
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/accounting/notes/${noteId}`,
+        { method: "DELETE" }
+      );
+
+      if (!response.ok) {
+        // 失败：恢复
+        setDailyNotes(originalDailyNotes);
+        setLongtermNotes(originalLongtermNotes);
       }
     } catch (err) {
+      // 网络错误：恢复
+      setDailyNotes(originalDailyNotes);
+      setLongtermNotes(originalLongtermNotes);
       console.error("Failed to delete task:", err);
     }
   };
@@ -1707,7 +1800,7 @@ function NotesTab() {
                   >
                     <div className="flex items-center gap-3 flex-1">
                       <button
-                        onClick={() => handleToggle(note.id)}
+                        onClick={() => handleToggle(note.id, "daily")}
                         className="hover:scale-110 transition-transform"
                       >
                         {note.is_completed ? (
@@ -1724,7 +1817,7 @@ function NotesTab() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 hover:text-red-500"
-                      onClick={() => handleDelete(note.id)}
+                      onClick={() => handleDelete(note.id, "daily")}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -1770,7 +1863,7 @@ function NotesTab() {
                   >
                     <div className="flex items-center gap-3 flex-1">
                       <button
-                        onClick={() => handleToggle(note.id)}
+                        onClick={() => handleToggle(note.id, "longterm")}
                         className="hover:scale-110 transition-transform"
                       >
                         {note.is_completed ? (
@@ -1787,7 +1880,7 @@ function NotesTab() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 hover:text-red-500"
-                      onClick={() => handleDelete(note.id)}
+                      onClick={() => handleDelete(note.id, "longterm")}
                     >
                       <X className="h-4 w-4" />
                     </Button>
