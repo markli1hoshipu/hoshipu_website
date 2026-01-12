@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Lock, LayoutDashboard, AlertCircle, Upload, Plus, List, Settings,
   Trash2, CheckCircle, X, ChevronLeft, ChevronRight, Eye, ArrowLeft, Columns,
-  ClipboardList, Circle, History, Calendar
+  ClipboardList, Circle, History, Calendar, Receipt
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -41,7 +41,8 @@ interface Category {
   keywords: string[];
 }
 
-type TabType = "browse" | "import" | "add" | "categories" | "notes";
+type PrimaryTab = "billing" | "notes";
+type BillingSubTab = "browse" | "import" | "add" | "categories";
 
 export default function LifeManagementPage() {
   const [password, setPassword] = useState("");
@@ -49,7 +50,8 @@ export default function LifeManagementPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingToken, setIsCheckingToken] = useState(true);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<TabType>("browse");
+  const [primaryTab, setPrimaryTab] = useState<PrimaryTab>("billing");
+  const [billingSubTab, setBillingSubTab] = useState<BillingSubTab>("browse");
   const [rememberDevice, setRememberDevice] = useState(true);
 
   // Check for existing token on mount
@@ -194,12 +196,16 @@ export default function LifeManagementPage() {
     );
   }
 
-  const tabs = [
-    { id: "browse" as TabType, label: "浏览", icon: List },
-    { id: "import" as TabType, label: "导入CSV", icon: Upload },
-    { id: "add" as TabType, label: "手动添加", icon: Plus },
-    { id: "categories" as TabType, label: "分类管理", icon: Settings },
-    { id: "notes" as TabType, label: "备忘录", icon: ClipboardList },
+  const primaryTabs = [
+    { id: "billing" as PrimaryTab, label: "账单", icon: Receipt },
+    { id: "notes" as PrimaryTab, label: "备忘录", icon: ClipboardList },
+  ];
+
+  const billingSubTabs = [
+    { id: "browse" as BillingSubTab, label: "浏览", icon: List },
+    { id: "import" as BillingSubTab, label: "导入CSV", icon: Upload },
+    { id: "add" as BillingSubTab, label: "手动添加", icon: Plus },
+    { id: "categories" as BillingSubTab, label: "分类管理", icon: Settings },
   ];
 
   return (
@@ -226,15 +232,15 @@ export default function LifeManagementPage() {
           </Button>
         </div>
 
-        {/* Tabs */}
+        {/* Primary Tabs */}
         <div className="flex gap-2 border-b pb-2">
-          {tabs.map((tab) => {
+          {primaryTabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <Button
                 key={tab.id}
-                variant={activeTab === tab.id ? "default" : "ghost"}
-                onClick={() => setActiveTab(tab.id)}
+                variant={primaryTab === tab.id ? "default" : "ghost"}
+                onClick={() => setPrimaryTab(tab.id)}
                 className="gap-2"
               >
                 <Icon className="h-4 w-4" />
@@ -244,12 +250,37 @@ export default function LifeManagementPage() {
           })}
         </div>
 
+        {/* Secondary Tabs (only for billing) */}
+        {primaryTab === "billing" && (
+          <div className="flex gap-2 border-b pb-2">
+            {billingSubTabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <Button
+                  key={tab.id}
+                  variant={billingSubTab === tab.id ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setBillingSubTab(tab.id)}
+                  className="gap-2"
+                >
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                </Button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Tab Content */}
-        {activeTab === "browse" && <BrowseTab />}
-        {activeTab === "import" && <ImportTab />}
-        {activeTab === "add" && <AddTab />}
-        {activeTab === "categories" && <CategoriesTab />}
-        {activeTab === "notes" && <NotesTab />}
+        {primaryTab === "billing" && (
+          <>
+            {billingSubTab === "browse" && <BrowseTab />}
+            {billingSubTab === "import" && <ImportTab />}
+            {billingSubTab === "add" && <AddTab />}
+            {billingSubTab === "categories" && <CategoriesTab />}
+          </>
+        )}
+        {primaryTab === "notes" && <NotesTab />}
       </motion.div>
     </div>
   );
