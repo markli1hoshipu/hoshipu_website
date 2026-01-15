@@ -9,52 +9,245 @@
   },
   "home": {
     "hero": {
-      "title": "你好，我是 Hoshipu",
-      "subtitle": "全栈开发者，致力于打造卓越的数字体验",
+      "title": "你好，我是李致远",
+      "subtitle": "多伦多大学机器人工程师 & 全栈开发者",
       "viewWork": "查看作品",
       "getInTouch": "联系我"
     },
     "features": {
-      "cleanCode": {
-        "title": "简洁代码",
-        "description": "编写可维护和高效的代码，构建可扩展的应用程序"
+      "research": {
+        "title": "研究方向",
+        "description": "具身智能、视觉-语言-动作模型、华为诺亚方舟实验室机器人操控研究"
       },
-      "modernDesign": {
-        "title": "现代设计",
-        "description": "创造美观直观的用户界面"
+      "engineering": {
+        "title": "全栈工程",
+        "description": "使用 Next.js、React、TypeScript 和 Python 构建可扩展应用"
       },
-      "performance": {
-        "title": "性能优化",
-        "description": "优化速度和用户体验"
+      "mathematics": {
+        "title": "数学竞赛",
+        "description": "获奖数学竞赛选手：Putnam Top 154、CMO 受邀选手、多大数学竞赛第一"
       }
+    },
+    "timeline": {
+      "title": "我的历程",
+      "subtitle": "我的学术和职业经历时间线"
+    }
+  },
+  "timeline": {
+    "current": "进行中",
+    "education_uoft": {
+      "title": "多伦多大学",
+      "subtitle": "工程科学学士，机器人专业",
+      "description": "GPA: 3.90 | 每学期院长荣誉榜 | PEY 实习项目"
+    },
+    "work_yif": {
+      "title": "全栈工程师",
+      "subtitle": "裕航国际航空（大连）有限公司",
+      "description": "开发借据管理系统，处理10万+记录，支持100+并发用户，使用Python、SQL和Qt"
+    },
+    "award_putnam": {
+      "title": "普特南数学竞赛",
+      "subtitle": "个人排名前154，团队前5",
+      "description": "个人得分42分，作为核心成员帮助多大获得北美前5名团队"
+    },
+    "work_robotics": {
+      "title": "软件工程师",
+      "subtitle": "多伦多大学机器人协会",
+      "description": "开发真实机器人吃豆人AI，使用A*、极小化极大算法，导航精度提升30%"
+    },
+    "research_crl": {
+      "title": "本科研究助理",
+      "subtitle": "多伦多大学连续体机器人实验室",
+      "description": "腱驱动连续体机器人状态估计研究，MuJoCo仿真，OpenCR项目贡献"
+    },
+    "award_uoftmath": {
+      "title": "多大数学竞赛",
+      "subtitle": "全校区第一名",
+      "description": "在多伦多大学所有校区、所有年级本科生参赛者中排名第一"
+    },
+    "research_huawei": {
+      "title": "研究助理",
+      "subtitle": "华为技术，诺亚方舟实验室",
+      "description": "VLA模型(Pi0)、Plan-to-Evolve框架、Mem2Ego导航，4篇论文投稿ICRA/ICLR"
+    },
+    "work_prelude": {
+      "title": "全栈工程师 / 前端负责人",
+      "subtitle": "Prelude CA",
+      "description": "领导多租户SaaS平台前端架构，使用Next.js 15、React 19、TypeScript"
+    },
+    "award_neurips": {
+      "title": "NeurIPS 行为挑战赛",
+      "subtitle": "第四名 - The North Star 团队",
+      "description": "设计有限状态机流水线，集成SAM6D、Pi0 VLA和运动规划，完成50+家庭任务"
+    },
+    "graduation": {
+      "title": "预计毕业",
+      "subtitle": "工程科学学士",
+      "description": "完成机器人工程专业应用科学学士学位"
     }
   },
   "about": {
     "title": "关于我",
-    "description": "我是一位充满热情的全栈开发者，专注于构建现代化的网络应用程序。我热爱创造高效、可扩展的解决方案，并紧跟最新技术趋势。",
-    "skillsTitle": "技能",
-    "skills": {
-      "frontendTitle": "前端",
-      "frontend": ["React", "Next.js", "TypeScript", "Tailwind CSS", "Framer Motion"],
-      "backendTitle": "后端",
-      "backend": ["Node.js", "Python", "PostgreSQL", "MongoDB", "REST APIs"],
-      "toolsTitle": "工具",
-      "tools": ["Git", "Docker", "AWS", "Vercel", "Figma"]
+    "description": "我是李致远，多伦多大学机器人工程专业学生，对具身智能和全栈开发充满热情。目前在华为诺亚方舟实验室进行研究，同时在 Prelude CA 担任前端负责人。",
+    "documents": {
+      "title": "文档下载",
+      "resume": "简历",
+      "researchCV": "研究履历",
+      "academicHistory": "学业成绩"
     },
-    "experienceTitle": "工作经验",
-    "experience": {
-      "exp1": {
-        "title": "高级开发工程师",
-        "company": "科技公司",
-        "period": "2022 - 至今",
-        "description": "领导可扩展网络应用程序的开发"
+    "tabs": {
+      "research": "研究与学术",
+      "software": "软件与硬件"
+    },
+    "education": {
+      "title": "教育背景",
+      "school": "多伦多大学",
+      "degree": "工程科学学士，机器人专业",
+      "gpa": "GPA: 3.90",
+      "honors": "院长荣誉榜（每学期）",
+      "period": "2022年9月 - 2027年4月",
+      "status": "目前在进行PEY实习"
+    },
+    "researchTitle": "研究经历",
+    "research": {
+      "huawei": {
+        "title": "研究助理",
+        "company": "华为技术，诺亚方舟实验室 - 具身智能",
+        "period": "2025年5月 - 至今",
+        "location": "加拿大安大略省多伦多",
+        "points": [
+          "研究视觉-语言-动作（VLA）模型如Pi0在机器人操控中的应用，研究感知-动作耦合和鲁棒性退化",
+          "探索通过Plan-to-Evolve (P2E)框架进行长期符号规划，微调包括Qwen3和LLaMA 3/4在内的大语言模型",
+          "贡献于Mem2Ego，一种用于长期具身导航的全局到自我中心记忆架构",
+          "作为The North Star团队核心工程师，在NeurIPS 2025行为挑战赛中获得第四名"
+        ]
       },
-      "exp2": {
-        "title": "全栈开发工程师",
-        "company": "创业公司",
-        "period": "2020 - 2022",
-        "description": "构建和维护多个客户项目"
+      "crl": {
+        "title": "本科研究助理",
+        "company": "多伦多大学连续体机器人实验室",
+        "period": "2024年2月 - 2025年4月",
+        "location": "加拿大安大略省多伦多",
+        "points": [
+          "研究连续体机器人的状态估计，专注于腱驱动连续体机器人（TDCR）",
+          "从第一性原理分析TDCR正向运动学，评估硬件因素的影响",
+          "使用MuJoCo开发和仿真TDCR模型，并为OpenCR项目撰写文档"
+        ]
       }
+    },
+    "publicationsTitle": "发表论文",
+    "publications": [
+      {
+        "title": "Distracted Robot: How Visual Clutter Undermines Robotic Manipulation",
+        "venue": "投稿至 ICRA",
+        "arxiv": "arXiv:2511.22780"
+      },
+      {
+        "title": "Improving Robotic Manipulation Robustness via NICE Scene Surgery",
+        "venue": "投稿至 ICRA",
+        "arxiv": "arXiv:2511.22777"
+      },
+      {
+        "title": "Plan2Evolve: LLM Self-Evolution for Improved Planning Capability",
+        "venue": "投稿至 ICLR",
+        "arxiv": "arXiv:2509.21543"
+      },
+      {
+        "title": "Mem2Ego: Empowering VLMs with Global-to-Ego Memory for Navigation",
+        "venue": "投稿至 ICRA",
+        "arxiv": "arXiv:2502.14254"
+      }
+    ],
+    "awardsTitle": "获奖与荣誉",
+    "awards": {
+      "putnam": {
+        "title": "普特南数学竞赛",
+        "description": "得分42，个人排名前154，前5团队核心成员"
+      },
+      "cmo": {
+        "title": "加拿大数学奥林匹克",
+        "description": "受邀参赛选手"
+      },
+      "uoftmath": {
+        "title": "多伦多大学本科数学竞赛",
+        "description": "全校区、全年级参赛者中排名第一"
+      },
+      "cemc": {
+        "title": "CEMC数学竞赛",
+        "description": "欧几里得荣誉榜（排名77）、Hypatia、Fermat、CSMC荣誉榜（排名100）"
+      },
+      "amc": {
+        "title": "AMC/AIME数学竞赛",
+        "description": "两次AMC荣誉榜（前0.1%）、两次AIME荣誉榜（前0.1%）"
+      }
+    },
+    "workTitle": "工作经历",
+    "work": {
+      "prelude": {
+        "title": "全栈工程师 / 前端负责人",
+        "company": "Prelude CA",
+        "period": "2025年6月 - 至今",
+        "location": "加拿大安大略省多伦多",
+        "points": [
+          "领导多租户SaaS平台前端架构，使用Next.js 15、React 19、TypeScript",
+          "构建基于Radix UI和Tailwind CSS的模块化设计系统，交互延迟降低40%",
+          "实现安全的OAuth认证和基于角色的访问控制",
+          "设计AI驱动的CSV导入系统，使用OpenAI嵌入实现90%+自动映射准确率"
+        ]
+      },
+      "yif": {
+        "title": "全栈工程师",
+        "company": "裕航国际航空（大连）有限公司",
+        "period": "2022年7月 - 2024年5月",
+        "location": "中国大连",
+        "points": [
+          "使用Python、QtDesigner、SQL设计借据管理系统，处理10万+记录",
+          "实现连接池支持100+并发用户，使用bcrypt进行认证",
+          "使用FuzzyWuzzy开发模糊搜索，通过SQL触发器实现实时更新",
+          "运营效率提升超过100%，搜索响应时间低于5秒"
+        ]
+      },
+      "robotics": {
+        "title": "软件工程师",
+        "company": "多伦多大学机器人协会",
+        "period": "2023年9月 - 2024年7月",
+        "location": "加拿大多伦多",
+        "points": [
+          "使用C++、Python和PyGame开发真实机器人吃豆人AI",
+          "实现A*、带alpha-beta剪枝的极小化极大算法用于路径规划和敌人预测",
+          "通过传感器集成和碰撞检测将导航精度提升30%",
+          "使用博弈论策略将存活时间提升20%，总分提升50%"
+        ]
+      }
+    },
+    "projectsTitle": "个人项目",
+    "personalProjects": {
+      "robotpet": {
+        "title": "桌面机电机器人宠物",
+        "description": "使用ESP32-WROOM、Arduino的多模态交互机器人，支持语音命令、视觉识别和无线控制"
+      },
+      "turtlebot": {
+        "title": "配送龟机器人",
+        "description": "基于ROS的配送机器人，具有PID控制、贝叶斯定位和自主导航功能"
+      },
+      "mahjong": {
+        "title": "麻将AI",
+        "description": "使用PyTorch LSTM模型的日本麻将AI，支持实时网页平台集成"
+      },
+      "travelmap": {
+        "title": "一日游地图",
+        "description": "C++ GIS应用，A*寻路算法，多伦多路线响应时间低于1秒"
+      }
+    },
+    "skillsTitle": "技术技能",
+    "skills": {
+      "languagesTitle": "编程语言",
+      "languages": ["C", "C++", "Python", "TypeScript", "JavaScript", "Java", "C#", "Swift", "MATLAB", "R"],
+      "frameworksTitle": "框架与库",
+      "frameworks": ["React", "Next.js", "Node.js", "ROS/ROS2", "PyTorch", "TensorFlow", "OpenCV", "Langchain", "Three.js"],
+      "roboticsTitle": "机器人与硬件",
+      "robotics": ["MuJoCo", "UR5e", "Franka", "V-SLAM", "Nav2", "Arduino", "ESP32", "PID控制"],
+      "toolsTitle": "工具与平台",
+      "tools": ["Git", "Docker", "Linux", "AWS", "Vercel", "Vim", "Jupyter", "XCode"]
     }
   },
   "oc": {

@@ -1,11 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, Code, Palette, Zap, Music, Music2, Music3, Music4 } from "lucide-react";
+import { ArrowRight, FlaskConical, Code, Calculator, Music, Music2, Music3, Music4 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslations, useLocale } from "next-intl";
+import { Timeline, TimelineEntry } from "@/components/Timeline";
 
 const musicNotes = [Music, Music2, Music3, Music4];
 
@@ -24,7 +25,7 @@ const Star = ({ index }: { index: number }) => {
   const randomSize = Number((40 + seededRandom(index * 6) * 40).toFixed(2));
   const Note = musicNotes[Math.floor(seededRandom(index * 7) * musicNotes.length)];
   const isBlack = seededRandom(index * 8) > 0.5;
-  
+
   const fadeInDuration = Number((0.15 + seededRandom(index * 9) * 0.1).toFixed(3));
   const fadeOutDuration = Number((0.15 + seededRandom(index * 10) * 0.1).toFixed(3));
   const fadeInPoint = fadeInDuration;
@@ -52,8 +53,8 @@ const Star = ({ index }: { index: number }) => {
         }
       }}
     >
-      <Note 
-        size={randomSize} 
+      <Note
+        size={randomSize}
         className={isBlack ? "text-black" : "text-white"}
         strokeWidth={1.5}
       />
@@ -62,9 +63,22 @@ const Star = ({ index }: { index: number }) => {
 };
 
 const featuresData = [
-  { icon: Code, id: "cleanCode" },
-  { icon: Palette, id: "modernDesign" },
-  { icon: Zap, id: "performance" },
+  { icon: FlaskConical, id: "research" },
+  { icon: Code, id: "engineering" },
+  { icon: Calculator, id: "mathematics" },
+];
+
+const timelineEntries: TimelineEntry[] = [
+  { id: "graduation", date: "Apr 2027", type: "education" },
+  { id: "award_neurips", date: "Oct 2025", type: "award" },
+  { id: "work_prelude", date: "Jun 2025 - Present", type: "work", current: true },
+  { id: "research_huawei", date: "May 2025 - Present", type: "research", current: true },
+  { id: "award_uoftmath", date: "2024", type: "award" },
+  { id: "research_crl", date: "Feb 2024 - Apr 2025", type: "research" },
+  { id: "work_robotics", date: "Sep 2023 - Jul 2024", type: "work" },
+  { id: "award_putnam", date: "2022", type: "award" },
+  { id: "work_yif", date: "Jul 2022 - May 2024", type: "work" },
+  { id: "education_uoft", date: "Sep 2022", type: "education" },
 ];
 
 export default function Home() {
@@ -135,6 +149,20 @@ export default function Home() {
             );
           })}
         </motion.div>
+      </section>
+
+      <section className="py-16">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-12"
+        >
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('timeline.title')}</h2>
+          <p className="text-lg text-muted-foreground">{t('timeline.subtitle')}</p>
+        </motion.div>
+        <Timeline entries={timelineEntries} />
       </section>
     </div>
   );

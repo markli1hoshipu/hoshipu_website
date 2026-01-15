@@ -9,52 +9,245 @@
   },
   "home": {
     "hero": {
-      "title": "Hi, I'm Hoshipu",
-      "subtitle": "Full-stack developer crafting exceptional digital experiences",
+      "title": "Hi, I'm Zhiyuan Li",
+      "subtitle": "Robotics Engineer & Full-Stack Developer at University of Toronto",
       "viewWork": "View My Work",
       "getInTouch": "Get in Touch"
     },
     "features": {
-      "cleanCode": {
-        "title": "Clean Code",
-        "description": "Writing maintainable and efficient code for scalable applications"
+      "research": {
+        "title": "Research Focus",
+        "description": "Embodied AI, Vision-Language-Action models, and robotic manipulation at Huawei Noah's Ark Lab"
       },
-      "modernDesign": {
-        "title": "Modern Design",
-        "description": "Creating beautiful and intuitive user interfaces"
+      "engineering": {
+        "title": "Full-Stack Engineering",
+        "description": "Building scalable applications with Next.js, React, TypeScript, and Python"
       },
-      "performance": {
-        "title": "Performance",
-        "description": "Optimizing for speed and best user experience"
+      "mathematics": {
+        "title": "Mathematics",
+        "description": "Award-winning problem solver: Putnam Top 154, CMO invitee, UofT Math Contest #1"
       }
+    },
+    "timeline": {
+      "title": "My Journey",
+      "subtitle": "A timeline of my academic and professional experience"
+    }
+  },
+  "timeline": {
+    "current": "Current",
+    "education_uoft": {
+      "title": "University of Toronto",
+      "subtitle": "BASc Engineering Science, Robotics Specialization",
+      "description": "GPA: 3.90 | Dean's Honour List every semester | PEY Co-op Program"
+    },
+    "work_yif": {
+      "title": "Full-Stack Engineer",
+      "subtitle": "Yuhang International Flight (YIF)",
+      "description": "Developed IOU management system handling 100k+ records with 100+ concurrent users using Python, SQL, and Qt"
+    },
+    "award_putnam": {
+      "title": "Putnam Math Contest",
+      "subtitle": "Top 154 Individual, Top 5 Team",
+      "description": "Personal score 42, contributing member of UofT's top 5 winning team in North America"
+    },
+    "work_robotics": {
+      "title": "Software Engineer",
+      "subtitle": "UofT Robotics Association",
+      "description": "Developed real-robot Pacman AI using A*, minimax algorithms, improving navigation accuracy by 30%"
+    },
+    "research_crl": {
+      "title": "Undergraduate Research Assistant",
+      "subtitle": "UofT Continuum Robotics Laboratory",
+      "description": "State estimation for tendon-driven continuum robots, MuJoCo simulations, OpenCR project contributions"
+    },
+    "award_uoftmath": {
+      "title": "UofT Math Contest",
+      "subtitle": "#1 All Campuses",
+      "description": "Ranked first among all undergraduate participants across all University of Toronto campuses"
+    },
+    "research_huawei": {
+      "title": "Research Assistant",
+      "subtitle": "Huawei Technologies, Noah's Ark Lab",
+      "description": "VLA models (Pi0), Plan-to-Evolve frameworks, Mem2Ego navigation, 4 papers submitted to ICRA/ICLR"
+    },
+    "work_prelude": {
+      "title": "Full-Stack Engineer / Frontend Lead",
+      "subtitle": "Prelude CA",
+      "description": "Leading frontend architecture of multi-tenant SaaS platform with Next.js 15, React 19, TypeScript"
+    },
+    "award_neurips": {
+      "title": "NeurIPS Behavior Challenge",
+      "subtitle": "4th Place - The North Star Team",
+      "description": "Designed FSM pipeline integrating SAM6D, Pi0 VLA, and motion planning for 50+ household tasks"
+    },
+    "graduation": {
+      "title": "Expected Graduation",
+      "subtitle": "BASc Engineering Science",
+      "description": "Completing Bachelor of Applied Science with Robotics Engineering specialization"
     }
   },
   "about": {
     "title": "About Me",
-    "description": "I'm a passionate full-stack developer with expertise in building modern web applications. I love creating efficient, scalable solutions and staying up-to-date with the latest technologies.",
-    "skillsTitle": "Skills",
-    "skills": {
-      "frontendTitle": "Frontend",
-      "frontend": ["React", "Next.js", "TypeScript", "Tailwind CSS", "Framer Motion"],
-      "backendTitle": "Backend",
-      "backend": ["Node.js", "Python", "PostgreSQL", "MongoDB", "REST APIs"],
-      "toolsTitle": "Tools",
-      "tools": ["Git", "Docker", "AWS", "Vercel", "Figma"]
+    "description": "I'm Zhiyuan Li, a Robotics Engineering student at the University of Toronto with a passion for embodied AI and full-stack development. Currently conducting research at Huawei Noah's Ark Lab while leading frontend development at Prelude CA.",
+    "documents": {
+      "title": "Documents",
+      "resume": "Resume",
+      "researchCV": "Research CV",
+      "academicHistory": "Academic History"
     },
-    "experienceTitle": "Experience",
-    "experience": {
-      "exp1": {
-        "title": "Senior Developer",
-        "company": "Tech Company",
-        "period": "2022 - Present",
-        "description": "Leading development of scalable web applications"
+    "tabs": {
+      "research": "Research & Academic",
+      "software": "Software & Hardware"
+    },
+    "education": {
+      "title": "Education",
+      "school": "University of Toronto",
+      "degree": "BASc Engineering Science, Robotics Specialization",
+      "gpa": "GPA: 3.90",
+      "honors": "Dean's Honour List (Every Semester)",
+      "period": "Sep 2022 - Apr 2027",
+      "status": "Currently on PEY Co-op"
+    },
+    "researchTitle": "Research Experience",
+    "research": {
+      "huawei": {
+        "title": "Research Assistant",
+        "company": "Huawei Technologies, Noah's Ark Lab - Embodied AI",
+        "period": "May 2025 - Present",
+        "location": "Toronto, Ontario",
+        "points": [
+          "Conducted research on Vision-Language-Action (VLA) models such as Pi0 for robotic manipulation, studying perception-action coupling and robustness degradation",
+          "Explored long-horizon symbolic planning via Plan-to-Evolve (P2E) frameworks, fine-tuning LLMs including Qwen3 and LLaMA 3/4",
+          "Contributed to Mem2Ego, a global-to-egocentric memory architecture for long-horizon embodied navigation",
+          "Lead engineer on The North Star team, achieving 4th place in NeurIPS 2025 Behavior Challenge"
+        ]
       },
-      "exp2": {
-        "title": "Full Stack Developer",
-        "company": "Startup Inc",
-        "period": "2020 - 2022",
-        "description": "Built and maintained multiple client projects"
+      "crl": {
+        "title": "Undergraduate Research Assistant",
+        "company": "UofT Continuum Robotics Laboratory",
+        "period": "Feb 2024 - Apr 2025",
+        "location": "Toronto, Ontario",
+        "points": [
+          "Conducted research on state estimations for continuum robotics, focusing on tendon-driven continuum robots (TDCR)",
+          "Analyzed TDCR forward kinematics from first principles, evaluating influence of hardware factors",
+          "Developed and simulated TDCR models using MuJoCo and documented findings for OpenCR project"
+        ]
       }
+    },
+    "publicationsTitle": "Publications",
+    "publications": [
+      {
+        "title": "Distracted Robot: How Visual Clutter Undermines Robotic Manipulation",
+        "venue": "Submitted to ICRA",
+        "arxiv": "arXiv:2511.22780"
+      },
+      {
+        "title": "Improving Robotic Manipulation Robustness via NICE Scene Surgery",
+        "venue": "Submitted to ICRA",
+        "arxiv": "arXiv:2511.22777"
+      },
+      {
+        "title": "Plan2Evolve: LLM Self-Evolution for Improved Planning Capability",
+        "venue": "Submitted to ICLR",
+        "arxiv": "arXiv:2509.21543"
+      },
+      {
+        "title": "Mem2Ego: Empowering VLMs with Global-to-Ego Memory for Navigation",
+        "venue": "Submitted to ICRA",
+        "arxiv": "arXiv:2502.14254"
+      }
+    ],
+    "awardsTitle": "Awards & Honors",
+    "awards": {
+      "putnam": {
+        "title": "Putnam Math Contest",
+        "description": "Score 42, Top 154 Individual, Top 3 member of Top 5 Winning Team"
+      },
+      "cmo": {
+        "title": "Canadian Mathematics Olympiad",
+        "description": "Invited participant"
+      },
+      "uoftmath": {
+        "title": "UofT Undergrad Mathematics Contest",
+        "description": "#1 among all participants from all years, all campuses"
+      },
+      "cemc": {
+        "title": "CEMC Math Contests",
+        "description": "Euclid Honor Roll (Rank 77), Hypatia, Fermat, CSMC Honor Roll (Rank 100)"
+      },
+      "amc": {
+        "title": "AMC/AIME Math Contests",
+        "description": "2-time AMC Honor Roll (Top 0.1%), 2-time AIME Honor Roll (Top 0.1%)"
+      }
+    },
+    "workTitle": "Work Experience",
+    "work": {
+      "prelude": {
+        "title": "Full-Stack Engineer / Frontend Lead",
+        "company": "Prelude CA",
+        "period": "June 2025 - Present",
+        "location": "Toronto, Ontario",
+        "points": [
+          "Led frontend architecture of multi-tenant SaaS platform using Next.js 15, React 19, TypeScript",
+          "Built modular design system with Radix UI and Tailwind CSS, reducing interaction latency by 40%",
+          "Implemented secure OAuth authentication and role-based access control",
+          "Designed AI-driven CSV ingestion with OpenAI embeddings achieving 90%+ auto-mapping accuracy"
+        ]
+      },
+      "yif": {
+        "title": "Full-Stack Engineer",
+        "company": "Yuhang International Flight (YIF)",
+        "period": "July 2022 - May 2024",
+        "location": "Dalian, China",
+        "points": [
+          "Designed IOU management system using Python, QtDesigner, SQL handling 100k+ records",
+          "Implemented connection pooling for 100+ concurrent users with bcrypt authentication",
+          "Developed fuzzy search with FuzzyWuzzy and real-time updates with SQL triggers",
+          "Improved operational efficiency by over 100% with sub-5 second search performance"
+        ]
+      },
+      "robotics": {
+        "title": "Software Engineer",
+        "company": "UofT Robotics Association",
+        "period": "Sept 2023 - July 2024",
+        "location": "Toronto, Canada",
+        "points": [
+          "Developed real-robot Pacman AI using C++, Python, and PyGame",
+          "Implemented A*, minimax with alpha-beta pruning for pathfinding and enemy prediction",
+          "Improved navigation accuracy by 30% through sensor integration and collision detection",
+          "Increased survival time by 20% and total score by 50% with game theory strategies"
+        ]
+      }
+    },
+    "projectsTitle": "Personal Projects",
+    "personalProjects": {
+      "robotpet": {
+        "title": "Desktop Mechatronic Robotic Pet",
+        "description": "Multi-modal interactive robot using ESP32-WROOM, Arduino, with voice commands, visual recognition, and wireless control"
+      },
+      "turtlebot": {
+        "title": "Delivery Turtle-bot",
+        "description": "ROS-based delivery robot with PID control, Bayesian localization, and autonomous navigation"
+      },
+      "mahjong": {
+        "title": "Mahjong AI",
+        "description": "PyTorch LSTM model for Japanese Mahjong with real-time web platform integration"
+      },
+      "travelmap": {
+        "title": "Day Travel Map",
+        "description": "C++ GIS application with A* pathfinding, achieving sub-1 second response for Toronto routes"
+      }
+    },
+    "skillsTitle": "Technical Skills",
+    "skills": {
+      "languagesTitle": "Languages",
+      "languages": ["C", "C++", "Python", "TypeScript", "JavaScript", "Java", "C#", "Swift", "MATLAB", "R"],
+      "frameworksTitle": "Frameworks & Libraries",
+      "frameworks": ["React", "Next.js", "Node.js", "ROS/ROS2", "PyTorch", "TensorFlow", "OpenCV", "Langchain", "Three.js"],
+      "roboticsTitle": "Robotics & Hardware",
+      "robotics": ["MuJoCo", "UR5e", "Franka", "V-SLAM", "Nav2", "Arduino", "ESP32", "PID Control"],
+      "toolsTitle": "Tools & Platforms",
+      "tools": ["Git", "Docker", "Linux", "AWS", "Vercel", "Vim", "Jupyter", "XCode"]
     }
   },
   "oc": {

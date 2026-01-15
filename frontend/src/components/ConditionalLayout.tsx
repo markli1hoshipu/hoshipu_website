@@ -13,12 +13,12 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
     return <main className="min-h-screen">{children}</main>;
   }
 
-  // Regular pages with navigation and footer
+  // Regular pages with navigation and sticky footer
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       <Navigation />
-      <main className="min-h-screen pt-16">{children}</main>
+      <main className="flex-1 pt-16 pb-16">{children}</main>
       <Footer />
-    </>
+    </div>
   );
 }
