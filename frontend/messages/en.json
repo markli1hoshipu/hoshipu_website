@@ -116,10 +116,10 @@
         "period": "May 2025 - Present",
         "location": "Toronto, Ontario",
         "points": [
-          "Conducted research on Vision-Language-Action (VLA) models such as Pi0 for robotic manipulation, studying perception-action coupling and robustness degradation",
-          "Explored long-horizon symbolic planning via Plan-to-Evolve (P2E) frameworks, fine-tuning LLMs including Qwen3 and LLaMA 3/4",
-          "Contributed to Mem2Ego, a global-to-egocentric memory architecture for long-horizon embodied navigation",
-          "Lead engineer on The North Star team, achieving 4th place in NeurIPS 2025 Behavior Challenge"
+          "Conducted research on Vision-Language-Action (VLA) models such as Pi0 for robotic manipulation in visually cluttered environments, studying perception-action coupling and robustness degradation. Designed experiments using UR5e and Franka robots with ROS integration.",
+          "Explored long-horizon symbolic planning via Plan-to-Evolve (P2E) frameworks. Fine-tuned LLMs including Qwen3 and LLaMA 3/4 using PDDL-based domains with Chain-of-Thought reasoning. Integrated real-robot experiments combining VLA and motion planners.",
+          "Contributed to Mem2Ego, a global-to-egocentric memory architecture for long-horizon embodied navigation. Integrated V-SLAM and Nav2 within ROS2 for agent-guided navigation.",
+          "Lead engineer on The North Star team at NeurIPS 2025 Behavior Challenge. Designed FSM pipeline integrating SAM6D, Pi0 VLA, and classical robot motion planning for 50+ household tasks in Isaac Sim. Achieved 4th place."
         ]
       },
       "crl": {
@@ -128,9 +128,9 @@
         "period": "Feb 2024 - Apr 2025",
         "location": "Toronto, Ontario",
         "points": [
-          "Conducted research on state estimations for continuum robotics, focusing on tendon-driven continuum robots (TDCR)",
-          "Analyzed TDCR forward kinematics from first principles, evaluating influence of hardware factors",
-          "Developed and simulated TDCR models using MuJoCo and documented findings for OpenCR project"
+          "Conducted in-depth research on state estimations for continuum robotics, focusing on constraints and degrees of freedom. Extended Clarke transformation to general models for tendon-driven continuum robots (TDCR).",
+          "Analyzed TDCR forward kinematics from first principles, evaluating hardware factors such as material stiffness, size effects, disk radius, and tendon length. Introduced corrective factors to improve model accuracy.",
+          "Developed and simulated TDCR models using MuJoCo and Pyplot. Documented findings through blog posts on the OpenCR project."
         ]
       }
     },
@@ -188,10 +188,10 @@
         "period": "June 2025 - Present",
         "location": "Toronto, Ontario",
         "points": [
-          "Led frontend architecture of multi-tenant SaaS platform using Next.js 15, React 19, TypeScript",
-          "Built modular design system with Radix UI and Tailwind CSS, reducing interaction latency by 40%",
-          "Implemented secure OAuth authentication and role-based access control",
-          "Designed AI-driven CSV ingestion with OpenAI embeddings achieving 90%+ auto-mapping accuracy"
+          "Led the frontend architecture of a multi-tenant SaaS platform using Next.js 15 (App Router), React 19, and TypeScript. Built a modular design system with Radix UI and Tailwind CSS, implemented global state management via Zustand, and optimized performance through client-side state caching and cookies, reducing interaction latency by 40%.",
+          "Implemented secure authentication and authorization for workspace-isolated tenants, using OAuth integration (Google/Microsoft), role-based access control, and team invitation flows. Designed multi-tenant isolation across application and data layers.",
+          "Designed an AI-driven pipeline enabling automated, multi-agent data processing workflows. Built an intelligent CSV ingestion system with semantic column matching using OpenAI embeddings, achieving 90%+ auto-mapping accuracy.",
+          "Designed a scalable CRM relational schema using PostgreSQL, unifying customers, leads, and deals into comprehensive user profiles with normalization, indexed key columns, and transaction-safe updates."
         ]
       },
       "yif": {
@@ -200,10 +200,11 @@
         "period": "July 2022 - May 2024",
         "location": "Dalian, China",
         "points": [
-          "Designed IOU management system using Python, QtDesigner, SQL handling 100k+ records",
-          "Implemented connection pooling for 100+ concurrent users with bcrypt authentication",
-          "Developed fuzzy search with FuzzyWuzzy and real-time updates with SQL triggers",
-          "Improved operational efficiency by over 100% with sub-5 second search performance"
+          "Designed and developed an online information management system using Python, QtDesigner, SQL, and QML to track and manage IOU payments, significantly reducing manual input and improving efficiency.",
+          "Utilized MySQL with connection pooling for multiple concurrent users. Enhanced user authentication with bcrypt hashed passwords, enforcing security protocols.",
+          "Implemented advanced multi-key search using SQL JOIN, INDEX, and LIKE statements. Developed fuzzy search with FuzzyWuzzy library for partial matches. Integrated real-time updates with SQL triggers.",
+          "Leveraged pandas and numpy to connect to Excel and other platforms, enabling data import and visual summaries through graphs depicting IOU amount changes over time.",
+          "Conducted rigorous system testing with over 1 million items and 100+ concurrent users. Optimized to process 100k+ IOUs with 3-5 second search response, improving efficiency by over 100%."
         ]
       },
       "robotics": {
@@ -223,29 +224,29 @@
     "personalProjects": {
       "robotpet": {
         "title": "Desktop Mechatronic Robotic Pet",
-        "description": "Multi-modal interactive robot using ESP32-WROOM, Arduino, with voice commands, visual recognition, and wireless control"
+        "description": "Multi-modal interactive robot using ESP32-WROOM microcontroller programmed in Arduino IDE and C++. Features multi-threaded motor control, Python API for desktop integration, and custom CAD-designed mechanical components. Supports voice commands, visual recognition, and wireless control."
       },
       "turtlebot": {
         "title": "Delivery Turtle-bot",
-        "description": "ROS-based delivery robot with PID control, Bayesian localization, and autonomous navigation"
+        "description": "ROS-based delivery robot programmed in Python with PID control for precise movement and Bayesian localization for accurate positioning. Implements autonomous navigation algorithms for indoor delivery tasks."
       },
       "mahjong": {
         "title": "Mahjong AI",
-        "description": "PyTorch LSTM model for Japanese Mahjong with real-time web platform integration"
+        "description": "PyTorch LSTM-based neural network trained on Japanese M-League professional Mahjong rules and strategies. Integrated with web platforms via HTTP requests for real-time game analysis and move recommendations."
       },
       "travelmap": {
         "title": "Day Travel Map",
-        "description": "C++ GIS application with A* pathfinding, achieving sub-1 second response for Toronto routes"
+        "description": "C++ GIS application using ezgl API for visualization. Implements A* Algorithm for optimal pathfinding, Multi-Dijkstra for multi-destination routing, and Three-Opt optimization for solving the Traveling Salesman Problem. Achieves sub-1 second response for Toronto metropolitan area routes."
       }
     },
     "skillsTitle": "Technical Skills",
     "skills": {
       "languagesTitle": "Languages",
-      "languages": ["C", "C++", "Python", "TypeScript", "JavaScript", "Java", "C#", "Swift", "MATLAB", "R"],
+      "languages": ["C", "C++", "Python", "TypeScript", "JavaScript", "Java", "C#", "Swift", "MATLAB", "R", "HTML", "CSS/SCSS", "Shell Scripting", "LaTeX"],
       "frameworksTitle": "Frameworks & Libraries",
-      "frameworks": ["React", "Next.js", "Node.js", "ROS/ROS2", "PyTorch", "TensorFlow", "OpenCV", "Langchain", "Three.js"],
+      "frameworks": ["React", "Next.js", "Node.js", "ROS/ROS2", "PyTorch", "TensorFlow", "Keras", "NumPy", "scikit-learn", "OpenCV", "OpenAI", "Langchain", "Three.js", "Unity"],
       "roboticsTitle": "Robotics & Hardware",
-      "robotics": ["MuJoCo", "UR5e", "Franka", "V-SLAM", "Nav2", "Arduino", "ESP32", "PID Control"],
+      "robotics": ["MuJoCo", "Isaac Sim", "UR5e", "Franka", "V-SLAM", "Nav2", "Arduino", "ESP32", "PID Control"],
       "toolsTitle": "Tools & Platforms",
       "tools": ["Git", "Docker", "Linux", "AWS", "Vercel", "Vim", "Jupyter", "XCode"]
     }
@@ -253,6 +254,7 @@
   "oc": {
     "title": "Hoshipu",
     "subtitle": "My original character, a cute little creature",
+    "workInProgress": "Work in Progress",
     "basicInfo": {
       "title": "Basic Info",
       "nameLabel": "Name",
@@ -311,6 +313,11 @@
   "projects": {
     "title": "Projects",
     "description": "A collection of projects I've worked on, showcasing my skills in full-stack development, UI/UX design, and problem-solving.",
+    "groups": {
+      "yuhang": "Developments for Yuhang International Flight (Dalian)",
+      "personal": "Personal Tools",
+      "games": "Mini Games"
+    },
     "pdfRename": {
       "title": "GJP PDF Rename Tool",
       "description": "Intelligent PDF batch rename tool that extracts invoice information and renames files using custom templates.",
@@ -335,6 +342,11 @@
       "title": "Life Management",
       "description": "Personal life management system including accounting, task management, and more.",
       "tags": ["Life", "Management"]
+    },
+    "iataCode": {
+      "title": "IATA Code Translator",
+      "description": "Convert IATA airport codes to city names, supporting various separator formats.",
+      "tags": ["Aviation", "Code Conversion"]
     },
     "comingSoon": {
       "title": "Coming Soon",

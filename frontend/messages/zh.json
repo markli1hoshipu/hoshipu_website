@@ -116,10 +116,10 @@
         "period": "2025年5月 - 至今",
         "location": "加拿大安大略省多伦多",
         "points": [
-          "研究视觉-语言-动作（VLA）模型如Pi0在机器人操控中的应用，研究感知-动作耦合和鲁棒性退化",
-          "探索通过Plan-to-Evolve (P2E)框架进行长期符号规划，微调包括Qwen3和LLaMA 3/4在内的大语言模型",
-          "贡献于Mem2Ego，一种用于长期具身导航的全局到自我中心记忆架构",
-          "作为The North Star团队核心工程师，在NeurIPS 2025行为挑战赛中获得第四名"
+          "研究视觉-语言-动作（VLA）模型如Pi0在视觉杂乱环境中的机器人操控应用，研究感知-动作耦合和鲁棒性退化。使用UR5e和Franka机器人配合ROS集成设计实验。",
+          "探索通过Plan-to-Evolve (P2E)框架进行长期符号规划。使用基于PDDL的领域和思维链推理微调包括Qwen3和LLaMA 3/4在内的大语言模型。整合VLA和运动规划器进行真实机器人实验。",
+          "贡献于Mem2Ego，一种用于长期具身导航的全局到自我中心记忆架构。在ROS2中集成V-SLAM和Nav2用于代理引导导航。",
+          "作为The North Star团队核心工程师参加NeurIPS 2025行为挑战赛。设计集成SAM6D、Pi0 VLA和经典机器人运动规划的有限状态机流水线，在Isaac Sim中完成50+家庭任务。获得第四名。"
         ]
       },
       "crl": {
@@ -128,9 +128,9 @@
         "period": "2024年2月 - 2025年4月",
         "location": "加拿大安大略省多伦多",
         "points": [
-          "研究连续体机器人的状态估计，专注于腱驱动连续体机器人（TDCR）",
-          "从第一性原理分析TDCR正向运动学，评估硬件因素的影响",
-          "使用MuJoCo开发和仿真TDCR模型，并为OpenCR项目撰写文档"
+          "深入研究连续体机器人的状态估计，专注于约束和自由度。将克拉克变换扩展到腱驱动连续体机器人（TDCR）的通用模型。",
+          "从第一性原理分析TDCR正向运动学，评估材料刚度、尺寸效应、圆盘半径和肌腱长度等硬件因素。引入修正因子以提高模型精度。",
+          "使用MuJoCo和Pyplot开发和仿真TDCR模型。通过OpenCR项目的博客文章记录研究成果。"
         ]
       }
     },
@@ -188,10 +188,10 @@
         "period": "2025年6月 - 至今",
         "location": "加拿大安大略省多伦多",
         "points": [
-          "领导多租户SaaS平台前端架构，使用Next.js 15、React 19、TypeScript",
-          "构建基于Radix UI和Tailwind CSS的模块化设计系统，交互延迟降低40%",
-          "实现安全的OAuth认证和基于角色的访问控制",
-          "设计AI驱动的CSV导入系统，使用OpenAI嵌入实现90%+自动映射准确率"
+          "领导多租户SaaS平台前端架构，使用Next.js 15 (App Router)、React 19和TypeScript。构建基于Radix UI和Tailwind CSS的模块化设计系统，通过Zustand实现全局状态管理，通过客户端状态缓存和cookies优化性能，交互延迟降低40%。",
+          "实现工作空间隔离租户的安全认证和授权，使用OAuth集成（Google/Microsoft）、基于角色的访问控制和团队邀请流程。设计跨应用层和数据层的多租户隔离。",
+          "设计AI驱动的流水线，实现自动化多代理数据处理工作流。构建智能CSV导入系统，使用OpenAI嵌入进行语义列匹配，实现90%+自动映射准确率。",
+          "使用PostgreSQL设计可扩展的CRM关系模式，将客户、潜在客户和交易统一为完整的用户档案，具有规范化、索引关键列和事务安全更新。"
         ]
       },
       "yif": {
@@ -200,10 +200,11 @@
         "period": "2022年7月 - 2024年5月",
         "location": "中国大连",
         "points": [
-          "使用Python、QtDesigner、SQL设计借据管理系统，处理10万+记录",
-          "实现连接池支持100+并发用户，使用bcrypt进行认证",
-          "使用FuzzyWuzzy开发模糊搜索，通过SQL触发器实现实时更新",
-          "运营效率提升超过100%，搜索响应时间低于5秒"
+          "使用Python、QtDesigner、SQL和QML设计和开发在线信息管理系统，用于跟踪和管理借据支付，大幅减少手动输入并提高效率。",
+          "使用MySQL配合连接池支持多并发用户。通过bcrypt哈希密码增强用户认证，执行安全协议。",
+          "使用SQL JOIN、INDEX和LIKE语句实现高级多键搜索。使用FuzzyWuzzy库开发模糊搜索实现部分匹配。通过SQL触发器集成实时更新。",
+          "利用pandas和numpy连接Excel和其他平台，支持数据导入和通过图表展示借据金额变化的可视化摘要。",
+          "进行严格的系统测试，处理超过100万条数据和100+并发用户。优化处理10万+借据，搜索响应时间3-5秒，效率提升超过100%。"
         ]
       },
       "robotics": {
@@ -223,29 +224,29 @@
     "personalProjects": {
       "robotpet": {
         "title": "桌面机电机器人宠物",
-        "description": "使用ESP32-WROOM、Arduino的多模态交互机器人，支持语音命令、视觉识别和无线控制"
+        "description": "使用ESP32-WROOM微控制器的多模态交互机器人，通过Arduino IDE和C++编程。具有多线程电机控制、用于桌面集成的Python API和自定义CAD设计的机械组件。支持语音命令、视觉识别和无线控制。"
       },
       "turtlebot": {
         "title": "配送龟机器人",
-        "description": "基于ROS的配送机器人，具有PID控制、贝叶斯定位和自主导航功能"
+        "description": "基于ROS的配送机器人，使用Python编程，具有PID控制实现精确移动，贝叶斯定位实现准确定位。实现室内配送任务的自主导航算法。"
       },
       "mahjong": {
         "title": "麻将AI",
-        "description": "使用PyTorch LSTM模型的日本麻将AI，支持实时网页平台集成"
+        "description": "基于PyTorch LSTM的神经网络，在日本M联赛专业麻将规则和策略上训练。通过HTTP请求与网页平台集成，实现实时游戏分析和出牌推荐。"
       },
       "travelmap": {
         "title": "一日游地图",
-        "description": "C++ GIS应用，A*寻路算法，多伦多路线响应时间低于1秒"
+        "description": "使用ezgl API进行可视化的C++ GIS应用。实现A*算法进行最优寻路、多目的地Dijkstra进行多点路线规划、Three-Opt优化解决旅行商问题。多伦多大都市区路线响应时间低于1秒。"
       }
     },
     "skillsTitle": "技术技能",
     "skills": {
       "languagesTitle": "编程语言",
-      "languages": ["C", "C++", "Python", "TypeScript", "JavaScript", "Java", "C#", "Swift", "MATLAB", "R"],
+      "languages": ["C", "C++", "Python", "TypeScript", "JavaScript", "Java", "C#", "Swift", "MATLAB", "R", "HTML", "CSS/SCSS", "Shell脚本", "LaTeX"],
       "frameworksTitle": "框架与库",
-      "frameworks": ["React", "Next.js", "Node.js", "ROS/ROS2", "PyTorch", "TensorFlow", "OpenCV", "Langchain", "Three.js"],
+      "frameworks": ["React", "Next.js", "Node.js", "ROS/ROS2", "PyTorch", "TensorFlow", "Keras", "NumPy", "scikit-learn", "OpenCV", "OpenAI", "Langchain", "Three.js", "Unity"],
       "roboticsTitle": "机器人与硬件",
-      "robotics": ["MuJoCo", "UR5e", "Franka", "V-SLAM", "Nav2", "Arduino", "ESP32", "PID控制"],
+      "robotics": ["MuJoCo", "Isaac Sim", "UR5e", "Franka", "V-SLAM", "Nav2", "Arduino", "ESP32", "PID控制"],
       "toolsTitle": "工具与平台",
       "tools": ["Git", "Docker", "Linux", "AWS", "Vercel", "Vim", "Jupyter", "XCode"]
     }
@@ -253,6 +254,7 @@
   "oc": {
     "title": "Hoshipu",
     "subtitle": "我的原创角色，一只可爱的小生物",
+    "workInProgress": "正在制作中",
     "basicInfo": {
       "title": "基本信息",
       "nameLabel": "名字",
@@ -311,6 +313,11 @@
   "projects": {
     "title": "项目",
     "description": "我参与过的项目合集，展示了我在全栈开发、UI/UX设计和问题解决方面的技能。",
+    "groups": {
+      "yuhang": "大连宇航小程序",
+      "personal": "个人工具",
+      "games": "小游戏"
+    },
     "pdfRename": {
       "title": "GJP PDF 重命名工具",
       "description": "智能PDF批量重命名工具，可提取发票信息并使用自定义模板重命名文件。",
@@ -335,6 +342,11 @@
       "title": "生活管理",
       "description": "个人生活管理系统，包含记账、任务管理等功能。",
       "tags": ["生活", "管理"]
+    },
+    "iataCode": {
+      "title": "机场三字代码翻译器",
+      "description": "将IATA机场三字代码转换为中文城市名称，支持多种分隔符格式。",
+      "tags": ["航空", "代码转换"]
     },
     "comingSoon": {
       "title": "敬请期待",
