@@ -55,7 +55,7 @@ const getNavGroups = (locale: string): NavGroup[] => [
   {
     title: "付款管理",
     items: [
-      { title: "付款录入", href: `/${locale}/projects/yif/payments`, icon: DollarSign, disabled: true },
+      { title: "付款录入", href: `/${locale}/projects/yif/payments`, icon: DollarSign },
       { title: "付款查询与导出", href: `/${locale}/projects/yif/payments/search`, icon: Search },
       { title: "多笔付款录入", href: `/${locale}/projects/yif/payments/batch`, icon: ListOrdered, disabled: true },
       { title: "自选付款录入", href: `/${locale}/projects/yif/payments/select`, icon: CheckSquare },

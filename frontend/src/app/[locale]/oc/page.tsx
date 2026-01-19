@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Heart, Star, Palette } from "lucide-react";
 import { useTranslations } from "next-intl";
-import Image from "next/image";
 
 export default function OCPage() {
   const t = useTranslations('oc');
@@ -42,14 +41,10 @@ export default function OCPage() {
         >
           <Card className="overflow-hidden w-full max-w-md">
             <div className="aspect-square relative bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-              <Image
-                src="/hoshipu_character.png"
-                alt="Hoshipu"
-                width={400}
-                height={400}
-                className="object-contain"
-                priority
-              />
+              <div className="text-center text-muted-foreground">
+                <Sparkles className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                <p className="text-xl font-medium">{t('workInProgress')}</p>
+              </div>
             </div>
           </Card>
         </motion.div>
