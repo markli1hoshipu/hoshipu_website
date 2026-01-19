@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, ArrowRight, Calculator, Plane, DollarSign, LayoutDashboard } from "lucide-react";
+import { FileText, ArrowRight, Calculator, Plane, DollarSign, LayoutDashboard, Globe } from "lucide-react";
 import Link from "next/link";
 import Messages from "@/components/Messages";
 import { useTranslations, useLocale } from "next-intl";
@@ -18,30 +18,27 @@ interface Project {
 
 interface ProjectGroup {
   groupId: string;
-  groupTitle: string;
   projects: Project[];
 }
 
 const projectGroups: ProjectGroup[] = [
   {
     groupId: "yuhang",
-    groupTitle: "大连宇航小程序",
     projects: [
       { id: "pdfRename", link: "/projects/pdf-rename", icon: FileText },
       { id: "qffTravel", link: "/projects/qff-travel", icon: Plane },
       { id: "yifPayment", link: "/projects/yif", icon: DollarSign },
+      { id: "iataCode", link: "/projects/iata-code", icon: Globe },
     ],
   },
   {
     groupId: "personal",
-    groupTitle: "个人工具",
     projects: [
       { id: "lifeManagement", link: "/projects/life-management", icon: LayoutDashboard },
     ],
   },
   {
     groupId: "games",
-    groupTitle: "小游戏",
     projects: [
       { id: "game24", link: "/projects/game24", icon: Calculator },
     ],
@@ -77,7 +74,7 @@ export default function Projects() {
               transition={{ duration: 0.5, delay: groupIndex * 0.1 }}
             >
               <h2 className="text-2xl font-semibold mb-6 text-foreground/80 border-b pb-2">
-                {group.groupTitle}
+                {t(`groups.${group.groupId}`)}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {group.projects.map((project, index) => {
