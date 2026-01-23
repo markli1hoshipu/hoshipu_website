@@ -10,23 +10,17 @@
   "home": {
     "hero": {
       "title": "你好，我是李致远",
-      "subtitle": "多伦多大学机器人工程师 & 全栈开发者",
+      "subtitle1": "对数学充满热情的本科生",
+      "subtitle2": "探索机器人操控的研究者",
+      "subtitle3": "探索下一代技术的软件工程师",
+      "subtitle4": "充满幻想主义的音乐艺术家作曲家",
+      "affiliation": "多伦多大学 · 华为诺亚方舟实验室研究员",
       "viewWork": "查看作品",
       "getInTouch": "联系我"
     },
-    "features": {
-      "research": {
-        "title": "研究方向",
-        "description": "具身智能、视觉-语言-动作模型、华为诺亚方舟实验室机器人操控研究"
-      },
-      "engineering": {
-        "title": "全栈工程",
-        "description": "使用 Next.js、React、TypeScript 和 Python 构建可扩展应用"
-      },
-      "mathematics": {
-        "title": "数学竞赛",
-        "description": "获奖数学竞赛选手：Putnam Top 154、CMO 受邀选手、多大数学竞赛第一"
-      }
+    "about": {
+      "title": "关于我",
+      "description": "我是多伦多大学机器人工程专业学生，对具身智能、数学和创意艺术充满热情。目前在华为诺亚方舟实验室进行视觉-语言-动作模型研究，同时在 Prelude CA 构建全栈应用。获奖数学竞赛选手（普特南前154名、多大数学竞赛第一名）以及有志的音乐作曲家。"
     },
     "timeline": {
       "title": "我的历程",
@@ -347,6 +341,11 @@
       "title": "机场三字代码翻译器",
       "description": "将IATA机场三字代码转换为中文城市名称，支持多种分隔符格式。",
       "tags": ["航空", "代码转换"]
+    },
+    "gpuMonitor": {
+      "title": "GPU 监控",
+      "description": "多机器实时GPU监控面板。",
+      "tags": ["监控", "GPU"]
     },
     "comingSoon": {
       "title": "敬请期待",

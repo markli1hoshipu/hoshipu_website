@@ -10,23 +10,17 @@
   "home": {
     "hero": {
       "title": "Hi, I'm Zhiyuan Li",
-      "subtitle": "Robotics Engineer & Full-Stack Developer at University of Toronto",
+      "subtitle1": "Undergrad student with passion in mathematics",
+      "subtitle2": "Researcher exploring robotic manipulation",
+      "subtitle3": "Software engineer building next-generation technologies",
+      "subtitle4": "Imaginative music artist and composer",
+      "affiliation": "University of Toronto · Huawei Noah's Ark Lab Researcher",
       "viewWork": "View My Work",
       "getInTouch": "Get in Touch"
     },
-    "features": {
-      "research": {
-        "title": "Research Focus",
-        "description": "Embodied AI, Vision-Language-Action models, and robotic manipulation at Huawei Noah's Ark Lab"
-      },
-      "engineering": {
-        "title": "Full-Stack Engineering",
-        "description": "Building scalable applications with Next.js, React, TypeScript, and Python"
-      },
-      "mathematics": {
-        "title": "Mathematics",
-        "description": "Award-winning problem solver: Putnam Top 154, CMO invitee, UofT Math Contest #1"
-      }
+    "about": {
+      "title": "About Me",
+      "description": "I'm a Robotics Engineering student at the University of Toronto, passionate about embodied AI, mathematics, and creative arts. Currently conducting research at Huawei Noah's Ark Lab on Vision-Language-Action models while building full-stack applications at Prelude CA. Award-winning mathematician (Putnam Top 154, UofT Math Contest #1) and aspiring music composer."
     },
     "timeline": {
       "title": "My Journey",
@@ -347,6 +341,11 @@
       "title": "IATA Code Translator",
       "description": "Convert IATA airport codes to city names, supporting various separator formats.",
       "tags": ["Aviation", "Code Conversion"]
+    },
+    "gpuMonitor": {
+      "title": "GPU Monitor",
+      "description": "Real-time GPU monitoring dashboard for multiple machines.",
+      "tags": ["Monitoring", "GPU"]
     },
     "comingSoon": {
       "title": "Coming Soon",
