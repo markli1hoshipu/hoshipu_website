@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, ArrowRight, Calculator, Plane, DollarSign, LayoutDashboard, Globe, Monitor } from "lucide-react";
+import { FileText, ArrowRight, Calculator, Plane, DollarSign, LayoutDashboard, Globe, Monitor, Gamepad2 } from "lucide-react";
 import Link from "next/link";
 import Messages from "@/components/Messages";
 import { useTranslations, useLocale } from "next-intl";
@@ -42,6 +42,7 @@ const projectGroups: ProjectGroup[] = [
     groupId: "games",
     projects: [
       { id: "game24", link: "/projects/game24", icon: Calculator },
+      { id: "pong", link: "/projects/pong", icon: Gamepad2 },
     ],
   },
 ];

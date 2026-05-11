@@ -322,6 +322,11 @@
       "description": "Classic math puzzle game where you use four numbers and basic operators to make 24. Train your mathematical thinking and calculation skills!",
       "tags": ["Game", "Math"]
     },
+    "pong": {
+      "title": "Pong",
+      "description": "Classic Pong against an AI opponent! Use W/S or arrow keys to control your paddle, or just move your mouse. First to 7 points wins — ball speeds up with every hit!",
+      "tags": ["Game", "Classic"]
+    },
     "qffTravel": {
       "title": "QFF Travel Itinerary Tool",
       "description": "Manage travel translation output templates, airline code mappings, and airport code mappings for easy flight information organization.",
