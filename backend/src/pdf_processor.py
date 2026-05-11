@@ -9,7 +9,7 @@ def extract_info(text: str) -> Dict[str, Optional[str]]:
     from_match = re.search(r"自[：:]\s*(\S+\s+\S+)", text)
     to_match = re.search(r"至[：:]\s*(\S+\s+\S+)", text)
     amount_match = re.search(r"合计.*?\n.*?(\d+\.\d{2})\s*$", text, re.MULTILINE)
-    buyer_match = re.search(r"购买方名称：(\S+)", text)
+    buyer_match = re.search(r"购买方名称[：:](\S+)", text)
     invoice_match = re.search(r"发票号码[：:]\s*(\d+)", text)
     issue_date_match = re.search(r"填开日期[：:]\s*([0-9]{4}[年/-][0-9]{1,2}[月/-][0-9]{1,2}[日]?)", text)
 
