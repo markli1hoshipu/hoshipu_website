@@ -150,6 +150,7 @@ export default function IOUSearchPage() {
       if (searchParams.status && searchParams.status !== "all") {
         params.append("status", searchParams.status);
       }
+      if (searchParams.customer) params.append("client", searchParams.customer);
       params.append("export_type", exportType);
 
       const response = await fetch(`${API_BASE_URL}/api/yif/export/ious?${params.toString()}`, {

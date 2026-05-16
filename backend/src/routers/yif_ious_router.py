@@ -1031,6 +1031,7 @@ async def export_ious(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     status: Optional[str] = None,
+    client: Optional[str] = None,
     target_worker_id: Optional[str] = None,  # Filter by worker_id (admin/manager only for team-data)
     export_type: str = "summary",  # summary, detailed, full
     user_id: int = Depends(verify_token)
@@ -1082,7 +1083,19 @@ async def export_ious(
             query += " AND i.worker_id = %s"
             params.append(user_id)
 
-        query += " GROUP BY i.id ORDER BY i.ious_date ASC, i.ious_id ASC"
+        query += " GROUP BY i.id"
+
+        if client:
+            query = f"""
+                SELECT * FROM ({query}) AS filtered_ious
+                WHERE filtered_ious.id IN (
+                    SELECT DISTINCT it.ious_id FROM yif_iou_items it
+                    WHERE LOWER(it.client) LIKE %s
+                )
+            """
+            params.append(f"%{client.lower()}%")
+
+        query += " ORDER BY ious_date ASC, ious_id ASC"
 
         cursor.execute(query, params)
         ious_list = cursor.fetchall()
