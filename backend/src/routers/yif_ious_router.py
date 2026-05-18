@@ -430,9 +430,10 @@ async def search_ious(
         cursor.execute(count_query, params)
         total = cursor.fetchone()['count']
 
-        # Add pagination
-        query += " LIMIT %s OFFSET %s"
-        params.extend([limit, skip])
+        # Add pagination (limit=0 means no limit)
+        if limit > 0:
+            query += " LIMIT %s OFFSET %s"
+            params.extend([limit, skip])
 
         cursor.execute(query, params)
         ious_list = cursor.fetchall()

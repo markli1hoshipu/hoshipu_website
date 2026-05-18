@@ -290,7 +290,7 @@ export default function SelectivePaymentPage() {
       if (searchParams.remark) params.append("remark", searchParams.remark);
       // Get all unpaid IOUs including negative ones
       params.append("status", "0,1,3,4");
-      params.append("limit", "1000");
+      params.append("limit", "0");
 
       const response = await fetch(`${API_BASE_URL}/api/yif/ious?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -305,11 +305,7 @@ export default function SelectivePaymentPage() {
         setSearchResults(ious);
         setSelectedIds(new Set());
         setExpandedRows(new Set());
-        if (data.total > data.ious.length) {
-          setMessage({ type: "warning", text: `仅显示前 ${data.ious.length} 条，共 ${data.total} 条未付款欠条，请缩小搜索范围。` });
-        } else {
-          setMessage(null);
-        }
+        setMessage(null);
       } else {
         setMessage({ type: "error", text: data.detail || "搜索失败" });
       }
