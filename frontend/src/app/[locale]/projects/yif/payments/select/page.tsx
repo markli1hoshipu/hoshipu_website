@@ -113,7 +113,7 @@ export default function SelectivePaymentPage() {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: "success" | "error" | "warning"; text: string } | null>(null);
 
   // 排序状态
   const [sortField, setSortField] = useState<SortField>('ious_date');
@@ -290,7 +290,7 @@ export default function SelectivePaymentPage() {
       if (searchParams.remark) params.append("remark", searchParams.remark);
       // Get all unpaid IOUs including negative ones
       params.append("status", "0,1,3,4");
-      params.append("limit", "100");
+      params.append("limit", "1000");
 
       const response = await fetch(`${API_BASE_URL}/api/yif/ious?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -305,6 +305,11 @@ export default function SelectivePaymentPage() {
         setSearchResults(ious);
         setSelectedIds(new Set());
         setExpandedRows(new Set());
+        if (data.total > data.ious.length) {
+          setMessage({ type: "warning", text: `仅显示前 ${data.ious.length} 条，共 ${data.total} 条未付款欠条，请缩小搜索范围。` });
+        } else {
+          setMessage(null);
+        }
       } else {
         setMessage({ type: "error", text: data.detail || "搜索失败" });
       }
@@ -598,7 +603,11 @@ export default function SelectivePaymentPage() {
         {message && (
           <div
             className={`p-4 rounded-lg flex items-center gap-2 ${
-              message.type === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+              message.type === "success"
+                ? "bg-green-100 text-green-800"
+                : message.type === "warning"
+                ? "bg-yellow-100 text-yellow-800"
+                : "bg-red-100 text-red-800"
             }`}
           >
             {message.type === "success" ? <CheckCircle className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
