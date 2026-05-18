@@ -7,10 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Search, Download, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { useYIFAuth } from "@/hooks/useYIFAuth";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
+
+const STATUS_OPTIONS = [
+  { value: "0", label: "未付款" },
+  { value: "1", label: "部分付款" },
+  { value: "2", label: "已付清" },
+  { value: "3", label: "负数" },
+  { value: "4", label: "超额付款" },
+];
 
 interface IOUItem {
   client: string;
@@ -52,10 +61,10 @@ export default function IOUSearchPage() {
     initialAmount: "",
     initialMargin: "100",
     flightSegment: "",
-    status: "all",
     remark: "",
     iouId: "",
   });
+  const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set());
   const [results, setResults] = useState<IOU[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -84,8 +93,8 @@ export default function IOUSearchPage() {
         params.append("initial_margin", searchParams.initialMargin || "100");
       }
       if (searchParams.flightSegment) params.append("flight", searchParams.flightSegment);
-      if (searchParams.status && searchParams.status !== "all") {
-        params.append("status", searchParams.status);
+      if (selectedStatuses.size > 0) {
+        params.append("status", Array.from(selectedStatuses).join(","));
       }
       if (searchParams.remark) params.append("remark", searchParams.remark);
       if (searchParams.iouId) params.append("ious_id", searchParams.iouId);
@@ -107,7 +116,7 @@ export default function IOUSearchPage() {
     } finally {
       setIsSearching(false);
     }
-  }, [searchParams, getToken, user]);
+  }, [searchParams, selectedStatuses, getToken, user]);
 
 
   // Early returns after hooks
@@ -147,8 +156,8 @@ export default function IOUSearchPage() {
 
       if (searchParams.startDate) params.append("start_date", searchParams.startDate);
       if (searchParams.endDate) params.append("end_date", searchParams.endDate);
-      if (searchParams.status && searchParams.status !== "all") {
-        params.append("status", searchParams.status);
+      if (selectedStatuses.size > 0) {
+        params.append("status", Array.from(selectedStatuses).join(","));
       }
       if (searchParams.customer) params.append("client", searchParams.customer);
       params.append("export_type", exportType);
@@ -299,23 +308,35 @@ export default function IOUSearchPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">状态</label>
-                <Select
-                  value={searchParams.status}
-                  onValueChange={(value) => handleSearchChange("status", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">全部</SelectItem>
-                    <SelectItem value="0">未付款</SelectItem>
-                    <SelectItem value="1">部分付款</SelectItem>
-                    <SelectItem value="2">已付清</SelectItem>
-                    <SelectItem value="3">负数</SelectItem>
-                    <SelectItem value="4">超额付款</SelectItem>
-                    <SelectItem value="0,1">未付款 + 部分付款</SelectItem>
-                  </SelectContent>
-                </Select>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring">
+                      <span className="truncate">
+                        {selectedStatuses.size === 0
+                          ? "全部"
+                          : STATUS_OPTIONS.filter((o) => selectedStatuses.has(o.value)).map((o) => o.label).join(" / ")}
+                      </span>
+                      <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-48">
+                    {STATUS_OPTIONS.map((opt) => (
+                      <DropdownMenuCheckboxItem
+                        key={opt.value}
+                        checked={selectedStatuses.has(opt.value)}
+                        onCheckedChange={(checked) => {
+                          setSelectedStatuses((prev) => {
+                            const next = new Set(prev);
+                            checked ? next.add(opt.value) : next.delete(opt.value);
+                            return next;
+                          });
+                        }}
+                      >
+                        {opt.label}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">备注</label>
