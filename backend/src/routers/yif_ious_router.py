@@ -1086,6 +1086,12 @@ async def export_ious(
 
         query += " GROUP BY i.id"
 
+        # Exclude zero-rest IOUs unless status=2 (fully paid) is explicitly requested.
+        # Guards against stale status values where rest=0 but status != 2.
+        status_list_for_check = [s.strip() for s in status.split(',')] if status else []
+        if '2' not in status_list_for_check:
+            query += " HAVING (i.total_amount - COALESCE(SUM(p.amount), 0)) <> 0"
+
         if client:
             query = f"""
                 SELECT * FROM ({query}) AS filtered_ious
@@ -1391,6 +1397,42 @@ async def clear_paid_ious(http_request: Request, request: ClearPaidRequest, user
     except Exception as e:
         conn.rollback()
         raise HTTPException(500, f"Clear failed: {str(e)}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ========================
+# Admin: Resync all IOU statuses
+# ========================
+
+@router.post("/admin/resync-statuses")
+async def resync_iou_statuses(user_id: int = Depends(verify_token)):
+    """Recompute and fix status for every IOU based on actual payment totals."""
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        user = get_user_info(cursor, user_id)
+        if not user or user['role'] not in ('admin', 'manager'):
+            raise HTTPException(403, "Admin/manager access required")
+
+        set_rls_context(cursor, user_id, user['role'])
+
+        cursor.execute("SELECT id FROM yif_ious")
+        all_ids = [row['id'] for row in cursor.fetchall()]
+
+        for iou_id in all_ids:
+            update_iou_status(cursor, iou_id)
+
+        conn.commit()
+        return {"success": True, "updated": len(all_ids)}
+
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(500, f"Resync failed: {str(e)}")
     finally:
         cursor.close()
         conn.close()
