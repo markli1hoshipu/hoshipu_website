@@ -14,12 +14,9 @@ database.init_embodybench_tables().
 
 import os
 import psycopg2
-from passlib.context import CryptContext
 from dotenv import load_dotenv
 
 load_dotenv()
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 _DDL_STATEMENTS = [
@@ -118,17 +115,12 @@ _DDL_STATEMENTS = [
 ]
 
 
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-
-def create_embodybench_tables(seed_admin: bool = True) -> None:
+def create_embodybench_tables() -> None:
     """Create all embodybench_* tables (idempotent).
 
-    If seed_admin is True and there is no existing admin user, optionally
-    create one using EMBODYBENCH_BOOTSTRAP_ADMIN_EMAIL +
-    EMBODYBENCH_BOOTSTRAP_ADMIN_PASSWORD env vars. Both must be set together;
-    if either is missing, this is a no-op (table init still happens).
+    First admin user is NOT created here — it was inserted manually via a
+    direct DB connection during initial setup (see scratchpad bootstrap
+    script). Subsequent users are created via POST /api/bench/admin/users.
     """
     db_url = os.getenv("DATABASE_URL")
     if not db_url:
@@ -144,19 +136,6 @@ def create_embodybench_tables(seed_admin: bool = True) -> None:
 
         for stmt in _DDL_STATEMENTS:
             cursor.execute(stmt)
-
-        if seed_admin:
-            bootstrap_email = os.getenv("EMBODYBENCH_BOOTSTRAP_ADMIN_EMAIL")
-            bootstrap_pwd = os.getenv("EMBODYBENCH_BOOTSTRAP_ADMIN_PASSWORD")
-            if bootstrap_email and bootstrap_pwd:
-                cursor.execute(
-                    """
-                    INSERT INTO embodybench_users (email, password_hash, display_name, role, is_active)
-                    VALUES (%s, %s, %s, 'admin', TRUE)
-                    ON CONFLICT (email) DO NOTHING;
-                    """,
-                    (bootstrap_email, hash_password(bootstrap_pwd), "Bootstrap Admin"),
-                )
 
         conn.commit()
     except Exception:
