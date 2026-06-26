@@ -347,11 +347,6 @@
       "description": "Convert IATA airport codes to city names, supporting various separator formats.",
       "tags": ["Aviation", "Code Conversion"]
     },
-    "gpuMonitor": {
-      "title": "GPU Monitor",
-      "description": "Real-time GPU monitoring dashboard for multiple machines.",
-      "tags": ["Monitoring", "GPU"]
-    },
     "embodybench": {
       "title": "EmbodyBench",
       "description": "Evaluate VLA policy models on embodied benchmarks (RoboTwin, RoboPRO). Submit a run, point at your model's API, watch results stream in.",
