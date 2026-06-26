@@ -5,6 +5,7 @@
     "oc": "OC",
     "collection": "Collection",
     "projects": "Projects",
+    "benchmarks": "Benchmarks",
     "contact": "Contact"
   },
   "home": {
@@ -380,5 +381,31 @@
     "loading": "Loading...",
     "error": "Error",
     "success": "Success"
+  },
+  "benchmarks": {
+    "login": {
+      "title": "EmbodyBench",
+      "subtitle": "Sign in to submit a benchmark evaluation",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Your password",
+      "submit": "Sign in",
+      "loggingIn": "Signing in…",
+      "connError": "Could not reach the server",
+      "rateLimited": "Too many attempts. Try again in a minute.",
+      "inviteOnly": "Access is invite-only. Contact an admin for an account."
+    },
+    "landing": {
+      "title": "EmbodyBench",
+      "subtitle": "Evaluate your policy models on embodied benchmarks",
+      "loading": "Loading…",
+      "logout": "Sign out",
+      "noRunsTitle": "No runs yet",
+      "noRunsDesc": "Submit your first benchmark run to see results here.",
+      "newRun": "New benchmark run",
+      "newRunComingSoon": "Submission wizard arrives in Phase 1",
+      "phaseNote": "Phase 0: authentication is live. Run submission, workers, and live results land in the next phases."
+    }
   }
 }

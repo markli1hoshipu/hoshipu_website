@@ -5,6 +5,7 @@
     "oc": "自设",
     "collection": "收藏",
     "projects": "项目",
+    "benchmarks": "评测",
     "contact": "联系"
   },
   "home": {
@@ -380,5 +381,31 @@
     "loading": "加载中...",
     "error": "错误",
     "success": "成功"
+  },
+  "benchmarks": {
+    "login": {
+      "title": "EmbodyBench",
+      "subtitle": "登录后即可提交评测任务",
+      "emailLabel": "邮箱",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "密码",
+      "passwordPlaceholder": "请输入密码",
+      "submit": "登录",
+      "loggingIn": "登录中…",
+      "connError": "无法连接到服务器",
+      "rateLimited": "尝试过于频繁，请稍后重试",
+      "inviteOnly": "仅限受邀使用，请联系管理员开通账号"
+    },
+    "landing": {
+      "title": "EmbodyBench",
+      "subtitle": "在具身基准上评估你的策略模型",
+      "loading": "加载中…",
+      "logout": "退出登录",
+      "noRunsTitle": "暂无评测",
+      "noRunsDesc": "提交第一个评测任务后，结果将显示在此处",
+      "newRun": "新建评测任务",
+      "newRunComingSoon": "提交向导将于 Phase 1 上线",
+      "phaseNote": "Phase 0：账号系统已上线。任务提交、Worker 调度与实时结果将在后续阶段陆续推出。"
+    }
   }
 }

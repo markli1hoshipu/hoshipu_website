@@ -47,6 +47,33 @@ def get_db_connection():
         raise RuntimeError(f"Database connection failed: {str(e)}")
 
 
+def init_embodybench_tables():
+    """
+    Create embodybench_* tables on backend boot (idempotent).
+    Loads the init module by file path so we don't have to ship it under src/.
+    """
+    try:
+        import importlib.util
+        import sys
+        spec_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "_archived_scripts", "db_init", "create_embodybench_tables.py",
+        )
+        if not os.path.exists(spec_path):
+            print(f"[DB] embodybench init script not found at {spec_path}; skipping")
+            return
+        spec = importlib.util.spec_from_file_location("create_embodybench_tables", spec_path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules["create_embodybench_tables"] = module
+        spec.loader.exec_module(module)
+        module.create_embodybench_tables()
+        print("[DB] embodybench tables ready")
+    except psycopg2.OperationalError as e:
+        print(f"[DB] embodybench init failed - database connection error: {e}")
+    except Exception as e:
+        print(f"[DB] embodybench init skipped: {e}")
+
+
 def init_yif_triggers():
     """
     Initialize YIF database triggers (backup safety net).
