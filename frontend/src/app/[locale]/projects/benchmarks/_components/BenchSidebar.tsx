@@ -25,8 +25,8 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: "", label: "Home" },
-  { to: "new", label: "New run", comingSoon: true },
-  { to: "runs", label: "Runs", comingSoon: true },
+  { to: "new", label: "New run" },
+  { to: "runs", label: "Runs" },
 ];
 
 const ADMIN_NAV_ITEMS: NavItem[] = [

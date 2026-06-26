@@ -145,6 +145,152 @@ export async function adminCreateUser(req: CreateUserRequest): Promise<BenchUser
 }
 
 // ---------------------------------------------------------------------------
+// Benchmark catalogs + runs (Phase 1)
+// ---------------------------------------------------------------------------
+
+export interface CatalogTask {
+  name: string;
+  category: string;
+}
+
+export interface BenchmarkCatalog {
+  name: string;
+  version: string;
+  display_name: string;
+  description: string;
+  repo_url: string;
+  recommended_episodes: number;
+  max_episodes_per_task: number;
+  default_task_config: string;
+  observation_schema: Record<string, string>;
+  tasks: CatalogTask[];
+}
+
+export interface RunConfig {
+  tasks: string[];
+  episodes_per_task: number;
+  chunk_size?: number;
+  task_config?: string;
+}
+
+export interface SubmitRunRequest {
+  benchmark: "robotwin" | "robopro";
+  config: RunConfig;
+  eval_mode: "api";
+  api_endpoint_url: string;
+  api_auth?: { scheme: "bearer" | "none"; token: string };
+  notes?: string;
+}
+
+export interface SubmitRunResponse {
+  run_id: string;
+  jobs_queued: number;
+  episodes_total: number;
+}
+
+export interface ValidationWarning {
+  level: "info" | "warn" | "error";
+  message: string;
+}
+
+export interface ValidationSuggestion {
+  change: string;
+  reason: string;
+}
+
+export interface ValidationResult {
+  ok: boolean;
+  warnings: ValidationWarning[];
+  suggestions: ValidationSuggestion[];
+  skipped_reason?: string;
+}
+
+export interface RunSummary {
+  id: string;
+  benchmark: string;
+  state: "queued" | "running" | "completed" | "failed" | "cancelled";
+  eval_mode: string;
+  api_endpoint_url: string | null;
+  submitted_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  notes: string | null;
+  jobs_total: number;
+  jobs_done: number;
+  episodes_total: number;
+  episodes_done: number;
+}
+
+export interface RunDetail extends RunSummary {
+  config: RunConfig;
+  benchmark_version: string;
+  per_task: {
+    task_name: string;
+    attempted: number;
+    succeeded: number;
+    success_rate: number;
+  }[];
+}
+
+export interface JobSummary {
+  id: string;
+  task_name: string;
+  seed_offset: number;
+  n_episodes: number;
+  state: "queued" | "claimed" | "running" | "succeeded" | "failed" | "cancelled";
+  attempt_count: number;
+  progress: { episodes_done?: number; episodes_succeeded?: number } | null;
+  started_at: string | null;
+  finished_at: string | null;
+  failure_reason: string | null;
+}
+
+export async function listBenchmarks(): Promise<BenchmarkCatalog[]> {
+  const r = await request<{ benchmarks: BenchmarkCatalog[] }>("/api/bench/benchmarks", {
+    method: "GET",
+    authed: false, // catalog is public
+  });
+  return r.benchmarks;
+}
+
+export async function validateSetup(
+  benchmark: SubmitRunRequest["benchmark"],
+  config: RunConfig,
+): Promise<ValidationResult> {
+  return request<ValidationResult>("/api/bench/setup/validate", {
+    method: "POST",
+    body: JSON.stringify({ benchmark, config }),
+  });
+}
+
+export async function submitRun(req: SubmitRunRequest): Promise<SubmitRunResponse> {
+  return request<SubmitRunResponse>("/api/bench/runs", {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+export async function listRuns(): Promise<RunSummary[]> {
+  const r = await request<{ runs: RunSummary[] }>("/api/bench/runs", { method: "GET" });
+  return r.runs;
+}
+
+export async function getRun(runId: string): Promise<RunDetail> {
+  return request<RunDetail>(`/api/bench/runs/${runId}`, { method: "GET" });
+}
+
+export async function listJobs(runId: string): Promise<JobSummary[]> {
+  const r = await request<{ jobs: JobSummary[] }>(`/api/bench/runs/${runId}/jobs`, {
+    method: "GET",
+  });
+  return r.jobs;
+}
+
+export async function cancelRun(runId: string): Promise<void> {
+  await request<{ ok: true }>(`/api/bench/runs/${runId}`, { method: "DELETE" });
+}
+
+// ---------------------------------------------------------------------------
 // Re-exports for future-phase modules
 // ---------------------------------------------------------------------------
 
