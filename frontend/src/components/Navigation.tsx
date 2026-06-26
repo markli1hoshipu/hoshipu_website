@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Link } from "@/i18n/routing";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Menu, X, Home, User, Briefcase, BookOpen, Mail, Sparkles, Beaker } from "lucide-react";
+import { Menu, X, Home, User, Briefcase, BookOpen, Mail, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useTranslations, useLocale } from "next-intl";
@@ -15,7 +15,6 @@ const navItems = [
   { name: "about", href: "/about", icon: User },
   { name: "oc", href: "/oc", icon: Sparkles },
   { name: "projects", href: "/projects", icon: Briefcase },
-  { name: "benchmarks", href: "/projects/benchmarks", icon: Beaker },
   { name: "collection", href: "/collection", icon: BookOpen },
   { name: "contact", href: "/contact", icon: Mail },
 ];

@@ -5,7 +5,6 @@
     "oc": "OC",
     "collection": "Collection",
     "projects": "Projects",
-    "benchmarks": "Benchmarks",
     "contact": "Contact"
   },
   "home": {
@@ -352,6 +351,11 @@
       "title": "GPU Monitor",
       "description": "Real-time GPU monitoring dashboard for multiple machines.",
       "tags": ["Monitoring", "GPU"]
+    },
+    "embodybench": {
+      "title": "EmbodyBench",
+      "description": "Evaluate VLA policy models on embodied benchmarks (RoboTwin, RoboPRO). Submit a run, point at your model's API, watch results stream in.",
+      "tags": ["Embodied AI", "Benchmarks", "Research"]
     },
     "comingSoon": {
       "title": "Coming Soon",

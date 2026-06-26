@@ -1,73 +1,82 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { motion } from "framer-motion";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Beaker, Plus, LogOut } from "lucide-react";
+import { Beaker, ArrowRight } from "lucide-react";
+
 import { useBenchAuth } from "@/contexts/BenchAuthProvider";
 
 export default function BenchmarksLanding() {
   const t = useTranslations("benchmarks.landing");
-  const { user, loading, logout } = useBenchAuth();
+  const { user, loading } = useBenchAuth();
 
-  // BenchAuthProvider handles redirecting unauthenticated users to /login.
+  // BenchAuthProvider redirects unauth → /login; while it's working, show
+  // a neutral placeholder rather than the empty shell.
   if (loading || !user) {
     return (
-      <div className="container mx-auto px-4 py-12 text-center text-muted-foreground">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
         {t("loading")}
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-3xl mx-auto space-y-6"
-      >
-        {/* Header row: title + signed-in pill + logout */}
-        <div className="flex items-start justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Beaker className="h-7 w-7 text-primary" />
-              {t("title")}
-            </h1>
-            <p className="text-muted-foreground mt-1">{t("subtitle")}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
-              {user.display_name || user.email}
-              {user.role === "admin" && (
-                <span className="ml-2 inline-block px-2 py-0.5 text-xs rounded-full bg-primary/10 text-primary">
-                  admin
-                </span>
-              )}
-            </span>
-            <Button variant="ghost" size="sm" onClick={logout}>
-              <LogOut className="h-4 w-4 mr-1" />
-              {t("logout")}
-            </Button>
-          </div>
-        </div>
+    <div className="space-y-6">
+      {/* Page header */}
+      <header>
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900">
+          <Beaker className="h-6 w-6 text-indigo-500" />
+          {t("title")}
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">{t("subtitle")}</p>
+      </header>
 
-        {/* Empty state */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("noRunsTitle")}</CardTitle>
-            <CardDescription>{t("noRunsDesc")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button disabled title={t("newRunComingSoon")}>
-              <Plus className="h-4 w-4 mr-1" />
-              {t("newRun")}
-            </Button>
-            <p className="text-xs text-muted-foreground mt-3">{t("phaseNote")}</p>
-          </CardContent>
-        </Card>
-      </motion.div>
+      {/* Empty state card */}
+      <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-5 py-4">
+          <h2 className="text-sm font-semibold text-slate-800">
+            {t("noRunsTitle")}
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">{t("noRunsDesc")}</p>
+        </div>
+        <div className="px-5 py-5">
+          <button
+            disabled
+            title={t("newRunComingSoon")}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-2 text-sm font-medium text-white opacity-60 disabled:cursor-not-allowed"
+          >
+            {t("newRun")}
+            <ArrowRight className="h-4 w-4" />
+          </button>
+          <p className="mt-3 text-xs text-slate-500">{t("phaseNote")}</p>
+        </div>
+      </section>
+
+      {/* Sample "what's available" preview card to give the page some weight */}
+      <section className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-500">
+              <Beaker className="h-4 w-4" />
+            </span>
+            <p className="text-sm font-semibold text-slate-800">RoboTwin</p>
+          </div>
+          <p className="text-xs text-slate-500">
+            50 dual-arm SAPIEN manipulation tasks with structured domain
+            randomization.
+          </p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-500">
+              <Beaker className="h-4 w-4" />
+            </span>
+            <p className="text-sm font-semibold text-slate-800">RoboPRO</p>
+          </div>
+          <p className="text-xs text-slate-500">
+            Office / Study / Kitchen Aloha-Agilex tasks, extending RoboTwin.
+          </p>
+        </div>
+      </section>
     </div>
   );
 }

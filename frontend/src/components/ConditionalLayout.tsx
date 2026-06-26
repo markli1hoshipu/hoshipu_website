@@ -7,9 +7,10 @@ import { Footer } from "./Footer";
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isYIFRoute = pathname?.includes("/projects/yif");
+  const isBenchmarksRoute = pathname?.includes("/projects/benchmarks");
 
-  if (isYIFRoute) {
-    // YIF standalone app - no navigation or footer
+  if (isYIFRoute || isBenchmarksRoute) {
+    // Standalone-app routes — host their own chrome (no site nav / footer).
     return <main className="min-h-screen">{children}</main>;
   }
 

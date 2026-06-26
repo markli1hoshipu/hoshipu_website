@@ -5,7 +5,6 @@
     "oc": "自设",
     "collection": "收藏",
     "projects": "项目",
-    "benchmarks": "评测",
     "contact": "联系"
   },
   "home": {
@@ -352,6 +351,11 @@
       "title": "GPU 监控",
       "description": "多机器实时GPU监控面板。",
       "tags": ["监控", "GPU"]
+    },
+    "embodybench": {
+      "title": "EmbodyBench",
+      "description": "在具身基准（RoboTwin, RoboPRO）上评估 VLA 策略模型。提交任务、指向模型 API，结果实时回传。",
+      "tags": ["具身智能", "评测", "研究"]
     },
     "comingSoon": {
       "title": "敬请期待",
