@@ -39,7 +39,7 @@ const LINK_INACTIVE = "text-slate-600 hover:bg-slate-100 hover:text-slate-900";
 const LINK_ACTIVE = "bg-indigo-500 text-white hover:bg-indigo-600";
 const LINK_DISABLED = "text-slate-400 cursor-not-allowed";
 
-export function BenchSidebar(): JSX.Element {
+export function BenchSidebar() {
   const locale = useLocale();
   const pathname = usePathname();
   const { user, logout } = useBenchAuth();
