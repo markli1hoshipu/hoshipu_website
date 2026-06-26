@@ -1,15 +1,19 @@
 """
-EmbodyBench (benchmark-as-a-service) — auth + admin endpoints (Phase 0).
+EmbodyBench (benchmark-as-a-service) — auth + run + worker endpoints.
 
 Mirrors the conventions of yif_router.py:
-  - bcrypt + JWT (HS256, 8-hour expiry)
+  - bcrypt + JWT (HS256) for human users
+  - shared-secret header for workers (x-embodybench-worker-token)
   - rate-limited /login
   - psycopg2 + RealDictCursor (matches the rest of the project's DB pattern)
   - Reuses get_db_connection from database and limiter from rate_limiter
 
-Future phases will add /benchmarks, /setup/validate, /runs (+ partitioning),
-worker-facing /workers/* and /jobs/* endpoints. This file stays the single
-home for the embodybench module so it's easy to find.
+This file is intentionally a single home for the embodybench module so the
+data-flow stays easy to follow:
+  Phase 0  → auth helpers + login/me/change-password/admin-create-user
+  Phase 1  → benchmark catalogs + run submission + setup-validation
+  Phase 2  → worker-facing endpoints (register/heartbeat/claim/progress/
+             episodes/state) + admin GET /workers + heartbeat reclaim
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Header, Request, Path
@@ -756,4 +760,518 @@ async def setup_validate(body: ValidateRequest, user_id: int = Depends(verify_be
         return {"ok": True, "warnings": [], "suggestions": [], "skipped_reason": str(e)}
 
     return validate_config(bench_mod, body.config.model_dump())
+
+
+# ===========================================================================
+# Phase 2: worker-facing endpoints
+# ===========================================================================
+#
+# Auth model: every worker request carries x-embodybench-worker-token that
+# must match EMBODYBENCH_WORKER_SHARED_SECRET on the backend. One operator
+# (you) runs every worker, so per-worker tokens are overkill for v1; revisit
+# when multiple operators need scoped/revocable creds.
+
+import hmac as _hmac
+
+
+def verify_worker_token(
+    x_embodybench_worker_token: Optional[str] = Header(None),
+) -> bool:
+    """Constant-time compare against the server's shared secret."""
+    expected = os.getenv("EMBODYBENCH_WORKER_SHARED_SECRET")
+    if not expected:
+        raise HTTPException(
+            status_code=503,
+            detail="Server has no EMBODYBENCH_WORKER_SHARED_SECRET configured",
+        )
+    if not x_embodybench_worker_token or not _hmac.compare_digest(
+        x_embodybench_worker_token, expected
+    ):
+        raise HTTPException(status_code=401, detail="Invalid worker token")
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Worker schemas
+# ---------------------------------------------------------------------------
+
+class WorkerCapabilities(BaseModel):
+    """What the worker can do. Matched against jobs.requires_caps on claim."""
+    benchmarks: list[Literal["robotwin", "robopro"]] = Field(default_factory=list)
+    gpu_type: Optional[str] = None
+    gpu_count: Optional[int] = None
+    ram_gb: Optional[int] = None
+    sapien_ok: bool = True
+
+
+class RegisterWorkerRequest(BaseModel):
+    hostname: str
+    region: str  # 'oldlab' | 'montreal' | ...
+    cluster_kind: Optional[Literal["slurm", "ssh"]] = None
+    capabilities: WorkerCapabilities
+    max_concurrent: int = 1
+
+
+class RegisterWorkerResponse(BaseModel):
+    worker_id: str
+    heartbeat_interval_sec: int
+    claim_poll_interval_sec: int
+    drain_timeout_sec: int  # how long a job can run before reclaim kicks in
+
+
+class ClaimRequest(BaseModel):
+    # Workers re-state their caps on every claim so the scheduler can match
+    # without a stale-row read from embodybench_workers.
+    caps: WorkerCapabilities
+
+
+class ClaimedJob(BaseModel):
+    job_id: str
+    run_id: str
+    benchmark: str
+    benchmark_version: Optional[str]
+    task_name: str
+    task_config: str
+    seed_offset: int
+    n_episodes: int
+    api_endpoint_url: Optional[str]
+    api_auth: Optional[dict]  # decrypted at claim time; never persisted in clear
+    attempt_count: int
+
+
+class JobProgressRequest(BaseModel):
+    worker_id: str
+    episodes_done: int
+    episodes_succeeded: int = 0
+
+
+class EpisodeIn(BaseModel):
+    seed_used: int
+    episode_idx: int
+    outcome: dict  # {success: bool, n_steps: int, fail_reason?: str, reward?: float}
+    trajectory_pointer: Optional[str] = None
+
+
+class JobEpisodesBatch(BaseModel):
+    worker_id: str
+    episodes: list[EpisodeIn]
+
+
+class JobStateUpdate(BaseModel):
+    worker_id: str
+    state: Literal["succeeded", "failed"]
+    failure_reason: Optional[str] = None
+
+
+# Tunables — could move to settings, but constants are clearer in v1.
+_HEARTBEAT_INTERVAL_SEC = 10
+_CLAIM_POLL_INTERVAL_SEC = 1
+_RECLAIM_AFTER_SEC = 300  # 5 minutes of silence → re-queue
+
+
+# ---------------------------------------------------------------------------
+# Worker endpoints
+# ---------------------------------------------------------------------------
+
+@router.post("/workers/register", response_model=RegisterWorkerResponse)
+async def register_worker(
+    body: RegisterWorkerRequest,
+    _: bool = Depends(verify_worker_token),
+):
+    """Insert a new row in embodybench_workers (or revive an existing host)."""
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cursor.execute(
+            """
+            INSERT INTO embodybench_workers
+                (hostname, region, cluster_kind, capabilities, state, max_concurrent)
+            VALUES (%s, %s, %s, %s, 'active', %s)
+            RETURNING id;
+            """,
+            (
+                body.hostname,
+                body.region,
+                body.cluster_kind,
+                Json(body.capabilities.model_dump()),
+                body.max_concurrent,
+            ),
+        )
+        worker_id = cursor.fetchone()["id"]
+        conn.commit()
+        return {
+            "worker_id": str(worker_id),
+            "heartbeat_interval_sec": _HEARTBEAT_INTERVAL_SEC,
+            "claim_poll_interval_sec": _CLAIM_POLL_INTERVAL_SEC,
+            "drain_timeout_sec": _RECLAIM_AFTER_SEC,
+        }
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@router.post("/workers/{worker_id}/heartbeat")
+async def heartbeat(worker_id: str = Path(...), _: bool = Depends(verify_worker_token)):
+    """Refresh last_heartbeat. 404 if the worker was already reclaimed/deleted."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE embodybench_workers SET last_heartbeat = NOW() WHERE id = %s",
+            (worker_id,),
+        )
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Worker not registered")
+        conn.commit()
+        return {"ok": True}
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@router.post("/workers/{worker_id}/claim")
+async def claim_job(
+    worker_id: str = Path(...),
+    body: ClaimRequest = None,  # type: ignore[assignment]
+    _: bool = Depends(verify_worker_token),
+):
+    """Atomically claim ONE queued job. Returns 204 if the queue is empty.
+
+    Uses FOR UPDATE SKIP LOCKED so concurrent workers each grab a different
+    row. Capabilities filter: job.requires_caps.benchmark must be in the
+    worker's caps.benchmarks list.
+    """
+    if body is None or not body.caps.benchmarks:
+        # Workers without any benchmark capability cannot claim anything.
+        from fastapi import Response
+        return Response(status_code=204)
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        # Refresh heartbeat opportunistically — claim implies the worker is alive.
+        cursor.execute(
+            "UPDATE embodybench_workers SET last_heartbeat = NOW() WHERE id = %s "
+            "RETURNING id",
+            (worker_id,),
+        )
+        if cursor.fetchone() is None:
+            raise HTTPException(status_code=404, detail="Worker not registered")
+
+        cursor.execute(
+            """
+            WITH next AS (
+              SELECT j.id FROM embodybench_jobs j
+              JOIN embodybench_runs r ON r.id = j.run_id
+              WHERE j.state = 'queued'
+                AND r.state IN ('queued', 'running')
+                AND (j.requires_caps->>'benchmark') = ANY(%s)
+              ORDER BY r.submitted_at ASC, j.task_name ASC, j.seed_offset ASC
+              LIMIT 1 FOR UPDATE OF j SKIP LOCKED
+            )
+            UPDATE embodybench_jobs j
+               SET state = 'claimed',
+                   worker_id = %s,
+                   claimed_at = NOW(),
+                   attempt_count = j.attempt_count + 1
+              FROM next WHERE j.id = next.id
+            RETURNING j.id, j.run_id, j.task_name, j.task_config, j.seed_offset,
+                      j.n_episodes, j.attempt_count;
+            """,
+            (body.caps.benchmarks, worker_id),
+        )
+        job_row = cursor.fetchone()
+        if not job_row:
+            # Also promote the run from queued → running on the first claim.
+            from fastapi import Response
+            conn.commit()
+            return Response(status_code=204)
+
+        # Pull the run for benchmark, version, endpoint, and api_auth.
+        cursor.execute(
+            """
+            SELECT benchmark, benchmark_version, api_endpoint_url, api_auth, state
+              FROM embodybench_runs WHERE id = %s;
+            """,
+            (job_row["run_id"],),
+        )
+        run_row = cursor.fetchone()
+        if run_row["state"] == "queued":
+            cursor.execute(
+                "UPDATE embodybench_runs SET state = 'running', started_at = NOW() "
+                "WHERE id = %s AND state = 'queued';",
+                (job_row["run_id"],),
+            )
+        conn.commit()
+
+        api_auth_decrypted = (
+            _decrypt_api_auth(run_row["api_auth"]) if run_row["api_auth"] else None
+        )
+
+        return {
+            "job_id": str(job_row["id"]),
+            "run_id": str(job_row["run_id"]),
+            "benchmark": run_row["benchmark"],
+            "benchmark_version": run_row["benchmark_version"],
+            "task_name": job_row["task_name"],
+            "task_config": job_row["task_config"],
+            "seed_offset": job_row["seed_offset"],
+            "n_episodes": job_row["n_episodes"],
+            "api_endpoint_url": run_row["api_endpoint_url"],
+            "api_auth": api_auth_decrypted,
+            "attempt_count": job_row["attempt_count"],
+        }
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def _check_worker_owns_job(cursor, job_id: str, worker_id: str) -> dict:
+    """Returns the job row if worker_id matches, else raises 409."""
+    cursor.execute(
+        "SELECT id, run_id, worker_id, state, n_episodes "
+        "FROM embodybench_jobs WHERE id = %s",
+        (job_id,),
+    )
+    row = cursor.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if str(row["worker_id"]) != str(worker_id):
+        # The job was reclaimed by the heartbeat watchdog and given to someone
+        # else. The worker should drop this work and request a new claim.
+        raise HTTPException(status_code=409, detail="Claim lost (reclaimed)")
+    return row
+
+
+@router.patch("/jobs/{job_id}/progress")
+async def job_progress(
+    body: JobProgressRequest,
+    job_id: str = Path(...),
+    _: bool = Depends(verify_worker_token),
+):
+    """Worker reports mid-job progress. Bumps state to 'running' on first call."""
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        row = _check_worker_owns_job(cursor, job_id, body.worker_id)
+        if row["state"] not in ("claimed", "running"):
+            raise HTTPException(status_code=409, detail=f"Job is {row['state']}, not claimed/running")
+        cursor.execute(
+            """
+            UPDATE embodybench_jobs
+               SET state = CASE WHEN state = 'claimed' THEN 'running' ELSE state END,
+                   started_at = COALESCE(started_at, NOW()),
+                   progress = %s
+             WHERE id = %s;
+            """,
+            (
+                Json({
+                    "episodes_done": body.episodes_done,
+                    "episodes_succeeded": body.episodes_succeeded,
+                }),
+                job_id,
+            ),
+        )
+        conn.commit()
+        return {"ok": True}
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@router.post("/jobs/{job_id}/episodes")
+async def job_episodes_batch(
+    body: JobEpisodesBatch,
+    job_id: str = Path(...),
+    _: bool = Depends(verify_worker_token),
+):
+    """Append a batch of completed-episode result rows to embodybench_episodes."""
+    if not body.episodes:
+        return {"inserted": 0}
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        row = _check_worker_owns_job(cursor, job_id, body.worker_id)
+
+        # Lookup task_name + run_id once.
+        cursor.execute(
+            "SELECT task_name, run_id FROM embodybench_jobs WHERE id = %s",
+            (job_id,),
+        )
+        meta = cursor.fetchone()
+        task_name = meta["task_name"]
+        run_id = meta["run_id"]
+
+        inserted = 0
+        for ep in body.episodes:
+            cursor.execute(
+                """
+                INSERT INTO embodybench_episodes
+                    (job_id, run_id, task_name, seed_used, episode_idx,
+                     outcome, trajectory_pointer)
+                VALUES (%s, %s, %s, %s, %s, %s, %s);
+                """,
+                (
+                    job_id,
+                    run_id,
+                    task_name,
+                    ep.seed_used,
+                    ep.episode_idx,
+                    Json(ep.outcome),
+                    ep.trajectory_pointer,
+                ),
+            )
+            inserted += 1
+        conn.commit()
+        return {"inserted": inserted}
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@router.patch("/jobs/{job_id}/state")
+async def job_state(
+    body: JobStateUpdate,
+    job_id: str = Path(...),
+    _: bool = Depends(verify_worker_token),
+):
+    """Mark a job as terminal. Also promotes the parent run to its final state
+    when this was the last non-terminal job."""
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        row = _check_worker_owns_job(cursor, job_id, body.worker_id)
+        if row["state"] not in ("claimed", "running"):
+            raise HTTPException(status_code=409, detail=f"Job is {row['state']}")
+
+        cursor.execute(
+            """
+            UPDATE embodybench_jobs
+               SET state = %s,
+                   finished_at = NOW(),
+                   failure_reason = %s
+             WHERE id = %s;
+            """,
+            (body.state, body.failure_reason, job_id),
+        )
+
+        # Check if run can be closed: any non-terminal job remaining?
+        run_id = row["run_id"]
+        cursor.execute(
+            """
+            SELECT
+              COUNT(*) FILTER (WHERE state NOT IN ('succeeded','failed','cancelled'))
+                  AS non_terminal,
+              COUNT(*) FILTER (WHERE state = 'failed')   AS failed,
+              COUNT(*) FILTER (WHERE state = 'succeeded') AS succeeded
+            FROM embodybench_jobs WHERE run_id = %s;
+            """,
+            (run_id,),
+        )
+        agg = cursor.fetchone()
+        if agg["non_terminal"] == 0:
+            # Run done. Mark failed if any job failed, else completed.
+            final = "failed" if agg["failed"] > 0 else "completed"
+            cursor.execute(
+                "UPDATE embodybench_runs SET state = %s, finished_at = NOW() "
+                "WHERE id = %s AND state IN ('queued','running');",
+                (final, run_id),
+            )
+
+        conn.commit()
+        return {"ok": True}
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Admin: see registered workers
+# ---------------------------------------------------------------------------
+
+@router.get("/admin/workers")
+async def admin_list_workers(_: int = Depends(require_admin)):
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cursor.execute(
+            """
+            SELECT id, hostname, region, cluster_kind, capabilities, state,
+                   max_concurrent, registered_at, last_heartbeat,
+                   EXTRACT(EPOCH FROM (NOW() - last_heartbeat)) AS heartbeat_age_sec
+            FROM embodybench_workers
+            ORDER BY registered_at DESC
+            LIMIT 200;
+            """,
+        )
+        return {
+            "workers": [
+                {
+                    **r,
+                    "id": str(r["id"]),
+                    "heartbeat_age_sec": int(r["heartbeat_age_sec"] or 0),
+                }
+                for r in cursor.fetchall()
+            ]
+        }
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Heartbeat reclaim — runs as an asyncio background task.
+# ---------------------------------------------------------------------------
+
+async def reclaim_stale_jobs_loop():
+    """Periodically re-queue jobs whose worker has gone silent for >5 min.
+
+    Started by main.py on app startup. Cancelled cleanly on shutdown.
+    """
+    import asyncio
+    INTERVAL_SEC = 30
+    while True:
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            try:
+                cursor.execute(
+                    f"""
+                    UPDATE embodybench_jobs
+                       SET state = 'queued',
+                           worker_id = NULL,
+                           claimed_at = NULL
+                     WHERE state IN ('claimed', 'running')
+                       AND worker_id IN (
+                          SELECT id FROM embodybench_workers
+                           WHERE last_heartbeat < NOW() - INTERVAL '{_RECLAIM_AFTER_SEC} seconds'
+                       );
+                    """
+                )
+                if cursor.rowcount:
+                    import logging
+                    logging.getLogger("embodybench").info(
+                        "Reclaimed %d stale job(s)", cursor.rowcount
+                    )
+                # Also mark workers offline that haven't heartbeat in 5x the threshold.
+                cursor.execute(
+                    f"""
+                    UPDATE embodybench_workers
+                       SET state = 'offline'
+                     WHERE state = 'active'
+                       AND last_heartbeat < NOW() - INTERVAL '{5 * _RECLAIM_AFTER_SEC} seconds';
+                    """
+                )
+                conn.commit()
+            finally:
+                cursor.close()
+                conn.close()
+        except Exception:
+            # Log but don't crash the loop — DB hiccup, network blip, whatever.
+            import logging, traceback
+            logging.getLogger("embodybench").warning(
+                "reclaim loop error:\n%s", traceback.format_exc()
+            )
+        await asyncio.sleep(INTERVAL_SEC)
 

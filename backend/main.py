@@ -29,7 +29,7 @@ from routers.yif_stats_router import router as yif_stats_router
 from routers.yif_team_router import router as yif_team_router
 from routers.accounting_router import router as accounting_router
 from routers.contact_router import router as contact_router
-from routers.bench_router import router as bench_router
+from routers.bench_router import router as bench_router, reclaim_stale_jobs_loop
 from database import init_yif_triggers, init_embodybench_tables
 import uvicorn
 import logging
@@ -78,6 +78,25 @@ init_yif_triggers()
 
 # Initialize EmbodyBench tables (auto-creates if not exists)
 init_embodybench_tables()
+
+
+@app.on_event("startup")
+async def _start_embodybench_reclaim_loop():
+    """Start the heartbeat-reclaim background task on app boot."""
+    import asyncio
+    app.state.embodybench_reclaim_task = asyncio.create_task(reclaim_stale_jobs_loop())
+
+
+@app.on_event("shutdown")
+async def _stop_embodybench_reclaim_loop():
+    task = getattr(app.state, "embodybench_reclaim_task", None)
+    if task and not task.done():
+        task.cancel()
+        try:
+            await task
+        except Exception:
+            pass
+
 
 @app.get("/")
 async def root():
