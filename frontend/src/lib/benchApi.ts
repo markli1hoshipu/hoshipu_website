@@ -98,10 +98,14 @@ async function request<T>(
 // Auth
 // ---------------------------------------------------------------------------
 
-export async function login(email: string, password: string): Promise<LoginResponse> {
+export async function login(
+  email: string,
+  password: string,
+  remember: boolean = true,
+): Promise<LoginResponse> {
   const data = await request<LoginResponse>("/api/bench/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, remember }),
     authed: false,
   });
   if (typeof window !== "undefined") {

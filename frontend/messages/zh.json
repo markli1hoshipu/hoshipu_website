@@ -391,6 +391,7 @@
       "passwordPlaceholder": "请输入密码",
       "submit": "登录",
       "loggingIn": "登录中…",
+      "rememberDevice": "在此设备上保持登录 30 天",
       "connError": "无法连接到服务器",
       "rateLimited": "尝试过于频繁，请稍后重试",
       "inviteOnly": "仅限受邀使用，请联系管理员开通账号"

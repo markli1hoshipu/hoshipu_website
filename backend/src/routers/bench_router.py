@@ -30,7 +30,8 @@ router = APIRouter(prefix="/api/bench", tags=["embodybench"])
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8h, same as YIF
+ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8h, same as YIF — used when remember=False
+REMEMBER_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30  # 30 days — used when remember=True
 
 
 # ---------------------------------------------------------------------------
@@ -108,6 +109,7 @@ def require_admin(user_id: int = Depends(verify_bench_user)) -> int:
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    remember: bool = True  # default-on: this is a research tool, not a bank
 
 
 class CreateUserRequest(BaseModel):
@@ -164,9 +166,12 @@ async def login(request: Request, body: LoginRequest):
         if not user or not password_valid:
             raise HTTPException(status_code=401, detail="Invalid email or password")
 
+        token_ttl_min = (
+            REMEMBER_TOKEN_EXPIRE_MINUTES if body.remember else ACCESS_TOKEN_EXPIRE_MINUTES
+        )
         token = _create_access_token(
             {"sub": f"bench:{user['id']}", "email": user["email"]},
-            timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+            timedelta(minutes=token_ttl_min),
         )
         return {
             "access_token": token,

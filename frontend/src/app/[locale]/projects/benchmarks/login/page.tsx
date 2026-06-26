@@ -14,6 +14,7 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -34,7 +35,7 @@ function LoginForm() {
     setLoading(true);
     setError("");
     try {
-      await login(email, password);
+      await login(email, password, remember);
       // Full-page nav so BenchAuthProvider re-reads localStorage on mount.
       window.location.href = redirectPath;
     } catch (err) {
@@ -111,6 +112,16 @@ function LoginForm() {
               />
             </div>
           </div>
+
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600 select-none">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-indigo-500 focus:ring-indigo-500/40"
+            />
+            <span>{t("rememberDevice")}</span>
+          </label>
 
           {error && (
             <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">

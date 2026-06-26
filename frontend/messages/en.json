@@ -391,6 +391,7 @@
       "passwordPlaceholder": "Your password",
       "submit": "Sign in",
       "loggingIn": "Signing in…",
+      "rememberDevice": "Keep me signed in on this device for 30 days",
       "connError": "Could not reach the server",
       "rateLimited": "Too many attempts. Try again in a minute.",
       "inviteOnly": "Access is invite-only. Contact an admin for an account."
