@@ -12,18 +12,30 @@ worker-facing /workers/* and /jobs/* endpoints. This file stays the single
 home for the embodybench module so it's easy to find.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Header, Request
-from pydantic import BaseModel, EmailStr
+from fastapi import APIRouter, HTTPException, Depends, Header, Request, Path
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
 import psycopg2
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import RealDictCursor, Json
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, Literal, Any
+from math import ceil
+import json as _json
 import os
+
+from cryptography.fernet import Fernet, InvalidToken
 
 from database import get_db_connection
 from rate_limiter import limiter
+
+# Local imports for benchmark catalogs — sibling to routers/
+import sys as _sys
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+_SRC_DIR = os.path.dirname(_THIS_DIR)
+if _SRC_DIR not in _sys.path:
+    _sys.path.insert(0, _SRC_DIR)
+import benchmarks as _benchmarks
 
 
 router = APIRouter(prefix="/api/bench", tags=["embodybench"])
@@ -32,6 +44,55 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8h, same as YIF — used when remember=False
 REMEMBER_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30  # 30 days — used when remember=True
+
+
+# ---------------------------------------------------------------------------
+# Fernet encryption for user-supplied api_auth tokens
+# ---------------------------------------------------------------------------
+
+def _get_fernet() -> Optional[Fernet]:
+    """Return a Fernet instance if EMBODYBENCH_AUTH_ENCRYPTION_KEY is set.
+
+    If unset, return None — calling code MUST refuse to accept api_auth payloads
+    in that case so we never store user secrets in plaintext.
+    """
+    key = os.getenv("EMBODYBENCH_AUTH_ENCRYPTION_KEY")
+    if not key:
+        return None
+    try:
+        return Fernet(key.encode())
+    except ValueError as e:
+        raise RuntimeError(
+            f"EMBODYBENCH_AUTH_ENCRYPTION_KEY is not a valid Fernet key: {e}. "
+            "Generate one with: python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'"
+        )
+
+
+def _encrypt_api_auth(plain: dict) -> dict:
+    """Encrypt the {scheme, token} blob. Token gets enciphered; scheme stays clear."""
+    f = _get_fernet()
+    if not f:
+        raise HTTPException(
+            status_code=503,
+            detail="Server is not configured to accept api_auth (EMBODYBENCH_AUTH_ENCRYPTION_KEY unset)",
+        )
+    token_plain = plain.get("token", "")
+    return {
+        "scheme": plain.get("scheme", "bearer"),
+        "token_enc": f.encrypt(token_plain.encode()).decode(),
+    }
+
+
+def _decrypt_api_auth(enc: dict) -> dict:
+    """Reverse of _encrypt_api_auth — only used when handing a job to a worker."""
+    f = _get_fernet()
+    if not f:
+        return {"scheme": enc.get("scheme", "bearer"), "token": ""}
+    try:
+        token = f.decrypt(enc["token_enc"].encode()).decode()
+    except (InvalidToken, KeyError):
+        token = ""
+    return {"scheme": enc.get("scheme", "bearer"), "token": token}
 
 
 # ---------------------------------------------------------------------------
@@ -284,3 +345,415 @@ async def admin_create_user(
     finally:
         cursor.close()
         conn.close()
+
+
+# ===========================================================================
+# Phase 1: benchmark catalog + run submission
+# ===========================================================================
+
+class RunConfig(BaseModel):
+    tasks: list[str] = Field(..., min_length=1, description="Task names to evaluate")
+    episodes_per_task: int = Field(..., ge=1, le=1000)
+    chunk_size: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Episodes per worker job. Default = episodes_per_task (one job per task).",
+    )
+    task_config: Optional[str] = Field(
+        None,
+        description="Override task_config YAML name. Default = benchmark's default_task_config.",
+    )
+
+
+class ApiAuthIn(BaseModel):
+    scheme: Literal["bearer", "none"] = "bearer"
+    token: str = ""
+
+
+class SubmitRunRequest(BaseModel):
+    benchmark: Literal["robotwin", "robopro"]
+    config: RunConfig
+    eval_mode: Literal["api"] = "api"  # checkpoint mode comes later
+    api_endpoint_url: HttpUrl
+    api_auth: Optional[ApiAuthIn] = None
+    notes: Optional[str] = None
+
+
+class SubmitRunResponse(BaseModel):
+    run_id: str
+    jobs_queued: int
+    episodes_total: int
+
+
+class JobSummary(BaseModel):
+    id: str
+    task_name: str
+    seed_offset: int
+    n_episodes: int
+    state: str
+    attempt_count: int
+    progress: Optional[dict] = None
+    started_at: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
+
+
+class RunSummary(BaseModel):
+    id: str
+    benchmark: str
+    state: str
+    eval_mode: str
+    api_endpoint_url: Optional[str]
+    submitted_at: datetime
+    started_at: Optional[datetime]
+    finished_at: Optional[datetime]
+    notes: Optional[str]
+    jobs_total: int
+    jobs_done: int
+    episodes_total: int
+    episodes_done: int
+
+
+@router.get("/benchmarks")
+async def list_benchmarks():
+    """Static catalog of benchmarks the platform supports (no auth needed)."""
+    return {"benchmarks": _benchmarks.all_as_list()}
+
+
+@router.post("/runs", response_model=SubmitRunResponse)
+async def submit_run(body: SubmitRunRequest, user_id: int = Depends(verify_bench_user)):
+    """Create a new run + its job rows.
+
+    Validates the task names against the benchmark catalog and partitions the
+    (tasks × episodes_per_task) workload into jobs of `chunk_size` episodes each.
+    """
+    bench_mod = _benchmarks.get(body.benchmark)
+    if bench_mod is None:
+        raise HTTPException(status_code=400, detail=f"Unknown benchmark: {body.benchmark}")
+
+    known_tasks = {t["name"] for t in bench_mod.TASKS}
+    bad = [t for t in body.config.tasks if t not in known_tasks]
+    if bad:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown task(s) for {body.benchmark}: {bad[:5]}",
+        )
+
+    if body.config.episodes_per_task > bench_mod.MAX_EPISODES_PER_TASK:
+        raise HTTPException(
+            status_code=400,
+            detail=f"episodes_per_task={body.config.episodes_per_task} exceeds cap "
+            f"({bench_mod.MAX_EPISODES_PER_TASK}) for {body.benchmark}",
+        )
+
+    chunk_size = body.config.chunk_size or body.config.episodes_per_task
+    chunk_size = min(chunk_size, body.config.episodes_per_task)
+    task_config = body.config.task_config or bench_mod.DEFAULT_TASK_CONFIG
+
+    # Encrypt the user-supplied bearer token before persisting.
+    api_auth_stored: Optional[dict] = None
+    if body.api_auth and body.api_auth.scheme != "none" and body.api_auth.token:
+        api_auth_stored = _encrypt_api_auth(body.api_auth.model_dump())
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        # 1. Insert the run row.
+        cursor.execute(
+            """
+            INSERT INTO embodybench_runs
+                (user_id, benchmark, benchmark_version, config, eval_mode,
+                 api_endpoint_url, api_auth, state, notes)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'queued', %s)
+            RETURNING id;
+            """,
+            (
+                user_id,
+                body.benchmark,
+                bench_mod.VERSION,
+                Json(body.config.model_dump()),
+                body.eval_mode,
+                str(body.api_endpoint_url),
+                Json(api_auth_stored) if api_auth_stored else None,
+                body.notes,
+            ),
+        )
+        run_id = cursor.fetchone()["id"]
+
+        # 2. Partition into jobs.
+        jobs_queued = 0
+        episodes_total = 0
+        for task_name in body.config.tasks:
+            n = body.config.episodes_per_task
+            num_chunks = ceil(n / chunk_size)
+            for i in range(num_chunks):
+                ep_in_chunk = chunk_size if (i + 1) * chunk_size <= n else (n - i * chunk_size)
+                cursor.execute(
+                    """
+                    INSERT INTO embodybench_jobs
+                        (run_id, task_name, task_config, seed_offset, n_episodes,
+                         state, requires_caps)
+                    VALUES (%s, %s, %s, %s, %s, 'queued', %s);
+                    """,
+                    (
+                        run_id,
+                        task_name,
+                        task_config,
+                        i,
+                        ep_in_chunk,
+                        Json({"benchmark": body.benchmark}),
+                    ),
+                )
+                jobs_queued += 1
+                episodes_total += ep_in_chunk
+
+        conn.commit()
+        return {
+            "run_id": str(run_id),
+            "jobs_queued": jobs_queued,
+            "episodes_total": episodes_total,
+        }
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to create run: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def _run_row_to_summary(row: dict, jobs_total: int, jobs_done: int,
+                        episodes_total: int, episodes_done: int) -> dict:
+    return {
+        "id": str(row["id"]),
+        "benchmark": row["benchmark"],
+        "state": row["state"],
+        "eval_mode": row["eval_mode"],
+        "api_endpoint_url": row["api_endpoint_url"],
+        "submitted_at": row["submitted_at"],
+        "started_at": row["started_at"],
+        "finished_at": row["finished_at"],
+        "notes": row["notes"],
+        "jobs_total": jobs_total,
+        "jobs_done": jobs_done,
+        "episodes_total": episodes_total,
+        "episodes_done": episodes_done,
+    }
+
+
+@router.get("/runs")
+async def list_runs(user_id: int = Depends(verify_bench_user)):
+    """User's runs, most recent first, with aggregate job/episode counts."""
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cursor.execute(
+            """
+            SELECT r.*,
+              COUNT(j.id) AS jobs_total,
+              COUNT(j.id) FILTER (WHERE j.state IN ('succeeded','failed'))
+                  AS jobs_done,
+              COALESCE(SUM(j.n_episodes), 0) AS episodes_total,
+              COALESCE(SUM(
+                  COALESCE((j.progress->>'episodes_done')::int, 0)
+                  + CASE WHEN j.state = 'succeeded' THEN
+                       (j.n_episodes - COALESCE((j.progress->>'episodes_done')::int, 0))
+                    ELSE 0 END
+              ), 0) AS episodes_done
+            FROM embodybench_runs r
+            LEFT JOIN embodybench_jobs j ON j.run_id = r.id
+            WHERE r.user_id = %s
+            GROUP BY r.id
+            ORDER BY r.submitted_at DESC
+            LIMIT 200;
+            """,
+            (user_id,),
+        )
+        return {
+            "runs": [
+                _run_row_to_summary(
+                    r, r["jobs_total"], r["jobs_done"], int(r["episodes_total"]),
+                    int(r["episodes_done"]),
+                )
+                for r in cursor.fetchall()
+            ]
+        }
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@router.get("/runs/{run_id}")
+async def get_run(run_id: str = Path(...), user_id: int = Depends(verify_bench_user)):
+    """Full run detail + per-task success-rate aggregate."""
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cursor.execute(
+            "SELECT * FROM embodybench_runs WHERE id = %s AND user_id = %s",
+            (run_id, user_id),
+        )
+        run = cursor.fetchone()
+        if not run:
+            raise HTTPException(status_code=404, detail="Run not found")
+
+        cursor.execute(
+            """
+            SELECT
+              COUNT(*) AS jobs_total,
+              COUNT(*) FILTER (WHERE state IN ('succeeded','failed')) AS jobs_done,
+              COALESCE(SUM(n_episodes), 0) AS episodes_total,
+              COALESCE(SUM(COALESCE((progress->>'episodes_done')::int, 0)
+                + CASE WHEN state = 'succeeded' THEN
+                     (n_episodes - COALESCE((progress->>'episodes_done')::int, 0))
+                  ELSE 0 END), 0) AS episodes_done
+            FROM embodybench_jobs WHERE run_id = %s;
+            """,
+            (run_id,),
+        )
+        agg = cursor.fetchone()
+
+        cursor.execute(
+            """
+            SELECT task_name,
+              COUNT(*) AS attempted,
+              COUNT(*) FILTER (WHERE (outcome->>'success')::bool) AS succeeded
+            FROM embodybench_episodes
+            WHERE run_id = %s
+            GROUP BY task_name
+            ORDER BY task_name;
+            """,
+            (run_id,),
+        )
+        per_task = cursor.fetchall()
+
+        summary = _run_row_to_summary(
+            run, int(agg["jobs_total"]), int(agg["jobs_done"]),
+            int(agg["episodes_total"]), int(agg["episodes_done"]),
+        )
+        summary["config"] = run["config"]
+        summary["benchmark_version"] = run["benchmark_version"]
+        summary["per_task"] = [
+            {
+                "task_name": pt["task_name"],
+                "attempted": pt["attempted"],
+                "succeeded": pt["succeeded"],
+                "success_rate": (pt["succeeded"] / pt["attempted"]) if pt["attempted"] else 0.0,
+            }
+            for pt in per_task
+        ]
+        return summary
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@router.get("/runs/{run_id}/jobs")
+async def list_jobs(run_id: str = Path(...), user_id: int = Depends(verify_bench_user)):
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        # Authorize by checking the run belongs to user.
+        cursor.execute(
+            "SELECT 1 FROM embodybench_runs WHERE id = %s AND user_id = %s",
+            (run_id, user_id),
+        )
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Run not found")
+
+        cursor.execute(
+            """
+            SELECT id, task_name, seed_offset, n_episodes, state, attempt_count,
+                   progress, started_at, finished_at, failure_reason
+            FROM embodybench_jobs
+            WHERE run_id = %s
+            ORDER BY task_name, seed_offset;
+            """,
+            (run_id,),
+        )
+        return {
+            "jobs": [
+                {
+                    "id": str(r["id"]),
+                    "task_name": r["task_name"],
+                    "seed_offset": r["seed_offset"],
+                    "n_episodes": r["n_episodes"],
+                    "state": r["state"],
+                    "attempt_count": r["attempt_count"],
+                    "progress": r["progress"],
+                    "started_at": r["started_at"],
+                    "finished_at": r["finished_at"],
+                    "failure_reason": r["failure_reason"],
+                }
+                for r in cursor.fetchall()
+            ]
+        }
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@router.delete("/runs/{run_id}")
+async def cancel_run(run_id: str = Path(...), user_id: int = Depends(verify_bench_user)):
+    """Cancel a run. Queued jobs are marked cancelled too; running jobs continue
+    on the worker (worker will see state and exit gracefully on next heartbeat).
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cursor.execute(
+            "SELECT state FROM embodybench_runs WHERE id = %s AND user_id = %s",
+            (run_id, user_id),
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Run not found")
+        if row["state"] in ("completed", "failed", "cancelled"):
+            return {"ok": True, "noop": True}
+
+        cursor.execute(
+            "UPDATE embodybench_runs SET state = 'cancelled', finished_at = NOW() WHERE id = %s",
+            (run_id,),
+        )
+        cursor.execute(
+            "UPDATE embodybench_jobs SET state = 'cancelled' "
+            "WHERE run_id = %s AND state IN ('queued','claimed')",
+            (run_id,),
+        )
+        conn.commit()
+        return {"ok": True}
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Setup-validation subagent (Claude Haiku) — Phase 1
+# ---------------------------------------------------------------------------
+
+class ValidateRequest(BaseModel):
+    benchmark: Literal["robotwin", "robopro"]
+    config: RunConfig
+
+
+@router.post("/setup/validate")
+async def setup_validate(body: ValidateRequest, user_id: int = Depends(verify_bench_user)):
+    """Sanity-check the user's run config with Claude Haiku.
+
+    Returns warnings/suggestions. No-ops with {ok: true, warnings: []} when
+    ANTHROPIC_API_KEY is not set on the server.
+    """
+    bench_mod = _benchmarks.get(body.benchmark)
+    if bench_mod is None:
+        raise HTTPException(status_code=400, detail=f"Unknown benchmark: {body.benchmark}")
+
+    try:
+        # Local import keeps the optional dependency lazy.
+        from bench_validation import validate_config
+    except ImportError as e:
+        # Validation module missing → degrade gracefully.
+        return {"ok": True, "warnings": [], "suggestions": [], "skipped_reason": str(e)}
+
+    return validate_config(bench_mod, body.config.model_dump())
+

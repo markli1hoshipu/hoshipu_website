@@ -29,3 +29,8 @@ xlrd==2.0.1
 # Email
 resend==2.0.0
 email-validator==2.1.0
+
+# EmbodyBench setup-validation subagent (Claude Haiku); optional —
+# bench_validation.py degrades gracefully if this is missing or
+# ANTHROPIC_API_KEY is unset.
+anthropic==0.40.0
