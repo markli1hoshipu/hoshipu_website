@@ -700,6 +700,10 @@ function Step4ReviewSubmit({
           <SummaryRow k="Total episodes" v={stats.totalEpisodes.toLocaleString()} />
           <SummaryRow k="Jobs queued" v={stats.jobsQueued.toLocaleString()} />
           <SummaryRow k="Eval mode" v="API" />
+          <SummaryRow
+            k="Endpoint"
+            v={form.apiEndpointUrl || "— (not set, submit will fail)"}
+          />
           <SummaryRow k="Auth" v={form.authScheme === "bearer" ? "Bearer token" : "None"} />
         </dl>
       </div>

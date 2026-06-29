@@ -80,14 +80,32 @@ async function request<T>(
     clearToken();
   }
   if (!res.ok) {
-    let detail = res.statusText;
+    let detail: string = res.statusText;
     try {
       const body = await res.json();
-      if (body?.detail) detail = body.detail;
+      // FastAPI puts the human-readable message under .detail. Three shapes:
+      //   1) string  (custom HTTPException(detail="..."))
+      //   2) array of {loc, msg, type}  (422 Pydantic validation errors)
+      //   3) anything else (defensive — JSON-stringify it)
+      if (typeof body?.detail === "string") {
+        detail = body.detail;
+      } else if (Array.isArray(body?.detail)) {
+        detail = body.detail
+          .map((d: { msg?: string; loc?: (string | number)[] }) => {
+            if (!d) return "";
+            const where = Array.isArray(d.loc) ? d.loc.join(".") : "";
+            const msg = typeof d.msg === "string" ? d.msg : JSON.stringify(d);
+            return where ? `${where}: ${msg}` : msg;
+          })
+          .filter(Boolean)
+          .join("; ");
+      } else if (body?.detail) {
+        detail = JSON.stringify(body.detail);
+      }
     } catch {
-      // body not JSON; keep statusText
+      // body wasn't JSON; keep statusText
     }
-    throw new BenchApiError(res.status, detail);
+    throw new BenchApiError(res.status, detail || `HTTP ${res.status}`);
   }
   // 204 No Content
   if (res.status === 204) return undefined as unknown as T;
