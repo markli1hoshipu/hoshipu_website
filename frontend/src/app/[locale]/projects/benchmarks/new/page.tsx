@@ -408,36 +408,79 @@ function Step2Config({
           </div>
         </div>
         <div className="max-h-[420px] overflow-y-auto p-3 space-y-3">
-          {grouped.map(([category, tasks]) => (
-            <details key={category} open className="rounded-lg border border-slate-100">
-              <summary className="cursor-pointer rounded-t-lg bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">
-                {category} ({tasks.length})
-              </summary>
-              <div className="grid gap-1 p-2 md:grid-cols-2">
-                {tasks.map((t) => {
-                  const checked = form.selectedTasks.has(t.name);
-                  return (
-                    <label
-                      key={t.name}
-                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-xs hover:bg-slate-50"
+          {grouped.map(([category, tasks]) => {
+            const taskNames = tasks.map((t) => t.name);
+            const selectedInCat = taskNames.filter((n) => form.selectedTasks.has(n)).length;
+            const allInCat = selectedInCat === tasks.length;
+            const noneInCat = selectedInCat === 0;
+            return (
+              <details key={category} open className="rounded-lg border border-slate-100">
+                <summary className="flex cursor-pointer items-center justify-between rounded-t-lg bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">
+                  <span>
+                    {category}
+                    <span className="ml-2 font-normal tabular-nums text-slate-500">
+                      ({selectedInCat}/{tasks.length})
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleAll(taskNames, !allInCat);
+                      }}
+                      className={`rounded border px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                        allInCat
+                          ? "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
+                      }`}
+                      title={allInCat ? `Clear all ${category}` : `Select all ${category}`}
                     >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={(e) => {
-                          const next = new Set(form.selectedTasks);
-                          e.target.checked ? next.add(t.name) : next.delete(t.name);
-                          setForm({ ...form, selectedTasks: next });
+                      {allInCat ? "Clear all" : "Select all"}
+                    </button>
+                    {!noneInCat && !allInCat && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleAll(taskNames, false);
                         }}
-                        className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-500 focus:ring-indigo-500/40"
-                      />
-                      <span className="font-mono text-slate-700">{t.name}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </details>
-          ))}
+                        className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600 hover:bg-slate-100"
+                        title={`Clear ${category}`}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </span>
+                </summary>
+                <div className="grid gap-1 p-2 md:grid-cols-2">
+                  {tasks.map((t) => {
+                    const checked = form.selectedTasks.has(t.name);
+                    return (
+                      <label
+                        key={t.name}
+                        className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-xs hover:bg-slate-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const next = new Set(form.selectedTasks);
+                            e.target.checked ? next.add(t.name) : next.delete(t.name);
+                            setForm({ ...form, selectedTasks: next });
+                          }}
+                          className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-500 focus:ring-indigo-500/40"
+                        />
+                        <span className="font-mono text-slate-700">{t.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </details>
+            );
+          })}
         </div>
       </div>
 
