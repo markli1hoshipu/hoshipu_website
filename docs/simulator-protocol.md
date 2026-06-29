@@ -70,15 +70,26 @@ The simulator (`TASK_ENV.get_obs()`) returns a Python dict with numpy arrays. Th
 
 **Color order**: RGB. The simulator renders RGB natively; do **not** convert to BGR.
 
-### Proprioception state — 14 floats
+### Proprioception state — shape depends on the run's `action_space`
 
-| Wire field | Layout |
+The run config's `action_space` field controls BOTH what `state` we send AND what we expect back as `action`. Per-arm layouts:
+
+**For `action_space = "joint_abs_14"` (14 floats total):**
+
+| Per-arm (7) | Source in `obs["agent"]["qpos"]` |
 |---|---|
-| `state` | `[left_joint0, left_joint1, …, left_joint5, left_gripper, right_joint0, …, right_joint5, right_gripper]` |
+| joint_0..5 (radians, signed) | First 6 indices of the arm slice |
+| gripper (0.0 closed, 1.0 open) | 7th index — usually a normalized opening fraction |
 
-- Joints 0–5: radians, signed.
-- Gripper (index 6 of each 7-tuple): float 0.0–1.0, where 0 = fully closed, 1 = fully open.
-- Source: `obs["agent"]["qpos"]` in RoboTwin's standard observation dict, sliced to the bimanual joint indices.
+**For `action_space = "xvla_ee_rot6d_20"` (20 floats total):**
+
+| Per-arm (10) | Source |
+|---|---|
+| pos_x, pos_y, pos_z (meters, world frame) | `obs["endpose"]["{left,right}_endpose"][:3]` |
+| rot6d_0..5 (first 2 cols of rotation matrix, flattened) | Convert from quat `obs["endpose"]["{left,right}_endpose"][3:7]` via the formula in X-VLA's client.py:76-92 — `R.from_quat(q).as_matrix()[..., :, :2].reshape(...+(6,))` |
+| gripper (X-VLA convention: `1 - 2*raw_gripper`) | `1 - 2 * obs["endpose"]["{left,right}_gripper"]` |
+
+Source of truth: `/shared_work/behavior1k-xvla/X-VLA/evaluation/robotwin-2.0/client.py` lines 119–146. Mirror that code's exact transformations in `embodybench_remote.eval()` when the run is `xvla_ee_rot6d_20`.
 
 Send as Python `list[float]` — JSON serializes natively, no numpy adapters needed.
 
@@ -111,7 +122,8 @@ Called from `reset_model(model)` (which `eval_policy.py:332` invokes between epi
   "seed": <st_seed for THIS episode, from eval_policy.py:262 burn-in logic>,
   "max_steps": <TASK_ENV.step_lim>,
   "embodiment": "<aloha-agilex | dual-piper | etc, from args>",
-  "instruction": "<TASK_ENV.instruction>"
+  "instruction": "<TASK_ENV.instruction>",
+  "action_space": "<joint_abs_14 | xvla_ee_rot6d_20, from run config>"
 }
 ```
 
@@ -162,7 +174,22 @@ Hard-fail HTTP codes (no retry):
 - `401` — bad token (user's server config; episode fails, run continues)
 - `404` — server doesn't know this `episode_id`; usually means the server restarted mid-episode. We finalize and start a fresh episode. The current episode is marked failed.
 
-Response: `{ "action": [<14 floats>] }`. Apply with `TASK_ENV.take_action(action)`. The 14-dim convention is documented in [`policy-server-guide.md`](./policy-server-guide.md#action-vector-14-dim-float-returned-by-step) — same shape as `state`.
+Response: `{ "action": [<N floats>] }` where N matches the run's `action_space`:
+
+- **`joint_abs_14`** — 14 floats, layout `[left_qpos×6, left_grip, right_qpos×6, right_grip]`. Apply directly: `TASK_ENV.take_action(action)` (sim-native).
+- **`xvla_ee_rot6d_20`** — 20 floats, layout `[left_xyz×3, left_rot6d×6, left_grip, right_xyz×3, right_rot6d×6, right_grip]`. The worker converts each arm's `(pos, rot6d, grip)` → `(pos, quat, grip_sign)` and calls `TASK_ENV.take_action(converted, action_type='ee')`. See X-VLA's client.py lines 231-250 for the exact rollout math:
+
+  ```python
+  # left arm
+  left_quat = rotate6D_to_quat(action[3:9])            # 6D → quat
+  left_grip = 1 - 2 * (action[9] > 0.7)                # threshold
+  left_arm  = np.concatenate([action[:3], left_quat, [left_grip]])  # 8
+  # right arm: identical, on action[10:20]
+  rollout_action = np.concatenate([left_arm, right_arm])  # 16
+  TASK_ENV.take_action(rollout_action, action_type='ee')
+  ```
+
+The 6D-to-quaternion converter is in X-VLA's client.py at lines 80-92; replicate it bit-for-bit in `embodybench_remote.eval()` so X-VLA-trained models hit identical numerics here vs in the upstream eval.
 
 ### `/episode/{episode_id}/finalize`
 
@@ -236,6 +263,7 @@ These are set by `worker/src/bench_worker/job_runner.py` before `subprocess.Pope
 | `EMBODYBENCH_TASK_NAME` | task name from claimed job | sent in `/episode/init` body |
 | `EMBODYBENCH_BENCHMARK` | `robotwin` or `robopro` | sent in `/episode/init` body |
 | `EMBODYBENCH_MAX_STEPS` | `TASK_ENV.step_lim` | sent in `/episode/init` body |
+| `EMBODYBENCH_ACTION_SPACE` | `"joint_abs_14"` \| `"xvla_ee_rot6d_20"` | sent in `/episode/init` body; controls both the `state` layout in `/step` requests and how the worker parses the `action` in `/step` responses |
 | `EVAL_TEST_NUM` | n_episodes for this job (read by `eval_policy.py` directly) | `eval_policy.py:182` |
 
 ---

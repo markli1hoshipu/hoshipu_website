@@ -367,6 +367,11 @@ class RunConfig(BaseModel):
         None,
         description="Override task_config YAML name. Default = benchmark's default_task_config.",
     )
+    # Action space the user's model speaks. Worker's embodybench_remote policy
+    # module converts between this and the sim's native qpos commands.
+    #   joint_abs_14:      14-dim joint positions (sim-native, no conversion)
+    #   xvla_ee_rot6d_20:  20-dim absolute EE, 6D rotation (X-VLA convention)
+    action_space: Literal["joint_abs_14", "xvla_ee_rot6d_20"] = "xvla_ee_rot6d_20"
 
 
 class ApiAuthIn(BaseModel):

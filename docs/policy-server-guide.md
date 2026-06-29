@@ -33,7 +33,9 @@ We call this **once per rollout**, at the start. You should allocate any per-epi
   "seed": 100007,                          // the seed the simulator will use; deterministic per (task, seed)
   "max_steps": 200,                        // sim will not call /step more than this
   "embodiment": "aloha-agilex",            // robot embodiment for this benchmark
-  "instruction": "place the mouse on the mousepad"  // natural-language goal
+  "instruction": "place the mouse on the mousepad", // natural-language goal
+  "action_space": "xvla_ee_rot6d_20"      // chosen at run submission time;
+                                           // controls action and state vector shapes (see below)
 }
 ```
 
@@ -131,16 +133,14 @@ All three are sent in the **same world frame at the same simulation step** — t
 - **Resolution**: usually 320×240 (RoboTwin default) or 224×224 (some RoboPRO configs). The exact size is set by the benchmark's `task_config` and may vary per run. **Don't hardcode dimensions** — read them from the image after decoding.
 - **Wire format**: base64-encoded string of the JPEG bytes. No `data:` URI prefix.
 
-### State vector (14-dim float)
+### State vector (proprioception)
 
-Convention: Aloha-Agilex bimanual. First 7 floats = left arm, next 7 = right arm. Within each 7-tuple:
+**Shape matches your chosen `action_space`:**
 
-| Index | Meaning |
-|---|---|
-| 0–5 | 6-DOF joint positions (radians) |
-| 6 | Gripper opening, 0.0 (fully closed) to 1.0 (fully open) |
+- If `action_space = joint_abs_14`: 14 floats, joint-position layout (see "Action space" section below).
+- If `action_space = xvla_ee_rot6d_20`: 20 floats, EE-pose-with-6D-rotation layout (see "Action space" section).
 
-So `state[0:7]` is the left arm, `state[7:14]` is the right arm.
+So if your model needs `joint_abs_14` proprio and you ask for the `xvla_ee_rot6d_20` action space, **either change your model or convert proprio yourself on receive**. The simulator only sends one layout per run, the one matching your chosen action space.
 
 ### Instruction string
 
@@ -148,18 +148,72 @@ The natural-language goal for this episode. **It does not change across steps wi
 
 ---
 
-## Action vector (14-dim float, returned by `/step`)
+## Action space — pick one per run
 
-Same shape as `state`: 14 floats, 7 per arm, last of each 7-tuple is gripper.
+You choose the action space when submitting a run on the wizard. The same choice controls **both** the shape of the action you return AND the shape of `state` we send you (proprioception matches action space).
 
-| Index | Convention |
-|---|---|
-| 0–5, 7–12 | Target joint positions in radians. The sim uses PD control to track these. |
-| 6, 13 | Gripper command, 0.0 = close, 1.0 = open. |
+### Option A: `xvla_ee_rot6d_20` (default — X-VLA-style, 20-dim)
 
-You may return either absolute joint positions (most common) or delta positions — but **the convention for this platform is absolute**, matching upstream RoboTwin/RoboPRO. Stick to absolute unless you know what you're doing.
+**For X-VLA, OpenVLA-OFT, RDT, Pi0, GO1, and most modern bimanual VLAs trained on absolute EE pose with 6D rotation.**
 
-### Action chunking (if your model does it)
+The simulator converts from this absolute-EE space into joint commands via inverse kinematics (CuRobo). You output where you want each gripper to be in world-frame space; we handle the arm geometry.
+
+**Action vector layout (20 floats, returned by `/step`):**
+
+```
+[ 0]  left_pos_x      float, meters, world frame
+[ 1]  left_pos_y
+[ 2]  left_pos_z
+[ 3]  left_rot6d_0    ─┐
+[ 4]  left_rot6d_1     │  6D rotation representation —
+[ 5]  left_rot6d_2     │  first 2 columns of the 3×3 rotation
+[ 6]  left_rot6d_3     │  matrix flattened to 6 floats.
+[ 7]  left_rot6d_4     │  Recover via Gram-Schmidt; see helpers
+[ 8]  left_rot6d_5    ─┘  rotate6D_to_quat() in X-VLA client.py.
+[ 9]  left_gripper    float; sim thresholds at 0.7
+                      (>0.7 ⇒ close, ≤0.7 ⇒ open)
+[10]  right_pos_x
+[11]  right_pos_y
+[12]  right_pos_z
+[13]  right_rot6d_0
+[14]  right_rot6d_1
+[15]  right_rot6d_2
+[16]  right_rot6d_3
+[17]  right_rot6d_4
+[18]  right_rot6d_5
+[19]  right_gripper
+```
+
+**Proprioception sent in `state` (20 floats, same layout):** the current EE pose of each gripper, with the same 3+6+1 per-arm structure. Gripper proprio uses X-VLA's convention `(1 − 2 × raw_gripper)` to match training data.
+
+This is **exactly** the format the public X-VLA RoboTwin-2.0 client uses ([X-VLA repo](https://github.com/2toinf/X-VLA/blob/main/evaluation/robotwin-2.0/client.py) lines 130–146 for proprio, lines 231–248 for action) — you can lift your existing X-VLA inference server with only the endpoint paths re-wrapped to our `/episode/init|step|finalize`.
+
+### Option B: `joint_abs_14` (sim-native, 14-dim)
+
+**For ACT, Diffusion Policy, or any policy trained directly on RoboTwin's `qpos` action space.** No IK conversion — what you return is what the controller tracks.
+
+**Action vector layout (14 floats, returned by `/step`):**
+
+```
+[ 0]  left_joint_0    radians, signed
+[ 1]  left_joint_1
+[ 2]  left_joint_2
+[ 3]  left_joint_3
+[ 4]  left_joint_4
+[ 5]  left_joint_5
+[ 6]  left_gripper    0.0 = fully closed, 1.0 = fully open
+[ 7]  right_joint_0
+[ 8]  right_joint_1
+[ 9]  right_joint_2
+[10]  right_joint_3
+[11]  right_joint_4
+[12]  right_joint_5
+[13]  right_gripper
+```
+
+**Proprioception sent in `state` (14 floats, same layout):** current joint positions in radians; gripper 0–1.
+
+### Action chunking (any mode)
 
 If your model predicts a chunk of N actions per inference (common for diffusion policies, ACT, etc.), only return **the first action of the chunk** to `/step`. Cache the rest server-side and pop them off on subsequent `/step` calls without re-running inference. That's how you get away with a slow model at 30 Hz sim rate.
 

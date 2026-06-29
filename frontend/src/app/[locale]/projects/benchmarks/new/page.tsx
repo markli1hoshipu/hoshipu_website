@@ -19,6 +19,7 @@ import { ArrowLeft, ArrowRight, Check, AlertTriangle, Info, Loader2, Lock } from
 import {
   type BenchmarkCatalog,
   type ValidationResult,
+  type ActionSpace,
   listBenchmarks,
   validateSetup,
   submitRun,
@@ -33,6 +34,7 @@ interface FormState {
   selectedTasks: Set<string>;
   episodesPerTask: number;
   chunkSize: number | null; // null = default to episodesPerTask
+  actionSpace: ActionSpace;
   apiEndpointUrl: string;
   authScheme: "bearer" | "none";
   authToken: string;
@@ -44,11 +46,29 @@ const INITIAL: FormState = {
   selectedTasks: new Set(),
   episodesPerTask: 20,
   chunkSize: null,
+  actionSpace: "xvla_ee_rot6d_20",
   apiEndpointUrl: "",
   authScheme: "none",
   authToken: "",
   notes: "",
 };
+
+const ACTION_SPACE_OPTIONS: { id: ActionSpace; label: string; dim: number; description: string }[] = [
+  {
+    id: "xvla_ee_rot6d_20",
+    label: "Absolute end-effector — X-VLA style (20-dim)",
+    dim: 20,
+    description:
+      "Per arm: [pos_x, pos_y, pos_z, rot6d_0..5, gripper]. World-frame EE pose, 6D rotation, sim does IK to qpos. Use this for X-VLA, OpenVLA-OFT, RDT, Pi0, and most modern bimanual VLAs.",
+  },
+  {
+    id: "joint_abs_14",
+    label: "Joint positions (14-dim, sim-native)",
+    dim: 14,
+    description:
+      "Per arm: [j0, j1, j2, j3, j4, j5, gripper]. Direct joint position commands in radians; gripper 0=closed, 1=open. No IK. Use this for ACT, DP, or any policy trained on RoboTwin's raw qpos.",
+  },
+];
 
 // Computes the same partition the backend will, for live preview.
 function partitionStats(
@@ -107,6 +127,7 @@ export default function NewRunPage() {
           tasks: Array.from(form.selectedTasks),
           episodes_per_task: form.episodesPerTask,
           chunk_size: form.chunkSize ?? form.episodesPerTask,
+          action_space: form.actionSpace,
         });
         setValidation(v);
       } catch {
@@ -143,6 +164,7 @@ export default function NewRunPage() {
           tasks: Array.from(form.selectedTasks),
           episodes_per_task: form.episodesPerTask,
           chunk_size: form.chunkSize ?? form.episodesPerTask,
+          action_space: form.actionSpace,
         },
         eval_mode: "api",
         api_endpoint_url: form.apiEndpointUrl,
@@ -506,6 +528,53 @@ function Step2Config({
         </p>
       </div>
 
+      {/* Action space */}
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <label className="block text-xs font-medium text-slate-700">
+          Action space your server returns
+        </label>
+        <p className="mt-1 text-xs text-slate-500">
+          The simulator's <code className="font-mono">embodybench_remote</code> policy
+          module converts between this and the sim's native qpos. Match what your
+          model was trained to output.
+        </p>
+        <div className="mt-3 space-y-2">
+          {ACTION_SPACE_OPTIONS.map((opt) => {
+            const checked = form.actionSpace === opt.id;
+            return (
+              <label
+                key={opt.id}
+                className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
+                  checked
+                    ? "border-indigo-500 bg-indigo-50/40 ring-1 ring-indigo-500/30"
+                    : "border-slate-200 hover:border-slate-300"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="action_space"
+                  value={opt.id}
+                  checked={checked}
+                  onChange={() => setForm({ ...form, actionSpace: opt.id })}
+                  className="mt-0.5 h-4 w-4 border-slate-300 text-indigo-500 focus:ring-indigo-500/40"
+                />
+                <span className="flex-1">
+                  <span className="block text-sm font-medium text-slate-800">
+                    {opt.label}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    {opt.description}
+                  </span>
+                  <span className="mt-1 inline-block rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-600">
+                    id: {opt.id}
+                  </span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Partition preview */}
       <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
         <p className="text-sm font-medium text-slate-800">
@@ -700,6 +769,10 @@ function Step4ReviewSubmit({
           <SummaryRow k="Total episodes" v={stats.totalEpisodes.toLocaleString()} />
           <SummaryRow k="Jobs queued" v={stats.jobsQueued.toLocaleString()} />
           <SummaryRow k="Eval mode" v="API" />
+          <SummaryRow
+            k="Action space"
+            v={ACTION_SPACE_OPTIONS.find((o) => o.id === form.actionSpace)?.label ?? form.actionSpace}
+          />
           <SummaryRow
             k="Endpoint"
             v={form.apiEndpointUrl || "— (not set, submit will fail)"}

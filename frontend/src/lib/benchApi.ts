@@ -184,11 +184,14 @@ export interface BenchmarkCatalog {
   tasks: CatalogTask[];
 }
 
+export type ActionSpace = "joint_abs_14" | "xvla_ee_rot6d_20";
+
 export interface RunConfig {
   tasks: string[];
   episodes_per_task: number;
   chunk_size?: number;
   task_config?: string;
+  action_space?: ActionSpace;
 }
 
 export interface SubmitRunRequest {
