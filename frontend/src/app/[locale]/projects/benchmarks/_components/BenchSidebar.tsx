@@ -27,6 +27,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "", label: "Home" },
   { to: "new", label: "New run" },
   { to: "runs", label: "Runs" },
+  { to: "docs", label: "API docs" },
 ];
 
 const ADMIN_NAV_ITEMS: NavItem[] = [
