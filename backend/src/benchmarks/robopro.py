@@ -25,7 +25,12 @@ DESCRIPTION = (
     "language / vision / object perturbations."
 )
 REPO_URL = "https://github.com/markli1hoshipu/RoboPRO"
-DEFAULT_TASK_CONFIG = "demo_randomized"
+DEFAULT_TASK_CONFIG = "bench_demo_clean"  # generic fallback; per-task config is
+# resolved in the backend partitioner based on each task's category — see
+# bench_router.submit_run. Available scene-specific configs on a real worker:
+#   bench_demo_office_clean   bench_demo_study_clean
+#   bench_demo_kitchens_clean bench_demo_kitchenl_clean
+# Plus per-scene cluttered variants (d6..d15) once we expose a difficulty knob.
 RECOMMENDED_EPISODES = 20
 MAX_EPISODES_PER_TASK = 100
 

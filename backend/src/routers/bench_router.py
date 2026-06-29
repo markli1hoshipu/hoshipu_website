@@ -456,7 +456,21 @@ async def submit_run(body: SubmitRunRequest, user_id: int = Depends(verify_bench
 
     chunk_size = body.config.chunk_size or body.config.episodes_per_task
     chunk_size = min(chunk_size, body.config.episodes_per_task)
-    task_config = body.config.task_config or bench_mod.DEFAULT_TASK_CONFIG
+
+    # task_config is resolved per-task because RoboPRO has scene-specific bench
+    # configs (bench_demo_<scene>_clean), while RoboTwin shares one. Build a
+    # name → category map from the catalog so we can route correctly.
+    _task_meta = {t["name"]: t for t in bench_mod.TASKS}
+
+    def _task_config_for(task_name: str) -> str:
+        if body.config.task_config:
+            return body.config.task_config  # user override wins
+        category = _task_meta.get(task_name, {}).get("category", "general")
+        if body.benchmark == "robopro":
+            if category in ("office", "study", "kitchens", "kitchenl"):
+                return f"bench_demo_{category}_clean"
+            return "bench_demo_clean"
+        return bench_mod.DEFAULT_TASK_CONFIG  # robotwin: "demo_randomized"
 
     # Encrypt the user-supplied bearer token before persisting.
     api_auth_stored: Optional[dict] = None
@@ -492,6 +506,7 @@ async def submit_run(body: SubmitRunRequest, user_id: int = Depends(verify_bench
         jobs_queued = 0
         episodes_total = 0
         for task_name in body.config.tasks:
+            tc_for_task = _task_config_for(task_name)
             n = body.config.episodes_per_task
             num_chunks = ceil(n / chunk_size)
             for i in range(num_chunks):
@@ -506,7 +521,7 @@ async def submit_run(body: SubmitRunRequest, user_id: int = Depends(verify_bench
                     (
                         run_id,
                         task_name,
-                        task_config,
+                        tc_for_task,
                         i,
                         ep_in_chunk,
                         Json({"benchmark": body.benchmark}),
