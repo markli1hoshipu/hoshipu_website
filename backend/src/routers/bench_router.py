@@ -992,10 +992,10 @@ async def claim_job(
             conn.commit()
             return Response(status_code=204)
 
-        # Pull the run for benchmark, version, endpoint, and api_auth.
+        # Pull the run for benchmark, version, endpoint, api_auth, and config.
         cursor.execute(
             """
-            SELECT benchmark, benchmark_version, api_endpoint_url, api_auth, state
+            SELECT benchmark, benchmark_version, api_endpoint_url, api_auth, state, config
               FROM embodybench_runs WHERE id = %s;
             """,
             (job_row["run_id"],),
@@ -1013,6 +1013,11 @@ async def claim_job(
             _decrypt_api_auth(run_row["api_auth"]) if run_row["api_auth"] else None
         )
 
+        # The worker needs the action_space (and a few other run-level fields)
+        # to set EMBODYBENCH_ACTION_SPACE before launching eval.sh.
+        cfg = run_row["config"] or {}
+        action_space = cfg.get("action_space") or "xvla_ee_rot6d_20"
+
         return {
             "job_id": str(job_row["id"]),
             "run_id": str(job_row["run_id"]),
@@ -1024,6 +1029,7 @@ async def claim_job(
             "n_episodes": job_row["n_episodes"],
             "api_endpoint_url": run_row["api_endpoint_url"],
             "api_auth": api_auth_decrypted,
+            "action_space": action_space,
             "attempt_count": job_row["attempt_count"],
         }
     finally:
