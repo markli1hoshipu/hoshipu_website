@@ -30,7 +30,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const ADMIN_NAV_ITEMS: NavItem[] = [
-  { to: "admin", label: "Workers + users", comingSoon: true },
+  { to: "admin/workers", label: "Workers" },
 ];
 
 const LINK_BASE =

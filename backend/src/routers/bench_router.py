@@ -1135,6 +1135,19 @@ async def job_episodes_batch(
         conn.close()
 
 
+# Failure reasons we auto-retry on (transient / environment-level).
+# Anything else is "permanent" — bad config, protocol violation, user-server bug.
+_RETRIABLE_FAILURE_REASONS = frozenset({
+    "oom",
+    "sim_crash",
+    "gpu_unavailable",
+    "network_error",
+    "timeout",
+    "claim_lost",
+})
+_MAX_JOB_ATTEMPTS = 3
+
+
 @router.patch("/jobs/{job_id}/state")
 async def job_state(
     body: JobStateUpdate,
@@ -1142,7 +1155,14 @@ async def job_state(
     _: bool = Depends(verify_worker_token),
 ):
     """Mark a job as terminal. Also promotes the parent run to its final state
-    when this was the last non-terminal job."""
+    when this was the last non-terminal job.
+
+    Auto-retry: when state='failed' AND failure_reason is in
+    _RETRIABLE_FAILURE_REASONS AND attempt_count < _MAX_JOB_ATTEMPTS,
+    we requeue the job instead of marking it terminal. Another worker (or
+    the same one later) picks it up. attempt_count was already incremented
+    by the claim, so this just resets the job-level state.
+    """
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     try:
@@ -1150,42 +1170,69 @@ async def job_state(
         if row["state"] not in ("claimed", "running"):
             raise HTTPException(status_code=409, detail=f"Job is {row['state']}")
 
-        cursor.execute(
-            """
-            UPDATE embodybench_jobs
-               SET state = %s,
-                   finished_at = NOW(),
-                   failure_reason = %s
-             WHERE id = %s;
-            """,
-            (body.state, body.failure_reason, job_id),
-        )
-
-        # Check if run can be closed: any non-terminal job remaining?
-        run_id = row["run_id"]
-        cursor.execute(
-            """
-            SELECT
-              COUNT(*) FILTER (WHERE state NOT IN ('succeeded','failed','cancelled'))
-                  AS non_terminal,
-              COUNT(*) FILTER (WHERE state = 'failed')   AS failed,
-              COUNT(*) FILTER (WHERE state = 'succeeded') AS succeeded
-            FROM embodybench_jobs WHERE run_id = %s;
-            """,
-            (run_id,),
-        )
-        agg = cursor.fetchone()
-        if agg["non_terminal"] == 0:
-            # Run done. Mark failed if any job failed, else completed.
-            final = "failed" if agg["failed"] > 0 else "completed"
+        # Decide: terminal-failed, or requeue?
+        requeued = False
+        if body.state == "failed":
             cursor.execute(
-                "UPDATE embodybench_runs SET state = %s, finished_at = NOW() "
-                "WHERE id = %s AND state IN ('queued','running');",
-                (final, run_id),
+                "SELECT attempt_count FROM embodybench_jobs WHERE id = %s",
+                (job_id,),
+            )
+            attempt_count = cursor.fetchone()["attempt_count"]
+            reason = (body.failure_reason or "").strip().lower()
+            if reason in _RETRIABLE_FAILURE_REASONS and attempt_count < _MAX_JOB_ATTEMPTS:
+                cursor.execute(
+                    """
+                    UPDATE embodybench_jobs
+                       SET state = 'queued',
+                           worker_id = NULL,
+                           claimed_at = NULL,
+                           started_at = NULL,
+                           progress = NULL,
+                           failure_reason = %s  -- keep last reason for visibility
+                     WHERE id = %s;
+                    """,
+                    (body.failure_reason, job_id),
+                )
+                requeued = True
+
+        if not requeued:
+            cursor.execute(
+                """
+                UPDATE embodybench_jobs
+                   SET state = %s,
+                       finished_at = NOW(),
+                       failure_reason = %s
+                 WHERE id = %s;
+                """,
+                (body.state, body.failure_reason, job_id),
             )
 
+        # Check if run can be closed (only if we didn't requeue).
+        run_id = row["run_id"]
+        if not requeued:
+            cursor.execute(
+                """
+                SELECT
+                  COUNT(*) FILTER (WHERE state NOT IN ('succeeded','failed','cancelled'))
+                      AS non_terminal,
+                  COUNT(*) FILTER (WHERE state = 'failed')   AS failed,
+                  COUNT(*) FILTER (WHERE state = 'succeeded') AS succeeded
+                FROM embodybench_jobs WHERE run_id = %s;
+                """,
+                (run_id,),
+            )
+            agg = cursor.fetchone()
+            if agg["non_terminal"] == 0:
+                # Run done. Mark failed if any job failed, else completed.
+                final = "failed" if agg["failed"] > 0 else "completed"
+                cursor.execute(
+                    "UPDATE embodybench_runs SET state = %s, finished_at = NOW() "
+                    "WHERE id = %s AND state IN ('queued','running');",
+                    (final, run_id),
+                )
+
         conn.commit()
-        return {"ok": True}
+        return {"ok": True, "requeued": requeued}
     finally:
         cursor.close()
         conn.close()
@@ -1197,29 +1244,69 @@ async def job_state(
 
 @router.get("/admin/workers")
 async def admin_list_workers(_: int = Depends(require_admin)):
+    """Worker fleet view with derived status fields.
+
+    derived_status is one of:
+      - 'idle'     — fresh heartbeat, no claimed/running job
+      - 'busy'     — fresh heartbeat, currently working a claimed/running job
+      - 'stressed' — fresh heartbeat, ≥3 failures in last 10 min (worker is
+                     getting OOMs / sim crashes; admin should investigate)
+      - 'offline'  — last_heartbeat older than _RECLAIM_AFTER_SEC (300s)
+    """
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     try:
         cursor.execute(
-            """
-            SELECT id, hostname, region, cluster_kind, capabilities, state,
-                   max_concurrent, registered_at, last_heartbeat,
-                   EXTRACT(EPOCH FROM (NOW() - last_heartbeat)) AS heartbeat_age_sec
-            FROM embodybench_workers
-            ORDER BY registered_at DESC
+            f"""
+            SELECT
+              w.id, w.hostname, w.region, w.cluster_kind, w.capabilities,
+              w.state, w.max_concurrent, w.registered_at, w.last_heartbeat,
+              EXTRACT(EPOCH FROM (NOW() - w.last_heartbeat)) AS heartbeat_age_sec,
+              (
+                SELECT j.id FROM embodybench_jobs j
+                 WHERE j.worker_id = w.id
+                   AND j.state IN ('claimed', 'running')
+                 LIMIT 1
+              ) AS running_job_id,
+              (
+                SELECT j.task_name FROM embodybench_jobs j
+                 WHERE j.worker_id = w.id
+                   AND j.state IN ('claimed', 'running')
+                 LIMIT 1
+              ) AS running_task_name,
+              (
+                SELECT COUNT(*) FROM embodybench_jobs j
+                 WHERE j.worker_id = w.id
+                   AND j.state = 'failed'
+                   AND j.finished_at > NOW() - INTERVAL '10 minutes'
+              ) AS recent_failures_10min
+            FROM embodybench_workers w
+            ORDER BY w.registered_at DESC
             LIMIT 200;
             """,
         )
-        return {
-            "workers": [
-                {
-                    **r,
-                    "id": str(r["id"]),
-                    "heartbeat_age_sec": int(r["heartbeat_age_sec"] or 0),
-                }
-                for r in cursor.fetchall()
-            ]
-        }
+        results = []
+        for r in cursor.fetchall():
+            heartbeat_age = int(r["heartbeat_age_sec"] or 0)
+            recent_failures = int(r["recent_failures_10min"] or 0)
+            running = r["running_job_id"] is not None
+            if heartbeat_age > _RECLAIM_AFTER_SEC:
+                derived = "offline"
+            elif recent_failures >= 3:
+                derived = "stressed"
+            elif running:
+                derived = "busy"
+            else:
+                derived = "idle"
+            results.append({
+                **r,
+                "id": str(r["id"]),
+                "running_job_id": str(r["running_job_id"]) if r["running_job_id"] else None,
+                "heartbeat_age_sec": heartbeat_age,
+                "recent_failures_10min": recent_failures,
+                "derived_status": derived,
+            })
+        return {"workers": results}
     finally:
         cursor.close()
         conn.close()

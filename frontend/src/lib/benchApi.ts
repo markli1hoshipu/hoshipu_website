@@ -312,6 +312,34 @@ export async function cancelRun(runId: string): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Admin (Phase 2.5 — worker fleet view)
+// ---------------------------------------------------------------------------
+
+export interface AdminWorker {
+  id: string;
+  hostname: string;
+  region: string;
+  cluster_kind: "slurm" | "ssh" | null;
+  capabilities: { benchmarks?: string[]; gpu_type?: string | null; [k: string]: unknown };
+  state: "active" | "draining" | "offline";
+  max_concurrent: number;
+  registered_at: string;
+  last_heartbeat: string;
+  heartbeat_age_sec: number;
+  running_job_id: string | null;
+  running_task_name: string | null;
+  recent_failures_10min: number;
+  derived_status: "idle" | "busy" | "stressed" | "offline";
+}
+
+export async function adminListWorkers(): Promise<AdminWorker[]> {
+  const r = await request<{ workers: AdminWorker[] }>("/api/bench/admin/workers", {
+    method: "GET",
+  });
+  return r.workers;
+}
+
+// ---------------------------------------------------------------------------
 // Re-exports for future-phase modules
 // ---------------------------------------------------------------------------
 

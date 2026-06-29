@@ -290,11 +290,35 @@ These aren't part of the HTTP spec; they're rules the worker code enforces to ke
 |---|---|
 | `/init` returns non-200 | Record episode as failed (`fail_reason: "init_failed"`), increment episode_idx, continue to next episode in the chunk. |
 | `/step` times out | Retry 2× with backoff. If still failing, record episode as failed, call `/finalize` (best-effort), continue. |
-| `/step` returns 401 | Hard-fail the whole JOB (PATCH /jobs/{id}/state failed). User's server is misconfigured. |
+| `/step` returns 401 | Hard-fail the whole JOB with `failure_reason="user_endpoint_401"` — NOT retriable, user's auth is wrong and won't fix itself. |
 | `/step` returns 404 (unknown `episode_id`) | Treat as "server restarted". Call `/init` again, log a warning, record current episode as failed, start fresh. |
-| `/step` returns 400 | Hard-fail the job. Our bug, not theirs. |
-| SAPIEN crashes mid-episode | Try/except around `eval(…)` in our policy module. Record episode failed (`fail_reason: "sim_crash"`). The next `reset_model` may or may not recover — if SAPIEN context is corrupted, the whole subprocess exits and the worker marks the job failed. |
-| Worker process killed (Slurm preempt, OOM, etc.) | Heartbeat lapses → backend reclaims the job → re-queues. A different worker picks it up later, attempt_count++. |
+| `/step` returns 400 | Hard-fail the job with `failure_reason="bad_action_shape"` — protocol violation, not retriable. |
+| SAPIEN crashes mid-episode | Try/except around `eval(…)` in our policy module. Mark the JOB failed with `failure_reason="sim_crash"` — RETRIABLE, backend re-queues. |
+| CUDA OOM (subprocess) | Worker catches the subprocess return code, marks the JOB failed with `failure_reason="oom"` — RETRIABLE. |
+| Worker process killed (Slurm preempt, OOM-killer, etc.) | Heartbeat lapses → backend reclaims the job after 5 min → re-queues. attempt_count++. |
+
+## Job-level failure-reason taxonomy
+
+The worker MUST set `failure_reason` to one of these exact strings when reporting `PATCH /jobs/{id}/state state="failed"`. The backend's retry logic regexes against the **retriable** set:
+
+**Retriable** (backend auto re-queues if `attempt_count < 3`):
+- `oom` — CUDA out of memory in sim subprocess
+- `sim_crash` — SAPIEN / eval_policy.py died unexpectedly
+- `gpu_unavailable` — nvidia-smi unreachable / driver hiccup
+- `network_error` — lost connectivity to user's `/step` endpoint
+- `timeout` — user's `/step` timed out 3× with backoff
+- `claim_lost` — heartbeat lapsed while running; reclaim re-queued us
+
+**Permanent** (job stays failed on first occurrence):
+- `user_endpoint_401` — user's server rejects our token
+- `user_endpoint_500` — user's server crashed; their bug
+- `bad_action_shape` — user returned wrong-length action
+- `bad_config` — job config is invalid (shouldn't happen post-validation)
+- `unknown_task` — task name doesn't exist in installed benchmark
+- `internal_error` — our worker code raised an unexpected exception
+
+The retriable set is defined in `backend/src/routers/bench_router.py` as
+`_RETRIABLE_FAILURE_REASONS`. Worker code should keep these strings in sync.
 
 ---
 
