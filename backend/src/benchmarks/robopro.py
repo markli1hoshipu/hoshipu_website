@@ -3,9 +3,13 @@ RoboPRO — bimanual robot manipulation extending RoboTwin with realistic scenes
 and systematic perturbations across language/vision/objects. Aloha-Agilex
 embodiment.
 
-82 tasks across 5 scene categories. Source: /shared_work/RoboPRO/benchmark/
-bench_envs/{office,study,kitchens,kitchenl,the_room}/*.py on the OLDLAB
-cluster as of 2026-06-26.
+80 canonical tasks across 4 scene categories (Office, Study, KitchenL,
+KitchenS), per /shared_work/RoboPRO/TASKS.md line 12 — "Total: 80 tasks
+across 4 domains". Source files: /shared_work/RoboPRO/benchmark/bench_envs/
+{office,study,kitchens,kitchenl}/*.py on the OLDLAB cluster.
+
+(The `bench_envs/the_room/` directory contains 2 *_tr.py files — dev/test
+scaffolding, NOT part of the canonical benchmark; intentionally excluded.)
 
 Important: workers must export ROBOTWIN_BENCH_TASK=bench when invoking
 eval_policy.py for RoboPRO — that flag tells the script to load tasks from
@@ -137,13 +141,6 @@ TASKS: list[dict] = (
             "put_sauce_can_in_basket",
             "put_sauce_can_in_cabinet",
             "switch_can_with_bottle_in_basket",
-        ],
-    )
-    + _tasks_for(
-        "the_room",
-        [
-            "close_microwave_tr",
-            "wave_arm_tr",
         ],
     )
 )
