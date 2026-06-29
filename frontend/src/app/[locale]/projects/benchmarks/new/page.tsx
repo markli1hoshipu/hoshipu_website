@@ -3,7 +3,7 @@
 /**
  * New run wizard — 4 steps:
  *   1. Pick benchmark (RoboTwin / RoboPRO)
- *   2. Configure tasks + episodes + chunk_size; live /setup/validate
+ *   2. Configure tasks + episodes; live /setup/validate
  *   3. Pick eval mode (API enabled, Checkpoint "coming soon")
  *   4. Provide endpoint URL + auth + review + submit
  *
@@ -484,46 +484,26 @@ function Step2Config({
         </div>
       </div>
 
-      {/* Episodes + chunk size */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <label className="block text-xs font-medium text-slate-700">
-            Episodes per task
-          </label>
-          <input
-            type="number"
-            min={1}
-            max={bench.max_episodes_per_task}
-            value={form.episodesPerTask}
-            onChange={(e) =>
-              setForm({ ...form, episodesPerTask: parseInt(e.target.value || "1") })
-            }
-            className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-          />
-          <p className="mt-2 text-xs text-slate-500">
-            Recommended {bench.recommended_episodes}. Hard cap {bench.max_episodes_per_task}.
-          </p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <label className="block text-xs font-medium text-slate-700">
-            Max episodes per chunk (optional)
-          </label>
-          <input
-            type="number"
-            min={1}
-            max={form.episodesPerTask}
-            placeholder={`${form.episodesPerTask} (one job per task)`}
-            value={form.chunkSize ?? ""}
-            onChange={(e) => {
-              const v = e.target.value.trim();
-              setForm({ ...form, chunkSize: v ? parseInt(v) : null });
-            }}
-            className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-          />
-          <p className="mt-2 text-xs text-slate-500">
-            Smaller chunks → more parallel workers, but SAPIEN reboots more often.
-          </p>
-        </div>
+      {/* Episodes per task */}
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <label className="block text-xs font-medium text-slate-700">
+          Episodes per task
+        </label>
+        <input
+          type="number"
+          min={1}
+          max={bench.max_episodes_per_task}
+          value={form.episodesPerTask}
+          onChange={(e) =>
+            setForm({ ...form, episodesPerTask: parseInt(e.target.value || "1") })
+          }
+          className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+        />
+        <p className="mt-2 text-xs text-slate-500">
+          Recommended {bench.recommended_episodes}. Hard cap {bench.max_episodes_per_task}.
+          {" "}One worker job per task — the simulator boots once per task and runs all
+          episodes sequentially in that process for efficiency.
+        </p>
       </div>
 
       {/* Partition preview */}
@@ -531,8 +511,7 @@ function Step2Config({
         <p className="text-sm font-medium text-slate-800">
           {stats.totalEpisodes.toLocaleString()} total episodes across{" "}
           {form.selectedTasks.size} task{form.selectedTasks.size === 1 ? "" : "s"} →{" "}
-          <span className="font-semibold text-indigo-700">{stats.jobsQueued} jobs</span>{" "}
-          (chunk = {stats.chunkSizeEffective})
+          <span className="font-semibold text-indigo-700">{stats.jobsQueued} jobs</span>
         </p>
       </div>
 
@@ -718,7 +697,6 @@ function Step4ReviewSubmit({
           <SummaryRow k="Benchmark" v={`${bench.display_name} v${bench.version}`} />
           <SummaryRow k="Tasks" v={`${form.selectedTasks.size} selected`} />
           <SummaryRow k="Episodes per task" v={String(form.episodesPerTask)} />
-          <SummaryRow k="Chunk size" v={String(stats.chunkSizeEffective)} />
           <SummaryRow k="Total episodes" v={stats.totalEpisodes.toLocaleString()} />
           <SummaryRow k="Jobs queued" v={stats.jobsQueued.toLocaleString()} />
           <SummaryRow k="Eval mode" v="API" />
