@@ -4,16 +4,23 @@ import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { ConditionalLayout } from "@/components/ConditionalLayout";
 import { RouteChangeProvider } from "./providers";
-import { Inter, Manrope } from "next/font/google";
+import { Cormorant_Garamond, DM_Sans, JetBrains_Mono } from "next/font/google";
 import "../globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const cormorant = Cormorant_Garamond({
+  variable: "--font-cormorant",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  style: ["normal", "italic"],
+});
+
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
 });
 
-const manrope = Manrope({
-  variable: "--font-manrope",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains",
   subsets: ["latin"],
 });
 
@@ -51,7 +58,7 @@ export default async function LocaleLayout({
   const messages = await getMessages({ locale });
 
   return (
-    <html lang={locale} suppressHydrationWarning className={`${inter.variable} ${manrope.variable}`}>
+    <html lang={locale} suppressHydrationWarning className={`${cormorant.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}>
       <body className="antialiased font-sans">
         <NextIntlClientProvider messages={messages} locale={locale}>
           <ConditionalLayout>

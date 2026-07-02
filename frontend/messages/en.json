@@ -2,8 +2,7 @@
   "nav": {
     "home": "Home",
     "about": "About",
-    "oc": "OC",
-    "collection": "Collection",
+    "collection": "Blog",
     "projects": "Projects",
     "contact": "Contact"
   },
@@ -82,11 +81,13 @@
   },
   "about": {
     "title": "About Me",
+    "fullProfile": "Full Profile",
     "description": "I'm Zhiyuan Li, a Robotics Engineering student at the University of Toronto with a passion for embodied AI and full-stack development. Currently conducting research at Huawei Noah's Ark Lab while leading frontend development at Prelude CA.",
     "documents": {
       "title": "Documents",
       "resume": "Resume",
       "researchCV": "Research CV",
+      "softwareResume": "Software Resume",
       "academicHistory": "Academic History"
     },
     "tabs": {
@@ -131,23 +132,40 @@
     "publicationsTitle": "Publications",
     "publications": [
       {
+        "title": "Self-CriTeach: LLM Self-Teaching and Self-Critiquing for Improving Robotic Planning via Automated Domain Generation",
+        "venue": "ICML 2026",
+        "arxiv": "arXiv:2509.21543",
+        "link": "https://markli1hoshipu.github.io/Plan_LLM/"
+      },
+      {
+        "title": "H-WM: Robotic Task and Motion Planning Guided by Hierarchical World Model",
+        "venue": "ICLR 2026 Workshop on World Models",
+        "arxiv": "arXiv:2602.11291"
+      },
+      {
         "title": "Distracted Robot: How Visual Clutter Undermines Robotic Manipulation",
-        "venue": "Submitted to ICRA",
+        "venue": "ICRA 2026",
         "arxiv": "arXiv:2511.22780"
       },
       {
         "title": "Improving Robotic Manipulation Robustness via NICE Scene Surgery",
-        "venue": "Submitted to ICRA",
+        "venue": "ICRA 2026",
         "arxiv": "arXiv:2511.22777"
       },
       {
-        "title": "Plan2Evolve: LLM Self-Evolution for Improved Planning Capability",
-        "venue": "Submitted to ICLR",
-        "arxiv": "arXiv:2509.21543"
+        "title": "Data and Evaluation Protocols for Robust Robotic Manipulation",
+        "venue": "RSS 2026 Workshop",
+        "arxiv": "",
+        "link": "https://robopro-bench.github.io/RoboPRO/"
       },
       {
-        "title": "Mem2Ego: Empowering VLMs with Global-to-Ego Memory for Navigation",
-        "venue": "Submitted to ICRA",
+        "title": "Do World Action Models Generalize Better than VLAs? A Robustness Study",
+        "venue": "arXiv",
+        "arxiv": "arXiv:2603.22078"
+      },
+      {
+        "title": "Mem2Ego: Empowering VLMs with Global-to-Ego Memory for Long-Horizon Embodied Navigation",
+        "venue": "arXiv",
         "arxiv": "arXiv:2502.14254"
       }
     ],
@@ -174,7 +192,7 @@
         "description": "2-time AMC Honor Roll (Top 0.1%), 2-time AIME Honor Roll (Top 0.1%)"
       }
     },
-    "workTitle": "Work Experience",
+    "workTitle": "Industry Experience",
     "work": {
       "prelude": {
         "title": "Full-Stack Engineer / Frontend Lead",

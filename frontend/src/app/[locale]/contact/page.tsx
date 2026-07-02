@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Mail, MapPin, Phone, Send, Loader2, CheckCircle } from "lucide-react";
+import { Mail, MapPin, Send, Loader2, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 
@@ -32,15 +32,9 @@ const DiscordIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// Contact info from environment variables
 const contactInfo = {
-  phoneCA: process.env.NEXT_PUBLIC_PHONE_CA || "",
-  phoneCN: process.env.NEXT_PUBLIC_PHONE_CN || "",
-  email: process.env.NEXT_PUBLIC_EMAIL || "",
-  qq: process.env.NEXT_PUBLIC_QQ || "",
-  wechat: process.env.NEXT_PUBLIC_WECHAT || "",
-  discord: process.env.NEXT_PUBLIC_DISCORD || "",
-  location: process.env.NEXT_PUBLIC_LOCATION || "",
+  email: "markzhiyuan.li@mail.utoronto.ca",
+  location: "Toronto, Ontario, Canada",
 };
 
 export default function Contact() {
@@ -202,65 +196,22 @@ export default function Contact() {
               <CardTitle>{t('info.title')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {contactInfo.email && (
-                <div className="flex items-start gap-3">
-                  <Mail className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium">{t('info.email')}</p>
-                    <p className="text-sm text-muted-foreground break-all">{contactInfo.email}</p>
-                  </div>
+              <div className="flex items-start gap-3">
+                <Mail className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">{t('info.email')}</p>
+                  <a href={`mailto:${contactInfo.email}`} className="text-sm text-muted-foreground hover:text-primary break-all">
+                    {contactInfo.email}
+                  </a>
                 </div>
-              )}
-              {(contactInfo.phoneCA || contactInfo.phoneCN) && (
-                <div className="flex items-start gap-3">
-                  <Phone className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium">{t('info.phone')}</p>
-                    {contactInfo.phoneCA && (
-                      <p className="text-sm text-muted-foreground">{contactInfo.phoneCA}</p>
-                    )}
-                    {contactInfo.phoneCN && (
-                      <p className="text-sm text-muted-foreground">{contactInfo.phoneCN}</p>
-                    )}
-                  </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">{t('info.location')}</p>
+                  <p className="text-sm text-muted-foreground">{contactInfo.location}</p>
                 </div>
-              )}
-              {contactInfo.qq && (
-                <div className="flex items-start gap-3">
-                  <QQIcon className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium">QQ</p>
-                    <p className="text-sm text-muted-foreground">{contactInfo.qq}</p>
-                  </div>
-                </div>
-              )}
-              {contactInfo.wechat && (
-                <div className="flex items-start gap-3">
-                  <WeChatIcon className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium">{t('info.wechat')}</p>
-                    <p className="text-sm text-muted-foreground">{contactInfo.wechat}</p>
-                  </div>
-                </div>
-              )}
-              {contactInfo.discord && (
-                <div className="flex items-start gap-3">
-                  <DiscordIcon className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium">Discord</p>
-                    <p className="text-sm text-muted-foreground">{contactInfo.discord}</p>
-                  </div>
-                </div>
-              )}
-              {contactInfo.location && (
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium">{t('info.location')}</p>
-                    <p className="text-sm text-muted-foreground">{contactInfo.location}</p>
-                  </div>
-                </div>
-              )}
+              </div>
             </CardContent>
           </Card>
 
@@ -268,8 +219,10 @@ export default function Contact() {
             <CardHeader>
               <CardTitle>{t('availability.title')}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Badge variant="secondary" className="mb-2">{t('availability.status')}</Badge>
+            <CardContent className="space-y-2">
+              <Badge className="bg-green-500/10 text-green-700 border-green-300 hover:bg-green-500/20">
+                🎓 Seeking Master / PhD (Fall 2027)
+              </Badge>
               <p className="text-sm text-muted-foreground">
                 {t('availability.description')}
               </p>

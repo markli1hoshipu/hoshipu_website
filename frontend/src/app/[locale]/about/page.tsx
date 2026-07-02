@@ -58,22 +58,22 @@ export default function About() {
         <div className="flex flex-wrap gap-3 mb-12">
           <Button asChild variant="outline" size="sm">
             <a
-              href="/documents/Zhiyuan_Li_Resume.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              {t("documents.resume")}
-            </a>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <a
-              href="/documents/Zhiyuan_Li_Research_CV.pdf"
+              href="/documents/cv.pdf"
               target="_blank"
               rel="noopener noreferrer"
             >
               <Download className="h-4 w-4 mr-2" />
               {t("documents.researchCV")}
+            </a>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <a
+              href="/documents/software.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              {t("documents.softwareResume")}
             </a>
           </Button>
           <Button asChild variant="outline" size="sm">

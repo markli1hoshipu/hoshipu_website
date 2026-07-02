@@ -12,8 +12,7 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 
 const navItems = [
   { name: "home", href: "/", icon: Home },
-  { name: "about", href: "/about", icon: User },
-  { name: "oc", href: "/oc", icon: Sparkles },
+  { name: "about", href: "/#about", icon: User },
   { name: "projects", href: "/projects", icon: Briefcase },
   { name: "collection", href: "/collection", icon: BookOpen },
   { name: "contact", href: "/contact", icon: Mail },

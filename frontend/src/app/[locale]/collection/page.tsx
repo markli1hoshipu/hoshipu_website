@@ -25,56 +25,6 @@ interface CollectionItem {
   media: Media[];
 }
 
-const oldBlogPosts = [
-  {
-    title: "Building Scalable React Applications",
-    excerpt: "Learn best practices for structuring large-scale React applications with modern patterns and tools.",
-    date: "2024-03-15",
-    readTime: "8 min read",
-    tags: ["React", "Architecture", "Best Practices"],
-    slug: "building-scalable-react-applications",
-  },
-  {
-    title: "Next.js 15: What's New?",
-    excerpt: "Exploring the latest features and improvements in Next.js 15, including the new App Router and Server Components.",
-    date: "2024-03-10",
-    readTime: "6 min read",
-    tags: ["Next.js", "Web Development"],
-    slug: "nextjs-15-whats-new",
-  },
-  {
-    title: "TypeScript Tips for Better Code",
-    excerpt: "Advanced TypeScript techniques to write more maintainable and type-safe code in your projects.",
-    date: "2024-03-05",
-    readTime: "10 min read",
-    tags: ["TypeScript", "Programming"],
-    slug: "typescript-tips-for-better-code",
-  },
-  {
-    title: "Mastering Tailwind CSS",
-    excerpt: "A comprehensive guide to building beautiful, responsive UIs with Tailwind CSS utility classes.",
-    date: "2024-02-28",
-    readTime: "7 min read",
-    tags: ["CSS", "Tailwind", "UI/UX"],
-    slug: "mastering-tailwind-css",
-  },
-  {
-    title: "API Design Best Practices",
-    excerpt: "Essential principles for designing RESTful APIs that are intuitive, scalable, and maintainable.",
-    date: "2024-02-20",
-    readTime: "9 min read",
-    tags: ["API", "Backend", "Architecture"],
-    slug: "api-design-best-practices",
-  },
-  {
-    title: "Introduction to Framer Motion",
-    excerpt: "Create stunning animations in React applications with Framer Motion's powerful animation library.",
-    date: "2024-02-15",
-    readTime: "5 min read",
-    tags: ["Animation", "React", "UI/UX"],
-    slug: "introduction-to-framer-motion",
-  },
-];
 
 export default function Collection() {
   const t = useTranslations('collection');
