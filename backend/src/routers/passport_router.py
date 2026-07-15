@@ -174,12 +174,13 @@ def _build_command(airline: str, fields: Dict[str, str], pax: int) -> str:
     return f"DOCS {airline.upper()} HK1 {segment}"
 
 
-def _extract_fields(image_bytes: bytes, mime: str) -> Dict[str, str]:
+def _extract_fields(image_bytes: bytes, mime: str, model: Optional[str] = None) -> Dict[str, str]:
     """Call OpenAI vision to read the MRZ fields. Raises on config/parse errors."""
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise HTTPException(500, "护照识别服务未配置（OPENAI_API_KEY 未设置）")
 
+    model = model or VISION_MODEL
     from openai import OpenAI  # imported lazily so the app boots without the package
 
     client = OpenAI(api_key=api_key)
@@ -188,7 +189,7 @@ def _extract_fields(image_bytes: bytes, mime: str) -> Dict[str, str]:
         mime = "image/jpeg"
 
     kwargs = dict(
-        model=VISION_MODEL,
+        model=model,
         response_format={"type": "json_object"},
         messages=[{
             "role": "user",
@@ -199,7 +200,7 @@ def _extract_fields(image_bytes: bytes, mime: str) -> Dict[str, str]:
         }],
     )
     # Reasoning models (gpt-5*, o-series) only accept the default temperature.
-    if not (VISION_MODEL.startswith("gpt-5") or VISION_MODEL.startswith("o")):
+    if not (model.startswith("gpt-5") or model.startswith("o")):
         kwargs["temperature"] = 0
 
     resp = client.chat.completions.create(**kwargs)
@@ -293,11 +294,13 @@ def _ocr_provider() -> str:
     return "openai"
 
 
-def _extract(image_bytes: bytes, mime: str) -> Tuple[Dict[str, str], List[str]]:
-    """Dispatch to the configured OCR provider; return (fields, warnings)."""
-    if _ocr_provider() == "aliyun":
+def _extract(image_bytes: bytes, mime: str, provider: Optional[str] = None,
+             model: Optional[str] = None) -> Tuple[Dict[str, str], List[str]]:
+    """Dispatch to the OCR provider (override wins over env); return (fields, warnings)."""
+    prov = provider or _ocr_provider()
+    if prov == "aliyun":
         return _extract_via_aliyun(image_bytes)
-    fields = _extract_fields(image_bytes, mime)  # OpenAI vision
+    fields = _extract_fields(image_bytes, mime, model=model)  # OpenAI vision
     return fields, _sanity_warnings(fields)
 
 
@@ -307,6 +310,8 @@ async def passport_to_docs(
     request: Request,
     airline: str = Form(...),
     start_pax: int = Form(1),
+    provider: Optional[str] = Form(None),  # benchmarking override, gated by ALLOW_OCR_OVERRIDE
+    model: Optional[str] = Form(None),     # benchmarking override, gated by ALLOW_OCR_OVERRIDE
     files: List[UploadFile] = File(...),
 ):
     """Generate one DOCS command line per uploaded passport image."""
@@ -320,6 +325,12 @@ async def passport_to_docs(
     if start_pax < 1:
         start_pax = 1
 
+    # Per-request provider/model override — only honored when explicitly enabled,
+    # so the public endpoint can't be steered to a pricier model by default.
+    allow_override = os.getenv("ALLOW_OCR_OVERRIDE") == "1"
+    ov_provider = ((provider or "").strip().lower() or None) if allow_override else None
+    ov_model = ((model or "").strip() or None) if allow_override else None
+
     lines: List[DocsLine] = []
     pax = start_pax
     for f in files:
@@ -330,7 +341,7 @@ async def passport_to_docs(
             continue
         try:
             data = _prepare_image(data)  # downscale/recompress before OCR
-            fields, warnings = _extract(data, "image/jpeg")
+            fields, warnings = _extract(data, "image/jpeg", provider=ov_provider, model=ov_model)
             if not (fields.get("passport_number") or "").strip():
                 lines.append(DocsLine(pax=pax, command="", fields=fields,
                                       error="未能识别到有效护照信息，请检查图片"))
