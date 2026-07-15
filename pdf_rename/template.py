@@ -45,6 +45,7 @@ def render_filename_template(template: str, values: Dict[str, str]) -> str:
 
 DEFAULT_TEMPLATES: Dict[str, str] = {
     "行程信息": "{buyer} {name} {origin}-{destination} {amount}.pdf",
+    "pxb": "{buyer} {name} {origin}-{destination} {amount}{insurance_suffix}.pdf",
     "仅发票号": "{invoice_number}.pdf",
 }
 

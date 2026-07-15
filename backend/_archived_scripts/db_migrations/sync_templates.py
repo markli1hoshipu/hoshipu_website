@@ -11,7 +11,8 @@ PASSWORD = "gjp123"
 yaml_templates = {
     "仅发票号": "{invoice_number}.pdf",
     "测试": "{issue_date}-{amount}.pdf",
-    "行程信息": "{buyer} {name} {origin}-{destination} {amount}.pdf"
+    "行程信息": "{buyer} {name} {origin}-{destination} {amount}.pdf",
+    "pxb": "{buyer} {name} {origin}-{destination} {amount}{insurance_suffix}.pdf"
 }
 
 response = requests.get(API_URL)

@@ -19,6 +19,7 @@ def extract_info(text):
     buyer_match = re.search(r"购买方名称：(\S+)", text)
     invoice_match = re.search(r"发票号码[：:]\s*(\d+)", text)
     issue_date_match = re.search(r"填开日期[：:]\s*([0-9]{4}[年/-][0-9]{1,2}[月/-][0-9]{1,2}[日]?)", text)
+    insurance_match = re.search(r"保险费[：:]\s*(\d+\.\d{2})", text)
 
     name = name_match.group(1) if name_match else None
     origin = from_match.group(1) if from_match else None
@@ -27,8 +28,9 @@ def extract_info(text):
     buyer = buyer_match.group(1) if buyer_match else None
     invoice_number = invoice_match.group(1) if invoice_match else None
     issue_date = issue_date_match.group(1) if issue_date_match else None
+    insurance = insurance_match.group(1) if insurance_match else None
 
-    return name, origin, destination, amount, buyer, invoice_number, issue_date
+    return name, origin, destination, amount, buyer, invoice_number, issue_date, insurance
 
 
 def safe_filename(s):
@@ -149,6 +151,8 @@ class TemplateBuilderDialog(QDialog):
             "金额": "amount",
             "填开日期": "issue_date",
             "发票号": "invoice_number",
+            "保险费": "insurance",
+            "保险费后缀": "insurance_suffix",
             "原文件名": "original_filename",
             "自定义文本": "__custom__",
         }
@@ -525,13 +529,22 @@ class MainWindow(QMainWindow):
                             if page_text:
                                 full_text += page_text + "\n"
 
-                    name, origin, destination, amount, buyer, invoice_number, issue_date = extract_info(full_text)
-                    self.log(f"🔍 提取信息: {file_name} -> {name}, {origin}, {destination}, {amount}, {buyer}, 发票号码: {invoice_number}, 填开日期: {issue_date}")
+                    name, origin, destination, amount, buyer, invoice_number, issue_date, insurance = extract_info(full_text)
+                    self.log(f"🔍 提取信息: {file_name} -> {name}, {origin}, {destination}, {amount}, {buyer}, 发票号码: {invoice_number}, 填开日期: {issue_date}, 保险费: {insurance}")
 
                     try:
                         selected_template_name = self.ui.cmbTemplate.currentText()
                     except Exception:
                         selected_template_name = "行程信息"
+
+                    # 保险费后缀：为 0/缺失时留空，否则 "+金额"
+                    insurance_suffix = ""
+                    if insurance not in (None, ""):
+                        try:
+                            if float(insurance) != 0:
+                                insurance_suffix = f"+{insurance}"
+                        except ValueError:
+                            pass
 
                     # 动态字段校验：根据模板决定必需字段
                     values = {
@@ -542,11 +555,14 @@ class MainWindow(QMainWindow):
                         "buyer": buyer,
                         "invoice_number": invoice_number,
                         "issue_date": issue_date,
+                        "insurance": insurance,
+                        "insurance_suffix": insurance_suffix,
                         "original_filename": os.path.splitext(file_name)[0],
                     }
 
                     template_str = self.templates.get(selected_template_name, DEFAULT_TEMPLATES["行程信息"])
-                    required_fields = list(extract_placeholders(template_str))
+                    # insurance_suffix 为派生字段，可以合法为空，不计入必填校验
+                    required_fields = [f for f in extract_placeholders(template_str) if f != "insurance_suffix"]
 
                     if any(values.get(field) in (None, "") for field in required_fields):
                         dest_path = get_unique_path(unsure_folder, file_name)

@@ -11,6 +11,7 @@ export interface ProcessedPDFResult {
     buyer?: string | null;
     invoice_number?: string | null;
     issue_date?: string | null;
+    insurance?: string | null;
   };
   status: 'success' | 'incomplete' | 'error';
   missing_fields?: string[];
@@ -104,6 +105,47 @@ export async function exportGjpInvoices(files: File[]): Promise<Blob> {
   }
 
   return response.blob();
+}
+
+// ---------------------------------------------------------------------------
+// AE 欠条报表 updater — merge QFF daily-IOU files into the AE ledger
+// ---------------------------------------------------------------------------
+export interface AeQffReport {
+  total: number;
+  added: number;
+  aggregated: number;
+  new_debtors: number;
+  duplicates: number;
+  skipped: { iou_no: string; reason: string }[];
+  new_debtor_names: string[];
+}
+
+export interface AeQffMergeResponse {
+  report: AeQffReport;
+  filename: string;
+  file_base64: string;
+}
+
+export async function mergeAeQff(aeFile: File, qffFiles: File[]): Promise<AeQffMergeResponse> {
+  const formData = new FormData();
+  formData.append('ae_file', aeFile);
+  qffFiles.forEach((f) => formData.append('qff_files', f));
+
+  const response = await fetch(`${API_BASE_URL}/api/ae-qff/merge`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let detail = response.statusText;
+    try {
+      const err = await response.json();
+      detail = err.error || err.detail || detail;
+    } catch {}
+    throw new Error(detail);
+  }
+
+  return response.json();
 }
 
 export async function processPDFsAndDownload(files: File[], template: string): Promise<Blob> {

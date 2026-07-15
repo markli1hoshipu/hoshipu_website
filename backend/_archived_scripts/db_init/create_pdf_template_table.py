@@ -23,7 +23,8 @@ cur.execute("""
     INSERT INTO gjp_pdf_template (name, template_string) VALUES
     ('仅发票号', '{invoice_number}.pdf'),
     ('测试', '{issue_date}-{amount}.pdf'),
-    ('行程信息', '{buyer} {name} {origin}-{destination} {amount}.pdf')
+    ('行程信息', '{buyer} {name} {origin}-{destination} {amount}.pdf'),
+    ('pxb', '{buyer} {name} {origin}-{destination} {amount}{insurance_suffix}.pdf')
     ON CONFLICT (name) DO NOTHING;
 """)
 

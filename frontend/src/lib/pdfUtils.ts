@@ -12,6 +12,7 @@ export interface ExtractedInfo {
   buyer: string | null;
   invoiceNumber: string | null;
   issueDate: string | null;
+  insurance: string | null;
   originalFilename: string;
 }
 
@@ -51,6 +52,7 @@ export function extractInfo(text: string, originalFilename: string): ExtractedIn
   const buyerMatch = text.match(/购买方名称：(\S+)/);
   const invoiceMatch = text.match(/发票号码[：:]\s*(\d+)/);
   const issueDateMatch = text.match(/填开日期[：:]\s*([0-9]{4}[年/-][0-9]{1,2}[月/-][0-9]{1,2}[日]?)/);
+  const insuranceMatch = text.match(/保险费[：:]\s*(\d+\.\d{2})/);
 
   return {
     name: nameMatch ? nameMatch[1] : null,
@@ -60,8 +62,16 @@ export function extractInfo(text: string, originalFilename: string): ExtractedIn
     buyer: buyerMatch ? buyerMatch[1] : null,
     invoiceNumber: invoiceMatch ? invoiceMatch[1] : null,
     issueDate: issueDateMatch ? issueDateMatch[1] : null,
+    insurance: insuranceMatch ? insuranceMatch[1] : null,
     originalFilename: originalFilename.replace(/\.pdf$/i, ''),
   };
+}
+
+function insuranceSuffix(insurance: string | null): string {
+  if (!insurance) return '';
+  const value = parseFloat(insurance);
+  if (isNaN(value) || value === 0) return '';
+  return `+${insurance}`;
 }
 
 export function safeFilename(str: string): string {
@@ -75,6 +85,7 @@ export interface Template {
 
 export const DEFAULT_TEMPLATES: Template[] = [
   { name: "行程信息", pattern: "{buyer} {name} {origin}-{destination} {amount}.pdf" },
+  { name: "pxb", pattern: "{buyer} {name} {origin}-{destination} {amount}{insurance_suffix}.pdf" },
   { name: "仅发票号", pattern: "{invoiceNumber}.pdf" },
 ];
 
@@ -89,6 +100,8 @@ export function renderFilename(template: string, values: ExtractedInfo): string 
     '{amount}': values.amount || '',
     '{invoiceNumber}': values.invoiceNumber || '',
     '{issueDate}': values.issueDate || '',
+    '{insurance}': values.insurance || '',
+    '{insurance_suffix}': insuranceSuffix(values.insurance),
     '{originalFilename}': values.originalFilename || '',
   };
   

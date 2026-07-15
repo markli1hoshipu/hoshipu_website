@@ -12,6 +12,7 @@ def extract_info(text: str) -> Dict[str, Optional[str]]:
     buyer_match = re.search(r"购买方名称[：:](\S+)", text)
     invoice_match = re.search(r"发票号码[：:]\s*(\d+)", text)
     issue_date_match = re.search(r"填开日期[：:]\s*([0-9]{4}[年/-][0-9]{1,2}[月/-][0-9]{1,2}[日]?)", text)
+    insurance_match = re.search(r"保险费[：:]\s*(\d+\.\d{2})", text)
 
     return {
         "name": name_match.group(1) if name_match else None,
@@ -21,6 +22,7 @@ def extract_info(text: str) -> Dict[str, Optional[str]]:
         "buyer": buyer_match.group(1) if buyer_match else None,
         "invoice_number": invoice_match.group(1) if invoice_match else None,
         "issue_date": issue_date_match.group(1) if issue_date_match else None,
+        "insurance": insurance_match.group(1) if insurance_match else None,
     }
 
 
@@ -41,6 +43,18 @@ def safe_filename(s: str) -> str:
     return re.sub(r'[\\/:*?"<>|]', "_", s)
 
 
+def _insurance_suffix(insurance: Optional[str]) -> str:
+    """Return '+<amount>' when insurance is a non-zero value, else ''."""
+    if insurance in (None, ""):
+        return ""
+    try:
+        if float(insurance) == 0:
+            return ""
+    except ValueError:
+        return ""
+    return f"+{insurance}"
+
+
 def render_filename_template(template: str, values: Dict[str, Optional[str]], original_filename: str) -> str:
     all_values = {
         "buyer": values.get("buyer") or "",
@@ -50,6 +64,8 @@ def render_filename_template(template: str, values: Dict[str, Optional[str]], or
         "amount": values.get("amount") or "",
         "invoice_number": values.get("invoice_number") or "",
         "issue_date": values.get("issue_date") or "",
+        "insurance": values.get("insurance") or "",
+        "insurance_suffix": _insurance_suffix(values.get("insurance")),
         "original_filename": os.path.splitext(original_filename)[0],
     }
     
@@ -70,10 +86,15 @@ def extract_placeholders(template: str) -> list[str]:
     return matches
 
 
+# Derived placeholders that are legitimately empty (e.g. a zero insurance fee)
+# and therefore must never mark a file as "incomplete".
+DERIVED_OPTIONAL_FIELDS = {"insurance_suffix"}
+
+
 def validate_required_fields(values: Dict[str, Optional[str]], template: str) -> Dict[str, Any]:
-    required_fields = extract_placeholders(template)
+    required_fields = [f for f in extract_placeholders(template) if f not in DERIVED_OPTIONAL_FIELDS]
     missing = []
-    
+
     for field in required_fields:
         value = values.get(field)
         if not value or value == "":
@@ -87,5 +108,6 @@ def validate_required_fields(values: Dict[str, Optional[str]], template: str) ->
 
 DEFAULT_TEMPLATES = {
     "行程信息": "{buyer} {name} {origin}-{destination} {amount}.pdf",
+    "pxb": "{buyer} {name} {origin}-{destination} {amount}{insurance_suffix}.pdf",
     "仅发票号": "{invoice_number}.pdf",
 }

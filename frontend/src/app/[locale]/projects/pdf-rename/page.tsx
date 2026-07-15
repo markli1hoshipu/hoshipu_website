@@ -43,6 +43,7 @@ interface ProcessedFile {
     buyer?: string | null;
     invoice_number?: string | null;
     issue_date?: string | null;
+    insurance?: string | null;
   };
   newName: string;
   status: "success" | "incomplete" | "error";
@@ -426,8 +427,8 @@ export default function PDFRenamePage() {
                   onChange={(e) => setCustomTemplate(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground mt-2">
-                  可用字段: {"{buyer}"}, {"{name}"}, {"{origin}"}, {"{destination}"}, 
-                  {"{amount}"}, {"{invoice_number}"}, {"{issue_date}"}
+                  可用字段: {"{buyer}"}, {"{name}"}, {"{origin}"}, {"{destination}"},
+                  {"{amount}"}, {"{invoice_number}"}, {"{issue_date}"}, {"{insurance}"}, {"{insurance_suffix}"}
                 </p>
               </div>
             </CardContent>
