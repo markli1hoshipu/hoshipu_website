@@ -403,8 +403,8 @@ export default function SelectivePaymentPage() {
   }, [paymentData.amount, pendingQueue]);
 
   // Calculate totals based on pendingQueue
-  // 搜索结果的剩余金额总计（每次搜索后重新计算）
-  const searchRestTotal = useMemo(() => searchResults.reduce((sum, iou) => sum + iou.rest, 0), [searchResults]);
+  // 已勾选欠条的剩余金额总计（随勾选变化）
+  const selectedRestTotal = useMemo(() => selectedIOUs.reduce((sum, iou) => sum + iou.rest, 0), [selectedIOUs]);
   const pendingTotal = useMemo(() => pendingQueue.reduce((sum, iou) => sum + iou.rest, 0), [pendingQueue]);
   const negativeTotal = useMemo(() => pendingQueue.filter((iou) => iou.rest < 0).reduce((sum, iou) => sum + Math.abs(iou.rest), 0), [pendingQueue]);
   const positiveTotal = useMemo(() => pendingQueue.filter((iou) => iou.rest > 0).reduce((sum, iou) => sum + iou.rest, 0), [pendingQueue]);
@@ -979,7 +979,7 @@ export default function SelectivePaymentPage() {
                 选择欠条
                 {searchResults.length > 0 && (
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
-                    {searchResults.length} 条，剩余总额: <span className={searchRestTotal < 0 ? "text-blue-600" : "text-red-600"}>¥{searchRestTotal.toLocaleString()}</span>
+                    已选 {selectedIds.size}/{searchResults.length} 条，剩余总额: <span className={selectedRestTotal < 0 ? "text-blue-600" : "text-red-600"}>¥{selectedRestTotal.toLocaleString()}</span>
                   </span>
                 )}
               </CardTitle>

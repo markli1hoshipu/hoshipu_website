@@ -295,8 +295,6 @@ def generate_output_headtail(user_phone,company,airline,id_type,flighttype,remar
 
     # flight type 是 1 为国内，2为国际
     if company in data_dict['companies']:
-        if flighttype == 1 and data_dict['settings']['companydata'][company]['phone'] != 'None': 
-            tail += f'rmk mp {data_dict['settings']['companydata'][company]['phone']}\n'
         if airline in data_dict['settings']['companydata'][company]['vip_code']:
             tail += f'RMK IC {airline}/{data_dict['settings']['companydata'][company]['vip_code'][airline]}\n'
     tail += f'tktl1800/./dlc159\n'
@@ -340,18 +338,15 @@ def generate_output_name(name,rank,company,airline,id_type,flighttype,data_dict)
   
                     for customer in pcustomers: #customer 为[passport,phone,iphone,iemail,langugae]
                         re = ''
-                        re += f'OSI {airline} CTCM{customer[1]}/P{rank}\n' #这个预留出来方便修改
+                        re += f'SSR CTCM {airline} HK1 {customer[1]}/P{rank}\n' #这个预留出来方便修改
                         re += f'SSR DOCS {airline} HK1 P/{customer[0]}/P{rank}\n'
-                        if flighttype == 1 and customer [1] != 'None': #这个如果没有就确实没有吧
-                            re += f'rmk mp {customer[1]}/P{rank}\n'
                         fre.append(re)
                     return 0, fre
             else:  #有直接身份证的就身份证了
                 for customer in pcustomers: #customer 为[id,phone,engname]
                     re = ''
-                    re += f'OSI {airline} CTCM{customer[1]}/P{rank}\n'
+                    re += f'SSR CTCM {airline} HK1 {customer[1]}/P{rank}\n'
                     re += f'SSR FOID {airline} HK/NI{customer[0]}/P{rank}\n'
-                    re += f'rmk mp {customer[1]}/P{rank}\n'
                     fre.append(re)
                 if len(fre) > 1:
                     return 2,fre
@@ -370,7 +365,7 @@ def generate_output_name(name,rank,company,airline,id_type,flighttype,data_dict)
             for customer in pcustomers: #customer 为[passport,phone,iphone,iemail,langugae]
                 re = ''
                 if airline in data_dict['settings']['usersettings']['domestic_airlines']: #国内航司, 只ctcm国内手机号
-                    re += f'OSI {airline} CTCM{customer[1]}/P{rank}\n'
+                    re += f'SSR CTCM {airline} HK1 {customer[1]}/P{rank}\n'
                 else: #境外航司
                     if customer[2] != 'None': #国际手机,-1为语言
                         re += f'SSR CTCM {airline} HK1 {customer[2]}/{customer[-1]}/P{rank}\n' 
@@ -383,8 +378,6 @@ def generate_output_name(name,rank,company,airline,id_type,flighttype,data_dict)
                             re += f'SSR CTCM {airline} HK1 没有联系方式自行填写手机/{customer[-1]}/P{rank}\n' 
                             re += f'SSR CTCE {airline} HK1 没有联系方式自行填写邮箱/{customer[-1]}/P{rank}\n'
                 re += f'SSR DOCS {airline} HK1 P/{customer[0]}/P{rank}\n'
-                if flighttype == 1 and customer [1] != 'None':
-                    re += f'rmk mp {customer[1]}/P{rank}\n'
                 fre.append(re)
             if len(fre) > 1:
                 return 2,fre
@@ -396,6 +389,8 @@ def generate_output_name(name,rank,company,airline,id_type,flighttype,data_dict)
 
 
 
+# --- rt导入 (RT import) 功能已停用 / disabled (frontend + backend) ---
+r'''
 def format_lines(text):
     # 取消所有换行符
     text = text.replace('\n', '').replace('/t','')
@@ -446,7 +441,7 @@ def rt_to_customers(rt_input,data_dict):
         phone = ''; iphone = ''; iemail = ''; language = ''
 
         if airline in airline in data_dict['settings']['usersettings']['domestic_airlines']:
-            phone = re.compile(rf'OSI {airline} CTCM(.*)/P{rank}',re.M).findall(rt_input)[0]
+            phone = re.compile(rf'SSR CTCM {airline} HK1 (.*)/P{rank}',re.M).findall(rt_input)[0]
             iphone = '86'+phone
         else:
             iphone = re.compile(rf'SSR CTCM {airline} HK1 (.*)/P{rank}',re.M).findall(rt_input)
@@ -505,4 +500,6 @@ def upload_new_data(rt_input,sheetname,data_dict,dataname='client_atg_data.xlsx'
     except Exception as e:
         # 如果操作发生错误，返回错误信息
         return str(e)
+'''
+# --- end rt导入 (RT import) disabled block ---
 

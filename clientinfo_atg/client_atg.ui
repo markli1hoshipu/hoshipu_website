@@ -337,6 +337,7 @@ background-color: rgba(255, 255, 255,150);</string>
          </layout>
         </widget>
        </item>
+       <!-- rt导入 (RT import) 功能已停用 / disabled
        <item>
         <widget class="QGroupBox" name="groupBox_6">
          <property name="sizePolicy">
@@ -385,6 +386,7 @@ background-color: rgba(255, 255, 255,150);</string>
          </layout>
         </widget>
        </item>
+       -->
       </layout>
      </widget>
     </item>

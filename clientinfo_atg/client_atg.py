@@ -19,7 +19,8 @@ class Client_atg:
         self.ui.button_refresh.clicked.connect(self.initialize)
         self.ui.button_update.clicked.connect(self.update)
         self.ui.button_generate.clicked.connect(self.generate)
-        self.ui.button_rtimport.clicked.connect(self.importrt)
+        # rt导入 (RT import) 功能已停用 / disabled
+        # self.ui.button_rtimport.clicked.connect(self.importrt)
 
         self.ui.radio_id.toggled.connect(self.di_follow)
         self.ui.radio_pass.toggled.connect(self.di_follow)
@@ -52,7 +53,8 @@ class Client_atg:
         self.ui.plaintext_maininput.setPlaceholderText('sd1a1\n航司代码\n第一个名字\n第二个名字\n...')
         self.ui.plaintext_infooutput.clear()
         self.ui.plaintext_infooutput.setPlaceholderText('此处显示生成信息\n')
-        self.ui.plaintext_rtinput.setPlaceholderText('此处输入rt返回的信息\n可以录入信息\n暂不支持创建新公司\n现在还不可以使用！')
+        # rt导入 (RT import) 功能已停用 / disabled
+        # self.ui.plaintext_rtinput.setPlaceholderText('此处输入rt返回的信息\n可以录入信息\n暂不支持创建新公司\n现在还不可以使用！')
         self.display = '欢迎使用*hoshipu开发的客户订票信息自动生成程序v2.0.0\t'
         self.display += '若长时间无响应请联系wx: mark794552832\n'
         self.display += '载入信息中请稍等...\n'
@@ -214,28 +216,29 @@ class Client_atg:
         self.display += '生成完毕！\n'
         self.update_display()
         
-    def importrt(self):
-        rt_input = self.ui.plaintext_rtinput.toPlainText()
-        sheetname = '散客信息'
-        options = ['散客信息'] + self.data['companies']
-        message_box = QMessageBox()
-        message_box.setWindowTitle(f"选择导入")
-        message_box.setText(f"请选择一个库导入：")
-        
-        ct = 1
-        for option in options:
-            message_box.addButton(str(ct)+option, QMessageBox.AcceptRole)
-            ct += 1
-        choice = message_box.exec_()
-        if choice != QMessageBox.Cancel:
-            sheetname = options[choice] #不设detials不需要-1
-        remessage = cah.upload_new_data(rt_input,sheetname,self.data)
-        if remessage == True:
-            self.initialize()
-            self.display += '用户信息上传已完成!\n'
-            self.update_display()
-        else:
-            QMessageBox.critical(self.ui, "错误", f'无法导入！\n确保excel文件已经关闭或调整输入！\n{remessage}')
+    # rt导入 (RT import) 功能已停用 / disabled
+    # def importrt(self):
+    #     rt_input = self.ui.plaintext_rtinput.toPlainText()
+    #     sheetname = '散客信息'
+    #     options = ['散客信息'] + self.data['companies']
+    #     message_box = QMessageBox()
+    #     message_box.setWindowTitle(f"选择导入")
+    #     message_box.setText(f"请选择一个库导入：")
+    #
+    #     ct = 1
+    #     for option in options:
+    #         message_box.addButton(str(ct)+option, QMessageBox.AcceptRole)
+    #         ct += 1
+    #     choice = message_box.exec_()
+    #     if choice != QMessageBox.Cancel:
+    #         sheetname = options[choice] #不设detials不需要-1
+    #     remessage = cah.upload_new_data(rt_input,sheetname,self.data)
+    #     if remessage == True:
+    #         self.initialize()
+    #         self.display += '用户信息上传已完成!\n'
+    #         self.update_display()
+    #     else:
+    #         QMessageBox.critical(self.ui, "错误", f'无法导入！\n确保excel文件已经关闭或调整输入！\n{remessage}')
 
 if __name__ == "__main__":
 
