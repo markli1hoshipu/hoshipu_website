@@ -39,3 +39,11 @@ __pycache__/
 # Backup files
 *_backup_*.txt
 *_BACKUP*.pkl
+
+# Local working data (never publish — contains personal/financial info:
+# bank exports, passport scans, IOU ledgers, invoice PDFs)
+cibc.csv
+docs/passport_ocr/
+docs/*.pdf
+docs/*.xls
+docs/*.xlsx
