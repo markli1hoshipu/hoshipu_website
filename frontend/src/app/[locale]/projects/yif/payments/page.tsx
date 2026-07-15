@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { DollarSign, Search, Upload, FileText, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useYIFAuth } from "@/hooks/useYIFAuth";
 import { useDefaultExpandDetails } from "@/components/yif/DetailViewSettings";
+import { useIOUDetailCache, IOUDetailPanel } from "@/components/yif/IOUDetail";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
 
@@ -39,32 +40,26 @@ interface IOU {
 interface CreatedPayment {
   id: number;
   ious_id: string;
+  iou_db_id: number; // 关联欠条数据库ID，用于展开明细
   amount: number;
   new_rest: number;
 }
 
-// 子欠条标签：优先票号，再航段、客户，用于自动填充备注
-const itemLabel = (item: IOUItem): string =>
-  [item.ticket_number && `票${item.ticket_number}`, item.flight, item.client]
-    .filter(Boolean)
-    .join("/");
+// 生成备注：{票号}: {金额}
+// 票号取已勾选的子欠条；若未勾选，则取该欠条全部子欠条的票号（去重、以、连接）
+const buildRemark = (amountStr: string, targetIOU: IOU | undefined, selectedIdxs: Set<number>): string => {
+  if (!targetIOU) return "";
+  const idxs = selectedIdxs.size > 0
+    ? [...selectedIdxs].sort((a, b) => a - b)
+    : targetIOU.items.map((_, i) => i);
+  const tickets = [...new Set(idxs.map((i) => targetIOU.items[i]?.ticket_number).filter(Boolean))];
+  const ticketStr = tickets.join("、");
 
-// 生成备注：针对 {欠条号} 的单笔付款：¥{金额}（子欠条：...）
-const buildRemark = (iouId: string, amountStr: string, targetIOU: IOU | undefined, selectedIdxs: Set<number>): string => {
-  if (!iouId) return "";
-  let r = `针对 ${iouId} 的单笔付款`;
   const amount = parseFloat(amountStr);
-  if (amountStr !== "" && !isNaN(amount)) {
-    r += `：¥${amount.toLocaleString()}`;
-  }
-  if (targetIOU && selectedIdxs.size > 0) {
-    const labels = [...selectedIdxs]
-      .sort((a, b) => a - b)
-      .map((idx) => itemLabel(targetIOU.items[idx]))
-      .filter(Boolean);
-    if (labels.length) r += `（子欠条：${labels.join("、")}）`;
-  }
-  return r;
+  const amountText = amountStr !== "" && !isNaN(amount) ? amount.toLocaleString() : "";
+
+  if (ticketStr && amountText) return `${ticketStr}: ${amountText}`;
+  return ticketStr || amountText;
 };
 
 export default function PaymentEntryPage() {
@@ -98,15 +93,25 @@ export default function PaymentEntryPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [createdPayments, setCreatedPayments] = useState<CreatedPayment[]>([]);
+  // 最近付款记录的明细展开
+  const [expandedPayments, setExpandedPayments] = useState<Set<number>>(new Set());
+  const { cache: iouCache, errors: iouErrors, ensureLoaded } = useIOUDetailCache(getToken);
 
   const targetIOU = searchResults.find((iou) => iou.id.toString() === paymentData.iouDbId);
+
+  // 展开的最近付款 → 确保对应欠条明细已加载（懒加载）
+  useEffect(() => {
+    createdPayments.forEach((p) => {
+      if (expandedPayments.has(p.id)) ensureLoaded(p.iou_db_id);
+    });
+  }, [expandedPayments, createdPayments, ensureLoaded]);
 
   // 自动生成备注：当目标欠条 / 金额 / 子欠条选择变化时（且处于自动模式）
   useEffect(() => {
     if (!remarkAuto || !paymentData.iouDbId) return;
-    const generated = buildRemark(paymentData.iouId, paymentData.amount, targetIOU, selectedItemIdxs);
+    const generated = buildRemark(paymentData.amount, targetIOU, selectedItemIdxs);
     setPaymentData((prev) => (prev.remark === generated ? prev : { ...prev, remark: generated }));
-  }, [remarkAuto, paymentData.iouDbId, paymentData.iouId, paymentData.amount, selectedItemIdxs, targetIOU]);
+  }, [remarkAuto, paymentData.iouDbId, paymentData.amount, selectedItemIdxs, targetIOU]);
 
   if (authLoading) {
     return (
@@ -133,6 +138,15 @@ export default function PaymentEntryPage() {
 
   const handleSearchChange = (field: string, value: string) => {
     setSearchParams((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const toggleExpandPayment = (paymentId: number) => {
+    setExpandedPayments((prev) => {
+      const next = new Set(prev);
+      if (next.has(paymentId)) next.delete(paymentId);
+      else next.add(paymentId);
+      return next;
+    });
   };
 
   const handleSearch = async () => {
@@ -253,7 +267,7 @@ export default function PaymentEntryPage() {
 
       if (response.ok && data.success) {
         setMessage({ type: "success", text: `付款记录成功: ¥${paymentData.amount} 到 ${paymentData.iouId}` });
-        setCreatedPayments((prev) => [data.payment, ...prev]);
+        setCreatedPayments((prev) => [{ ...data.payment, iou_db_id: parseInt(paymentData.iouDbId) }, ...prev]);
         setPaymentData((prev) => ({
           ...prev,
           iouDbId: "",
@@ -627,12 +641,29 @@ export default function PaymentEntryPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {createdPayments.map((p) => (
-                  <div key={p.id} className="flex justify-between text-sm p-2 bg-green-50 rounded">
-                    <span>{p.ious_id}</span>
-                    <span className="text-green-600">¥{p.amount.toLocaleString()}</span>
-                  </div>
-                ))}
+                {createdPayments.map((p) => {
+                  const isExpanded = expandedPayments.has(p.id);
+                  return (
+                    <div key={p.id} className="rounded border border-green-200 bg-green-50/60">
+                      <div className="flex items-center gap-2 text-sm p-2">
+                        <button
+                          onClick={() => toggleExpandPayment(p.id)}
+                          className="p-1 hover:bg-muted rounded"
+                          title={isExpanded ? "收起明细" : "展开明细"}
+                        >
+                          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </button>
+                        <span className="font-mono flex-1">{p.ious_id}</span>
+                        <span className="text-green-600">¥{p.amount.toLocaleString()}</span>
+                      </div>
+                      {isExpanded && (
+                        <div className="border-t border-green-200 px-3 py-3 bg-white">
+                          <IOUDetailPanel iouDbId={p.iou_db_id} cache={iouCache} errors={iouErrors} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

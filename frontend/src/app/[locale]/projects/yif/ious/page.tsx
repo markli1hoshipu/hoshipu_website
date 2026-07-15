@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Upload, FileSpreadsheet, Plus, CheckCircle, AlertCircle } from "lucide-react";
+import { Upload, FileSpreadsheet, Plus, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useYIFAuth } from "@/hooks/useYIFAuth";
+import { useIOUDetailCache, IOUDetailPanel } from "@/components/yif/IOUDetail";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
 
@@ -36,6 +37,13 @@ export default function IOUEntryPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [createdIOUs, setCreatedIOUs] = useState<CreatedIOU[]>([]);
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const { cache: iouCache, errors: iouErrors, ensureLoaded } = useIOUDetailCache(getToken);
+
+  // 展开的行 → 确保其欠条明细已加载（懒加载）
+  useEffect(() => {
+    expandedRows.forEach((id) => ensureLoaded(id));
+  }, [expandedRows, ensureLoaded]);
 
   if (authLoading) {
     return (
@@ -52,6 +60,15 @@ export default function IOUEntryPage() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const toggleExpand = (id: number) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -390,23 +407,44 @@ export default function IOUEntryPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
+                      <th className="text-center py-3 px-2 w-8">明细</th>
                       <th className="text-left py-3 px-2">欠条ID</th>
                       <th className="text-right py-3 px-2">金额</th>
                       <th className="text-center py-3 px-2">明细数</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {createdIOUs.map((iou) => (
-                      <tr key={iou.id} className="border-b hover:bg-muted/30">
-                        <td className="py-2 px-2 font-mono">{iou.ious_id}</td>
-                        <td className="py-2 px-2 text-right">
-                          <span className={iou.total_amount < 0 ? "text-red-600" : ""}>
-                            ¥{iou.total_amount.toLocaleString()}
-                          </span>
-                        </td>
-                        <td className="py-2 px-2 text-center">{iou.items_count}</td>
-                      </tr>
-                    ))}
+                    {createdIOUs.map((iou) => {
+                      const isExpanded = expandedRows.has(iou.id);
+                      return (
+                        <React.Fragment key={iou.id}>
+                          <tr className="border-b hover:bg-muted/30">
+                            <td className="py-2 px-2 text-center">
+                              <button
+                                onClick={() => toggleExpand(iou.id)}
+                                className="p-1 hover:bg-muted rounded"
+                              >
+                                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              </button>
+                            </td>
+                            <td className="py-2 px-2 font-mono">{iou.ious_id}</td>
+                            <td className="py-2 px-2 text-right">
+                              <span className={iou.total_amount < 0 ? "text-red-600" : ""}>
+                                ¥{iou.total_amount.toLocaleString()}
+                              </span>
+                            </td>
+                            <td className="py-2 px-2 text-center">{iou.items_count}</td>
+                          </tr>
+                          {isExpanded && (
+                            <tr className="bg-muted/20">
+                              <td colSpan={4} className="p-4">
+                                <IOUDetailPanel iouDbId={iou.id} cache={iouCache} errors={iouErrors} />
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
