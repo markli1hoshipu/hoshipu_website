@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import {
   Upload,
   FileText,
@@ -14,6 +16,8 @@ import {
   CheckCircle,
   Loader2,
   FileSpreadsheet,
+  GitCompare,
+  Copy,
 } from "lucide-react";
 import { saveAs } from "file-saver";
 import {
@@ -27,6 +31,10 @@ export default function GjpInvoiceExportPage() {
   const [processing, setProcessing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [results, setResults] = useState<GjpInvoiceResult[]>([]);
+
+  // 发票号信息比对
+  const [leftText, setLeftText] = useState("");
+  const [rightText, setRightText] = useState("");
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploaded = Array.from(e.target.files || []);
@@ -74,6 +82,33 @@ export default function GjpInvoiceExportPage() {
   const successCount = results.filter((r) => r.status === "success").length;
   const incompleteCount = results.filter((r) => r.status === "incomplete").length;
   const errorCount = results.filter((r) => r.status === "error").length;
+
+  // Split on any whitespace or dash, drop empties, dedupe into a set.
+  const toSet = (text: string): Set<string> =>
+    new Set(text.split(/[\s\-]+/).map((t) => t.trim()).filter(Boolean));
+
+  const comparison = useMemo(() => {
+    const left = toSet(leftText);
+    const right = toSet(rightText);
+    const onlyLeft: string[] = [];
+    const both: string[] = [];
+    const onlyRight: string[] = [];
+    left.forEach((v) => (right.has(v) ? both : onlyLeft).push(v));
+    right.forEach((v) => {
+      if (!left.has(v)) onlyRight.push(v);
+    });
+    return {
+      left,
+      right,
+      onlyLeft: onlyLeft.sort(),
+      both: both.sort(),
+      onlyRight: onlyRight.sort(),
+    };
+  }, [leftText, rightText]);
+
+  const copyList = (items: string[]) => {
+    navigator.clipboard.writeText(items.join("\n")).catch(() => {});
+  };
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -292,6 +327,93 @@ export default function GjpInvoiceExportPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* 发票号信息比对 */}
+      {/* ------------------------------------------------------------------ */}
+      <Separator className="my-12" />
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+        className="mb-8"
+      >
+        <div className="flex items-center gap-2 mb-2">
+          <GitCompare className="h-6 w-6 text-primary" />
+          <h2 className="text-2xl md:text-3xl font-bold">发票号信息比对</h2>
+        </div>
+        <p className="text-muted-foreground max-w-3xl">
+          粘贴两组发票号 / 客票号（可用空格、换行或 <span className="font-mono">-</span> 分隔）。
+          系统会各自去重、去空后比对，列出「仅左侧」「两侧都有」「仅右侧」的号码。
+        </p>
+      </motion.div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">
+            左侧数据 <span className="text-muted-foreground font-normal">（{comparison.left.size} 个唯一）</span>
+          </label>
+          <Textarea
+            value={leftText}
+            onChange={(e) => setLeftText(e.target.value)}
+            placeholder={"26378324211041825165\n26448784110005209647\n..."}
+            className="min-h-[180px] font-mono text-xs"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">
+            右侧数据 <span className="text-muted-foreground font-normal">（{comparison.right.size} 个唯一）</span>
+          </label>
+          <Textarea
+            value={rightText}
+            onChange={(e) => setRightText(e.target.value)}
+            placeholder={"999-4879583863-324-4879583868-..."}
+            className="min-h-[180px] font-mono text-xs"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[
+          { title: "仅左侧", items: comparison.onlyLeft, color: "text-amber-600" },
+          { title: "两侧都有", items: comparison.both, color: "text-green-600" },
+          { title: "仅右侧", items: comparison.onlyRight, color: "text-blue-600" },
+        ].map((col) => (
+          <Card key={col.title}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className={`text-base ${col.color}`}>
+                  {col.title} ({col.items.length})
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={col.items.length === 0}
+                  onClick={() => copyList(col.items)}
+                  title="复制"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {col.items.length === 0 ? (
+                <p className="text-sm text-muted-foreground">—</p>
+              ) : (
+                <div className="max-h-72 overflow-y-auto space-y-1 font-mono text-xs">
+                  {col.items.map((v) => (
+                    <div key={v} className="truncate" title={v}>
+                      {v}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );
