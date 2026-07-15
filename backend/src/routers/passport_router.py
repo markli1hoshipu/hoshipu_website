@@ -1,10 +1,9 @@
 """
 Passport → GDS DOCS command generator.
 
-The OCR provider is selectable via OCR_PROVIDER ("aliyun" | "openai";
-auto-detects Aliyun when its keys are set). Aliyun 国际护照识别 (RecognizePassport)
-returns the MRZ, which we parse deterministically; OpenAI vision is the fallback.
-Python then formats an SR DOCS command line per passport, e.g.:
+The OCR provider defaults to OpenAI (gpt-4.1-mini); set OCR_PROVIDER=aliyun to use
+Aliyun 国际护照识别 (RecognizePassport) instead, which returns the MRZ that we parse
+deterministically. Python then formats an SR DOCS command line per passport, e.g.:
 
     DOCS KE HK1 P/IDN/E6090613/IDN/30NOV91/M/12FEB34/PONTO/GOOD AGUN/P1
 
@@ -285,13 +284,9 @@ def _extract_via_aliyun(image_bytes: bytes) -> Tuple[Dict[str, str], List[str]]:
 
 
 def _ocr_provider() -> str:
-    """OCR_PROVIDER env wins; else auto-detect (Aliyun if its keys are set, else OpenAI)."""
-    p = os.getenv("OCR_PROVIDER", "").strip().lower()
-    if p:
-        return p
-    if os.getenv("ALIBABA_CLOUD_ACCESS_KEY_ID") and os.getenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET"):
-        return "aliyun"
-    return "openai"
+    """Default OpenAI (gpt-4.1-mini). Set OCR_PROVIDER=aliyun to use Aliyun instead.
+    (Presence of Aliyun keys alone does NOT switch the default.)"""
+    return os.getenv("OCR_PROVIDER", "").strip().lower() or "openai"
 
 
 def _extract(image_bytes: bytes, mime: str, provider: Optional[str] = None,
