@@ -31,9 +31,10 @@ router = APIRouter(prefix="/api/passport", tags=["passport"])
 MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 
 # Which OpenAI vision model to use (override via env without a code change).
-# gpt-5-mini reads passport MRZ accurately in testing; gpt-4o-mini was not
-# reliable enough (dropped digits, confused issue/expiry dates).
-VISION_MODEL = os.getenv("OPENAI_VISION_MODEL", "gpt-5-mini")
+# gpt-4.1-mini: accurate on passport MRZ, cheap, and ~3x faster than gpt-5-mini
+# (a reasoning model). gpt-4o-mini is NOT reliable (drops digits, misreads MRZ).
+# For max speed use gpt-4.1 or gpt-4o (~4s).
+VISION_MODEL = os.getenv("OPENAI_VISION_MODEL", "gpt-4.1-mini")
 
 EXTRACT_PROMPT = """Read this passport's photo page and extract the traveler's document details \
 FROM THE MACHINE READABLE ZONE (MRZ) — the two lines of monospaced characters (with '<' fillers) at \
