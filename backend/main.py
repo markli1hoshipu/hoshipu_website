@@ -89,12 +89,15 @@ async def _start_embodybench_reclaim_loop():
 
 @app.on_event("shutdown")
 async def _stop_embodybench_reclaim_loop():
+    import asyncio
     task = getattr(app.state, "embodybench_reclaim_task", None)
     if task and not task.done():
         task.cancel()
         try:
             await task
-        except Exception:
+        # CancelledError 是 BaseException 的子类，不会被 `except Exception` 捕获，
+        # 必须显式捕获，否则关停时会报 "Application shutdown failed"。
+        except (asyncio.CancelledError, Exception):
             pass
 
 
