@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plane, Upload, Copy, CheckCircle, AlertCircle, FileText, Loader2 } from "lucide-react";
+import { Plane, Upload, Copy, CheckCircle, AlertCircle, ImagePlus, X, Loader2 } from "lucide-react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
 
@@ -30,20 +30,70 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 export default function PassportDocsPage() {
-  const [airline, setAirline] = useState("");
+  const [airline, setAirline] = useState("CZ");
   const [startPax, setStartPax] = useState(1);
   const [files, setFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lines, setLines] = useState<DocsLine[]>([]);
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFiles(Array.from(e.target.files || []));
+  // Object-URL thumbnails; revoked when the file list changes or on unmount.
+  const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
+  useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
+
+  const addFiles = (incoming: File[]) => {
+    const images = incoming.filter((f) => f.type.startsWith("image/"));
+    if (images.length === 0) return;
+    setFiles((prev) => {
+      const seen = new Set(prev.map((f) => `${f.name}:${f.size}:${f.lastModified}`));
+      const merged = [...prev];
+      for (const f of images) {
+        const key = `${f.name}:${f.size}:${f.lastModified}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          merged.push(f);
+        }
+      }
+      return merged;
+    });
     setLines([]);
     setMessage(null);
   };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    addFiles(Array.from(e.target.files || []));
+    e.target.value = ""; // allow re-selecting the same file
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Paste images anywhere on the page (Ctrl/Cmd+V).
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      const pasted: File[] = [];
+      for (const it of Array.from(items)) {
+        if (it.kind === "file") {
+          const f = it.getAsFile();
+          if (f && f.type.startsWith("image/")) pasted.push(f);
+        }
+      }
+      if (pasted.length) {
+        e.preventDefault();
+        addFiles(pasted);
+      }
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+    // addFiles uses only functional state updaters, so the first-render closure is safe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const copy = (text: string, key: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -127,11 +177,11 @@ export default function PassportDocsPage() {
             <CardDescription>填写航空公司代码，上传一张或多张护照照片</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">航空公司代码 *</label>
                 <Input
-                  placeholder="如: KE"
+                  placeholder="如: CZ"
                   value={airline}
                   onChange={(e) => setAirline(e.target.value.toUpperCase())}
                   maxLength={3}
@@ -146,26 +196,59 @@ export default function PassportDocsPage() {
                   onChange={(e) => setStartPax(Math.max(1, parseInt(e.target.value) || 1))}
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">护照照片 *</label>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">护照照片 *</label>
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  addFiles(Array.from(e.dataTransfer.files || []));
+                }}
+                className={`cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
+                  isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"
+                }`}
+              >
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   multiple
                   onChange={handleFileChange}
-                  className="block w-full text-sm text-muted-foreground file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-sm file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                  className="hidden"
                 />
+                <ImagePlus className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-sm">点击上传，或拖拽图片到此，或直接粘贴（Ctrl/⌘+V）</p>
+                <p className="text-xs text-muted-foreground mt-1">支持一次多张护照照片</p>
               </div>
             </div>
 
             {files.length > 0 && (
-              <div className="text-sm text-muted-foreground flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-3">
                 {files.map((f, i) => (
-                  <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded">
-                    <FileText className="h-3 w-3" />
-                    {f.name}
-                  </span>
+                  <div key={`${f.name}-${f.size}-${i}`} className="relative w-24">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={previews[i]} alt={f.name} className="h-24 w-24 object-cover rounded-md border" />
+                    <button
+                      type="button"
+                      onClick={() => removeFile(i)}
+                      className="absolute -top-2 -right-2 bg-background border rounded-full p-0.5 shadow hover:bg-muted"
+                      title="移除"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                    <div className="text-[10px] text-muted-foreground truncate mt-1">{f.name}</div>
+                  </div>
                 ))}
               </div>
             )}
