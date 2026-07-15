@@ -83,9 +83,15 @@ export default function GjpInvoiceExportPage() {
   const incompleteCount = results.filter((r) => r.status === "incomplete").length;
   const errorCount = results.filter((r) => r.status === "error").length;
 
-  // Split on any whitespace or dash, drop empties, dedupe into a set.
+  // One entry per line/whitespace-separated chunk; strip dashes within an entry
+  // (e.g. 123-456 -> 123456), drop empties, dedupe into a set.
   const toSet = (text: string): Set<string> =>
-    new Set(text.split(/[\s\-]+/).map((t) => t.trim()).filter(Boolean));
+    new Set(
+      text
+        .split(/\s+/)
+        .map((t) => t.replace(/-/g, "").trim())
+        .filter(Boolean)
+    );
 
   const comparison = useMemo(() => {
     const left = toSet(leftText);
@@ -346,8 +352,9 @@ export default function GjpInvoiceExportPage() {
           <h2 className="text-2xl md:text-3xl font-bold">发票号信息比对</h2>
         </div>
         <p className="text-muted-foreground max-w-3xl">
-          粘贴两组发票号 / 客票号（可用空格、换行或 <span className="font-mono">-</span> 分隔）。
-          系统会各自去重、去空后比对，列出「仅左侧」「两侧都有」「仅右侧」的号码。
+          粘贴两组发票号 / 客票号（每行一个，用空格或换行分隔）。号码中的
+          <span className="font-mono"> - </span>会被自动去除（如 <span className="font-mono">123-456 → 123456</span>）。
+          系统各自去重、去空后比对，列出「仅左侧」「两侧都有」「仅右侧」的号码。
         </p>
       </motion.div>
 
@@ -370,7 +377,7 @@ export default function GjpInvoiceExportPage() {
           <Textarea
             value={rightText}
             onChange={(e) => setRightText(e.target.value)}
-            placeholder={"999-4879583863-324-4879583868-..."}
+            placeholder={"999-4879583863\n999-4879583868\n..."}
             className="min-h-[180px] font-mono text-xs"
           />
         </div>
