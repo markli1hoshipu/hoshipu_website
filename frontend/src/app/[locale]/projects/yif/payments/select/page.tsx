@@ -90,6 +90,102 @@ const formatDateTime = (dateStr: string) => {
   });
 };
 
+// 可拖拽的待清理欠条项组件
+// 定义在页面组件之外，保证组件标识稳定 —— 否则每次父组件重渲染都会重新创建该组件，
+// 导致金额输入框被卸载重建、失去焦点（无法连续输入）。
+function SortablePendingItem({
+  iou,
+  index,
+  allocation,
+  onRemove,
+  onManualChange,
+}: {
+  iou: PendingIOU;
+  index: number;
+  allocation: number;
+  onRemove: (id: number) => void;
+  onManualChange: (id: number, value: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: iou.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 'auto',
+  };
+
+  const isNegative = iou.rest < 0;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-2 p-3 rounded-lg border ${
+        isNegative ? "bg-blue-50 border-blue-200" : "bg-white border-gray-200"
+      } ${isDragging ? "shadow-lg" : ""}`}
+    >
+      {/* 拖拽手柄 */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none"
+      >
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
+
+      {/* 序号 */}
+      <span className="text-xs text-muted-foreground w-6">{index + 1}.</span>
+
+      {/* 欠条信息 */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-mono text-sm">{iou.ious_id}</span>
+          <span className="text-sm text-muted-foreground">{iou.items[0]?.client || '-'}</span>
+          <span className={`text-sm font-medium ${isNegative ? "text-blue-600" : "text-red-600"}`}>
+            ¥{iou.rest.toLocaleString()}
+          </span>
+        </div>
+      </div>
+
+      {/* 手动分配金额 */}
+      {!isNegative && (
+        <div className="flex items-center gap-1">
+          <Input
+            type="number"
+            placeholder="自动"
+            className="w-20 h-8 text-sm"
+            value={iou.manualAmount ?? ''}
+            onChange={(e) => onManualChange(iou.id, e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
+      {/* 预览分配 */}
+      <div className={`w-24 text-right text-sm font-medium ${
+        allocation !== 0 ? (allocation < 0 ? "text-blue-600" : "text-green-600") : "text-muted-foreground"
+      }`}>
+        {allocation !== 0 ? (
+          <>{allocation < 0 ? '−' : '→ '}¥{Math.abs(allocation).toLocaleString()}</>
+        ) : (
+          <span className="text-xs">不付款</span>
+        )}
+      </div>
+
+      {/* 移除按钮 */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-8 w-8 p-0"
+        onClick={() => onRemove(iou.id)}
+      >
+        <X className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
 export default function SelectivePaymentPage() {
   const { user, loading: authLoading, getToken } = useYIFAuth();
   const [paymentData, setPaymentData] = useState({
@@ -180,19 +276,21 @@ export default function SelectivePaymentPage() {
     return sortedIOUs.filter((iou) => selectedIds.has(iou.id));
   }, [sortedIOUs, selectedIds]);
 
-  // Calculate allocation preview based on pendingQueue
+  // Calculate allocation preview based on pendingQueue.
+  // 规则（所见即所得，提交时原样入库）：
+  //  - 负数欠条：优先清算，支付其余额（负数）至 0，自动处理。
+  //  - 正数欠条填了金额：精确记录该金额，允许任意值（0 / 负数 / 超额），不做裁剪。
+  //  - 正数欠条留空：按队列顺序自动分摊“剩余额”，不超过本票余额、不为负。
   const allocationPreview = useMemo((): AllocationPreview[] => {
     const amount = parseFloat(paymentData.amount) || 0;
-    if (amount <= 0 || pendingQueue.length === 0) return [];
+    if (pendingQueue.length === 0) return [];
 
-    let remaining = amount;
-    const preview: AllocationPreview[] = [];
-
-    // 负数欠条优先处理
     const negativeIOUs = pendingQueue.filter((iou) => iou.rest < 0);
     const positiveIOUs = pendingQueue.filter((iou) => iou.rest > 0);
+    const preview: AllocationPreview[] = [];
 
-    // 处理负数欠条
+    // 负数欠条优先处理：支付其余额（负数）
+    let negativeSum = 0;
     for (const iou of negativeIOUs) {
       const payment = iou.rest; // 负数
       preview.push({
@@ -203,32 +301,27 @@ export default function SelectivePaymentPage() {
         rest_after: 0,
         is_negative: true,
       });
-      remaining -= payment; // 减去负数 = 加上绝对值
+      negativeSum += payment;
     }
 
-    // 按队列顺序处理正数欠条
+    // 手动分配总额（正数欠条中已填写金额的部分）
+    const manualSum = positiveIOUs
+      .filter((iou) => iou.manualAmount !== undefined)
+      .reduce((sum, iou) => sum + (iou.manualAmount as number), 0);
+
+    // 供留空欠条自动分摊的剩余额 = 付款额 − 负数占用 − 手动占用
+    let remaining = amount - negativeSum - manualSum;
+
     for (const iou of positiveIOUs) {
-      if (remaining <= 0) {
-        preview.push({
-          iou_id: iou.ious_id,
-          db_id: iou.id,
-          rest_before: iou.rest,
-          payment: 0,
-          rest_after: iou.rest,
-          is_negative: false,
-        });
-        continue;
-      }
-
       let payment: number;
-      if (iou.manualAmount !== undefined && iou.manualAmount > 0) {
-        // 手动指定金额
-        payment = Math.min(iou.manualAmount, remaining, iou.rest);
+      if (iou.manualAmount !== undefined) {
+        // 手动指定：原样记录，不裁剪（允许 0 / 负数 / 超额）
+        payment = iou.manualAmount;
       } else {
-        // 自动分配
-        payment = Math.min(iou.rest, remaining);
+        // 自动分配：按顺序填充剩余额，不超过本票余额、不为负
+        payment = Math.max(0, Math.min(iou.rest, remaining));
+        remaining -= payment;
       }
-
       preview.push({
         iou_id: iou.ious_id,
         db_id: iou.id,
@@ -237,7 +330,6 @@ export default function SelectivePaymentPage() {
         rest_after: iou.rest - payment,
         is_negative: false,
       });
-      remaining -= payment;
     }
 
     return preview;
@@ -248,7 +340,16 @@ export default function SelectivePaymentPage() {
   const negativeTotal = useMemo(() => pendingQueue.filter((iou) => iou.rest < 0).reduce((sum, iou) => sum + Math.abs(iou.rest), 0), [pendingQueue]);
   const positiveTotal = useMemo(() => pendingQueue.filter((iou) => iou.rest > 0).reduce((sum, iou) => sum + iou.rest, 0), [pendingQueue]);
   const paymentAmount = parseFloat(paymentData.amount) || 0;
-  const isPaymentValid = paymentAmount > 0 && paymentAmount <= pendingTotal;
+
+  // 各票实际分配金额之和 —— 必须等于付款总额，否则钱会“凭空出现/消失”
+  const allocatedTotal = useMemo(
+    () => allocationPreview.reduce((sum, p) => sum + p.payment, 0),
+    [allocationPreview]
+  );
+  // 余额（浮点比较容差 0.01）：0 表示分配平衡
+  const allocationDiff = paymentAmount - allocatedTotal;
+  const isBalanced = pendingQueue.length > 0 && Math.abs(allocationDiff) < 0.01;
+  const isPaymentValid = paymentAmount > 0 && pendingQueue.length > 0 && isBalanced;
 
   if (authLoading) {
     return (
@@ -375,7 +476,10 @@ export default function SelectivePaymentPage() {
   };
 
   const updateManualAmount = (id: number, value: string) => {
-    const amount = value === '' ? undefined : parseFloat(value);
+    // 空字符串 = 恢复自动分配；无法解析（如仅输入 "-"）时也按未填写处理，
+    // 避免 NaN 进入金额计算。
+    const parsed = parseFloat(value);
+    const amount = value.trim() === '' || isNaN(parsed) ? undefined : parsed;
     setPendingQueue(prev =>
       prev.map(iou => iou.id === id ? { ...iou, manualAmount: amount } : iou)
     );
@@ -388,96 +492,6 @@ export default function SelectivePaymentPage() {
 
   const isInPendingQueue = (id: number): boolean => {
     return pendingQueue.some(p => p.id === id);
-  };
-
-  // 可拖拽的待清理欠条项组件
-  const SortablePendingItem = ({ iou, index }: { iou: PendingIOU; index: number }) => {
-    const {
-      attributes,
-      listeners,
-      setNodeRef,
-      transform,
-      transition,
-      isDragging,
-    } = useSortable({ id: iou.id });
-
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-      opacity: isDragging ? 0.5 : 1,
-      zIndex: isDragging ? 1000 : 'auto',
-    };
-
-    const allocation = getPreviewAllocation(iou.id);
-    const isNegative = iou.rest < 0;
-
-    return (
-      <div
-        ref={setNodeRef}
-        style={style}
-        className={`flex items-center gap-2 p-3 rounded-lg border ${
-          isNegative ? "bg-blue-50 border-blue-200" : "bg-white border-gray-200"
-        } ${isDragging ? "shadow-lg" : ""}`}
-      >
-        {/* 拖拽手柄 */}
-        <div
-          {...attributes}
-          {...listeners}
-          className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none"
-        >
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
-        </div>
-
-        {/* 序号 */}
-        <span className="text-xs text-muted-foreground w-6">{index + 1}.</span>
-
-        {/* 欠条信息 */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-sm">{iou.ious_id}</span>
-            <span className="text-sm text-muted-foreground">{iou.items[0]?.client || '-'}</span>
-            <span className={`text-sm font-medium ${isNegative ? "text-blue-600" : "text-red-600"}`}>
-              ¥{iou.rest.toLocaleString()}
-            </span>
-          </div>
-        </div>
-
-        {/* 手动分配金额 */}
-        {!isNegative && (
-          <div className="flex items-center gap-1">
-            <Input
-              type="number"
-              placeholder="自动"
-              className="w-20 h-8 text-sm"
-              value={iou.manualAmount ?? ''}
-              onChange={(e) => updateManualAmount(iou.id, e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        )}
-
-        {/* 预览分配 */}
-        <div className={`w-24 text-right text-sm font-medium ${
-          allocation > 0 ? (isNegative ? "text-blue-600" : "text-green-600") : "text-muted-foreground"
-        }`}>
-          {allocation !== 0 ? (
-            <>→ ¥{Math.abs(allocation).toLocaleString()}</>
-          ) : (
-            <span className="text-xs">等待分配</span>
-          )}
-        </div>
-
-        {/* 移除按钮 */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0"
-          onClick={() => removeFromPending(iou.id)}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-    );
   };
 
   // 可排序表头组件
@@ -526,8 +540,15 @@ export default function SelectivePaymentPage() {
       setMessage({ type: "error", text: "请添加欠条到待清理列表" });
       return;
     }
-    if (!isPaymentValid) {
-      setMessage({ type: "error", text: "付款金额无效" });
+    if (paymentAmount <= 0) {
+      setMessage({ type: "error", text: "付款金额必须大于 0" });
+      return;
+    }
+    if (!isBalanced) {
+      setMessage({
+        type: "error",
+        text: `各票分配金额合计 ¥${allocatedTotal.toLocaleString()} 与付款总额 ¥${paymentAmount.toLocaleString()} 不一致（相差 ¥${allocationDiff.toLocaleString()}），请调整后再提交`,
+      });
       return;
     }
 
@@ -536,11 +557,22 @@ export default function SelectivePaymentPage() {
 
     try {
       const token = getToken();
-      // Get IOU IDs in order (negative first, then positive by queue order)
-      const iouDbIds = [
-        ...pendingQueue.filter((iou) => iou.rest < 0).map((iou) => iou.id),
-        ...pendingQueue.filter((iou) => iou.rest > 0).map((iou) => iou.id),
+      // 按预览顺序发送每一票的精确分配金额（负数欠条在前，正数按队列顺序）。
+      // 后端将原样入库，并再次校验合计 = 付款总额，确保钱不会凭空出现/消失。
+      const orderedPreview = [
+        ...allocationPreview.filter((p) => p.is_negative),
+        ...allocationPreview.filter((p) => !p.is_negative),
       ];
+      const iouDbIds = orderedPreview.map((p) => p.db_id);
+      const allocations = orderedPreview.map((p) => ({ iou_db_id: p.db_id, amount: p.payment }));
+
+      // 提交前最后一道防线：再次确认合计与总额一致
+      const allocSum = allocations.reduce((sum, a) => sum + a.amount, 0);
+      if (Math.abs(allocSum - paymentAmount) >= 0.01) {
+        setIsSubmitting(false);
+        setMessage({ type: "error", text: "分配金额校验失败，已阻止提交（请刷新后重试）" });
+        return;
+      }
 
       const response = await fetch(`${API_BASE_URL}/api/yif/payments/selective`, {
         method: "POST",
@@ -554,6 +586,7 @@ export default function SelectivePaymentPage() {
           payer_name: paymentData.payerName,
           total_amount: paymentAmount,
           ious_db_ids: iouDbIds,
+          allocations,
           remark: paymentData.remark || "",
         }),
       });
@@ -707,16 +740,40 @@ export default function SelectivePaymentPage() {
                   >
                     <div className="space-y-2">
                       {pendingQueue.map((iou, index) => (
-                        <SortablePendingItem key={iou.id} iou={iou} index={index} />
+                        <SortablePendingItem
+                          key={iou.id}
+                          iou={iou}
+                          index={index}
+                          allocation={getPreviewAllocation(iou.id)}
+                          onRemove={removeFromPending}
+                          onManualChange={updateManualAmount}
+                        />
                       ))}
                     </div>
                   </SortableContext>
                 </DndContext>
 
+                {/* 分配校验：各票分配之和必须等于付款总额 */}
+                {paymentAmount > 0 && !isBalanced && (
+                  <div className="mt-4 p-3 rounded-lg bg-red-100 text-red-800 flex items-start gap-2 text-sm">
+                    <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium">分配金额与付款总额不一致</p>
+                      <p className="text-xs mt-1">
+                        付款总额 ¥{paymentAmount.toLocaleString()} ，各票分配合计 ¥{allocatedTotal.toLocaleString()} ，
+                        {allocationDiff > 0
+                          ? `还有 ¥${allocationDiff.toLocaleString()} 未分配`
+                          : `超出 ¥${Math.abs(allocationDiff).toLocaleString()}`}
+                        。请调整各票金额直到差额为 0 才能提交。
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* 汇总信息 */}
                 <div className="mt-4 pt-4 border-t flex justify-between items-center text-sm">
                   <div className="space-y-1">
-                    <p>合计: <span className={`font-bold ${pendingTotal < 0 ? "text-blue-600" : "text-red-600"}`}>
+                    <p>欠条余额合计: <span className={`font-bold ${pendingTotal < 0 ? "text-blue-600" : "text-red-600"}`}>
                       ¥{pendingTotal.toLocaleString()}
                     </span></p>
                     {negativeTotal > 0 && (
@@ -724,6 +781,13 @@ export default function SelectivePaymentPage() {
                         负数: -¥{negativeTotal.toLocaleString()} | 正数: ¥{positiveTotal.toLocaleString()}
                       </p>
                     )}
+                    <p>
+                      付款总额: <span className="font-medium">¥{paymentAmount.toLocaleString()}</span>
+                      {" · "}已分配: <span className={`font-medium ${isBalanced ? "text-green-600" : "text-red-600"}`}>
+                        ¥{allocatedTotal.toLocaleString()}
+                      </span>
+                      {isBalanced && paymentAmount > 0 && <span className="text-green-600"> ✓</span>}
+                    </p>
                   </div>
                   <Button
                     onClick={handleSubmit}
@@ -1069,7 +1133,8 @@ export default function SelectivePaymentPage() {
             <p className="font-medium mb-1">付款分配逻辑:</p>
             <ol className="list-decimal list-inside space-y-1">
               <li>负数欠条（蓝色）优先清算，支付其绝对值</li>
-              <li>剩余金额按选择顺序分配到正数欠条</li>
+              <li>正数欠条：填写金额则按填写值精确入账（可填 0、负数或超额）；留空则按顺序自动分摊剩余</li>
+              <li>各票分配金额之和必须等于付款总额，否则无法提交（防止金额丢失）</li>
             </ol>
           </div>
         </div>

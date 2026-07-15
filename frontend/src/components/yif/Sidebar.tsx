@@ -11,7 +11,6 @@ import {
   FileText,
   Search,
   DollarSign,
-  ListOrdered,
   CheckSquare,
   LogOut,
   Menu,
@@ -23,6 +22,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { DetailExpandSettingsButton } from "@/components/yif/DetailViewSettings";
 import { useState } from "react";
 
 interface NavItem {
@@ -55,9 +55,8 @@ const getNavGroups = (locale: string): NavGroup[] => [
   {
     title: "付款管理",
     items: [
-      { title: "付款录入", href: `/${locale}/projects/yif/payments`, icon: DollarSign },
+      { title: "单笔付款录入", href: `/${locale}/projects/yif/payments`, icon: DollarSign },
       { title: "付款查询与导出", href: `/${locale}/projects/yif/payments/search`, icon: Search },
-      { title: "多笔付款录入", href: `/${locale}/projects/yif/payments/batch`, icon: ListOrdered, disabled: true },
       { title: "自选付款录入", href: `/${locale}/projects/yif/payments/select`, icon: CheckSquare },
     ],
   },
@@ -111,7 +110,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     <div className="flex flex-col h-full bg-slate-900 text-slate-300">
       {/* Header */}
       <div className="p-6 border-b border-slate-700">
-        <h1 className="text-xl font-bold text-white">YIF 付款管理系统</h1>
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="text-xl font-bold text-white">YIF 付款管理系统</h1>
+          <DetailExpandSettingsButton className="text-slate-300 hover:bg-slate-800 hover:text-white -mr-2 -mt-1" />
+        </div>
         {user && (
           <p className="text-sm text-slate-400 mt-1">欢迎，{user.username} ({userRole})</p>
         )}

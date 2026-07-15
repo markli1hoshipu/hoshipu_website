@@ -1,14 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Search, Upload, FileText, CheckCircle, AlertCircle } from "lucide-react";
+import { DollarSign, Search, Upload, FileText, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useYIFAuth } from "@/hooks/useYIFAuth";
+import { useDefaultExpandDetails } from "@/components/yif/DetailViewSettings";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
+
+interface IOUItem {
+  client: string;
+  amount: number;
+  flight: string;
+  ticket_number: string;
+  remark: string;
+}
+
+interface Payment {
+  payment_date: string;
+  payer_name: string;
+  amount: number;
+  remark?: string;
+}
 
 interface IOU {
   id: number;
@@ -16,7 +32,8 @@ interface IOU {
   ious_date: string;
   total_amount: number;
   rest: number;
-  items: { client: string }[];
+  items: IOUItem[];
+  payments?: Payment[];
 }
 
 interface CreatedPayment {
@@ -26,8 +43,33 @@ interface CreatedPayment {
   new_rest: number;
 }
 
+// 子欠条标签：优先票号，再航段、客户，用于自动填充备注
+const itemLabel = (item: IOUItem): string =>
+  [item.ticket_number && `票${item.ticket_number}`, item.flight, item.client]
+    .filter(Boolean)
+    .join("/");
+
+// 生成备注：针对 {欠条号} 的单笔付款：¥{金额}（子欠条：...）
+const buildRemark = (iouId: string, amountStr: string, targetIOU: IOU | undefined, selectedIdxs: Set<number>): string => {
+  if (!iouId) return "";
+  let r = `针对 ${iouId} 的单笔付款`;
+  const amount = parseFloat(amountStr);
+  if (amountStr !== "" && !isNaN(amount)) {
+    r += `：¥${amount.toLocaleString()}`;
+  }
+  if (targetIOU && selectedIdxs.size > 0) {
+    const labels = [...selectedIdxs]
+      .sort((a, b) => a - b)
+      .map((idx) => itemLabel(targetIOU.items[idx]))
+      .filter(Boolean);
+    if (labels.length) r += `（子欠条：${labels.join("、")}）`;
+  }
+  return r;
+};
+
 export default function PaymentEntryPage() {
   const { user, loading: authLoading, getToken } = useYIFAuth();
+  const [defaultExpand] = useDefaultExpandDetails();
   const [paymentData, setPaymentData] = useState({
     iouDbId: "",
     iouId: "",
@@ -47,10 +89,24 @@ export default function PaymentEntryPage() {
     remark: "",
   });
   const [searchResults, setSearchResults] = useState<IOU[]>([]);
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  // 已勾选的子欠条（仅属于当前付款目标欠条），仅用于自动填充备注
+  const [selectedItemIdxs, setSelectedItemIdxs] = useState<Set<number>>(new Set());
+  // 备注是否处于自动生成模式（用户手动编辑后关闭）
+  const [remarkAuto, setRemarkAuto] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [createdPayments, setCreatedPayments] = useState<CreatedPayment[]>([]);
+
+  const targetIOU = searchResults.find((iou) => iou.id.toString() === paymentData.iouDbId);
+
+  // 自动生成备注：当目标欠条 / 金额 / 子欠条选择变化时（且处于自动模式）
+  useEffect(() => {
+    if (!remarkAuto || !paymentData.iouDbId) return;
+    const generated = buildRemark(paymentData.iouId, paymentData.amount, targetIOU, selectedItemIdxs);
+    setPaymentData((prev) => (prev.remark === generated ? prev : { ...prev, remark: generated }));
+  }, [remarkAuto, paymentData.iouDbId, paymentData.iouId, paymentData.amount, selectedItemIdxs, targetIOU]);
 
   if (authLoading) {
     return (
@@ -67,6 +123,12 @@ export default function PaymentEntryPage() {
 
   const handlePaymentChange = (field: string, value: string) => {
     setPaymentData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // 手动编辑备注 → 关闭自动模式，尊重用户输入
+  const handleRemarkChange = (value: string) => {
+    setRemarkAuto(false);
+    setPaymentData((prev) => ({ ...prev, remark: value }));
   };
 
   const handleSearchChange = (field: string, value: string) => {
@@ -99,7 +161,10 @@ export default function PaymentEntryPage() {
 
       const data = await response.json();
       if (data.success) {
-        setSearchResults(data.ious);
+        const ious: IOU[] = data.ious;
+        setSearchResults(ious);
+        // 根据"默认展开"偏好设置展开状态
+        setExpandedRows(defaultExpand ? new Set(ious.map((iou) => iou.id)) : new Set());
       }
     } catch (err) {
       console.error("Search failed:", err);
@@ -108,12 +173,37 @@ export default function PaymentEntryPage() {
     }
   };
 
-  const selectIOU = (iou: IOU) => {
+  // 选择付款目标欠条（单选）—— 切换目标时清空子欠条勾选并恢复自动备注
+  const selectTargetIOU = (iou: IOU) => {
+    if (paymentData.iouDbId === iou.id.toString()) return;
+    setSelectedItemIdxs(new Set());
+    setRemarkAuto(true);
     setPaymentData((prev) => ({
       ...prev,
       iouDbId: iou.id.toString(),
       iouId: iou.ious_id,
     }));
+  };
+
+  const toggleExpand = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // 勾选/取消子欠条（仅目标欠条可点），仅影响备注
+  const toggleItem = (idx: number) => {
+    setRemarkAuto(true); // 勾选子欠条时重新进入自动备注
+    setSelectedItemIdxs((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
   };
 
   const handleSubmit = async () => {
@@ -171,6 +261,8 @@ export default function PaymentEntryPage() {
           amount: "",
           remark: "",
         }));
+        setSelectedItemIdxs(new Set());
+        setRemarkAuto(true);
         // Refresh search results
         handleSearch();
       } else {
@@ -192,7 +284,7 @@ export default function PaymentEntryPage() {
         className="space-y-6"
       >
         <div>
-          <h1 className="text-3xl font-bold">付款录入</h1>
+          <h1 className="text-3xl font-bold">单笔付款录入</h1>
           <p className="text-muted-foreground mt-1">记录单笔付款到欠条</p>
         </div>
 
@@ -265,11 +357,16 @@ export default function PaymentEntryPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">备注</label>
+                <label className="text-sm font-medium">
+                  备注
+                  {remarkAuto && paymentData.remark && (
+                    <span className="ml-1 text-xs text-muted-foreground">(自动生成，可编辑)</span>
+                  )}
+                </label>
                 <Input
-                  placeholder="可选备注"
+                  placeholder="可选备注 / 勾选下方子欠条自动填充"
                   value={paymentData.remark}
-                  onChange={(e) => handlePaymentChange("remark", e.target.value)}
+                  onChange={(e) => handleRemarkChange(e.target.value)}
                 />
               </div>
             </div>
@@ -382,7 +479,7 @@ export default function PaymentEntryPage() {
         <Card>
           <CardHeader>
             <CardTitle>搜索结果</CardTitle>
-            <CardDescription>点击欠条进行选择付款</CardDescription>
+            <CardDescription>选择要付款的欠条（左侧单选），点击箭头展开明细并可勾选子欠条填入备注</CardDescription>
           </CardHeader>
           <CardContent>
             {searchResults.length === 0 ? (
@@ -396,6 +493,8 @@ export default function PaymentEntryPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
+                      <th className="text-center py-3 px-2 w-8">选择</th>
+                      <th className="text-center py-3 px-2 w-8">明细</th>
                       <th className="text-left py-3 px-2">日期</th>
                       <th className="text-left py-3 px-2">欠条ID</th>
                       <th className="text-left py-3 px-2">客户</th>
@@ -404,21 +503,115 @@ export default function PaymentEntryPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {searchResults.map((iou) => (
-                      <tr
-                        key={iou.id}
-                        className={`border-b hover:bg-muted/30 cursor-pointer ${
-                          paymentData.iouDbId === iou.id.toString() ? "bg-primary/10" : ""
-                        }`}
-                        onClick={() => selectIOU(iou)}
-                      >
-                        <td className="py-2 px-2">{iou.ious_date}</td>
-                        <td className="py-2 px-2 font-mono">{iou.ious_id}</td>
-                        <td className="py-2 px-2">{iou.items[0]?.client || "-"}</td>
-                        <td className="py-2 px-2 text-right">¥{iou.total_amount.toLocaleString()}</td>
-                        <td className="py-2 px-2 text-right text-red-600">¥{iou.rest.toLocaleString()}</td>
-                      </tr>
-                    ))}
+                    {searchResults.map((iou) => {
+                      const isTarget = paymentData.iouDbId === iou.id.toString();
+                      const isExpanded = expandedRows.has(iou.id);
+                      return (
+                        <React.Fragment key={iou.id}>
+                          <tr
+                            className={`border-b hover:bg-muted/30 cursor-pointer ${isTarget ? "bg-primary/10" : ""}`}
+                            onClick={() => selectTargetIOU(iou)}
+                          >
+                            <td className="py-2 px-2 text-center">
+                              <input
+                                type="radio"
+                                name="targetIOU"
+                                checked={isTarget}
+                                onChange={() => selectTargetIOU(iou)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="h-4 w-4"
+                              />
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              <button
+                                onClick={(e) => toggleExpand(iou.id, e)}
+                                className="p-1 hover:bg-muted rounded"
+                              >
+                                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              </button>
+                            </td>
+                            <td className="py-2 px-2">{iou.ious_date}</td>
+                            <td className="py-2 px-2 font-mono">{iou.ious_id}</td>
+                            <td className="py-2 px-2">{iou.items[0]?.client || "-"}</td>
+                            <td className="py-2 px-2 text-right">¥{iou.total_amount.toLocaleString()}</td>
+                            <td className="py-2 px-2 text-right text-red-600">¥{iou.rest.toLocaleString()}</td>
+                          </tr>
+                          {isExpanded && (
+                            <tr className="bg-muted/20">
+                              <td colSpan={7} className="p-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {/* 欠条明细（子欠条） */}
+                                  <div>
+                                    <h4 className="font-medium mb-2 flex items-center gap-2">
+                                      欠条明细
+                                      {isTarget ? (
+                                        <span className="text-xs text-muted-foreground">点击子欠条填入备注</span>
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground">先在左侧选中此欠条为付款目标才能勾选</span>
+                                      )}
+                                    </h4>
+                                    <div className="space-y-1 text-sm">
+                                      {iou.items.map((item, idx) => {
+                                        const checked = isTarget && selectedItemIdxs.has(idx);
+                                        return (
+                                          <div
+                                            key={idx}
+                                            onClick={() => isTarget && toggleItem(idx)}
+                                            className={`rounded px-2 py-1 ${
+                                              isTarget ? "cursor-pointer hover:bg-muted" : "opacity-70"
+                                            } ${checked ? "bg-green-100" : ""}`}
+                                          >
+                                            <div className="flex justify-between items-center gap-2">
+                                              <span className="flex items-center gap-2">
+                                                {isTarget && (
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    readOnly
+                                                    className="h-3.5 w-3.5 pointer-events-none"
+                                                  />
+                                                )}
+                                                {item.client} | {item.flight || "-"} | {item.ticket_number || "-"}
+                                              </span>
+                                              <span>¥{item.amount.toLocaleString()}</span>
+                                            </div>
+                                            {item.remark && (
+                                              <div className="text-muted-foreground text-xs pl-2">└ {item.remark}</div>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+
+                                  {/* 付款记录 */}
+                                  <div>
+                                    <h4 className="font-medium mb-2">付款记录 ({iou.payments?.length || 0})</h4>
+                                    {!iou.payments || iou.payments.length === 0 ? (
+                                      <p className="text-sm text-muted-foreground">暂无付款</p>
+                                    ) : (
+                                      <div className="space-y-1 text-sm">
+                                        {iou.payments.map((payment, idx) => (
+                                          <div key={idx}>
+                                            <div className="flex justify-between">
+                                              <span>{payment.payment_date} | {payment.payer_name}</span>
+                                              <span className="text-green-600">¥{payment.amount.toLocaleString()}</span>
+                                            </div>
+                                            {payment.remark && (
+                                              <div className="text-muted-foreground text-xs pl-2">└ {payment.remark}</div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

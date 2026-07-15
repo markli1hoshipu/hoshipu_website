@@ -66,12 +66,27 @@ class PaymentCreate(BaseModel):
         return v
 
 
+class PaymentAllocation(BaseModel):
+    iou_db_id: int
+    amount: float  # Exact amount to apply to this IOU (may be 0, negative, or exceed rest)
+
+    @validator('amount')
+    def amount_must_be_reasonable(cls, v):
+        if abs(v) > 100000000:  # 100 million limit
+            raise ValueError('Amount exceeds reasonable limit')
+        return v
+
+
 class BatchPaymentCreate(BaseModel):
     user_code: str
     payment_date: str
     payer_name: str
     total_amount: float
     ious_db_ids: List[int]  # List of IOU database IDs in order
+    # Explicit per-IOU allocations. When provided, these are recorded verbatim
+    # (WYSIWYG) instead of being auto-derived on the server. Their sum must
+    # equal total_amount so money is never silently created or lost.
+    allocations: Optional[List[PaymentAllocation]] = None
     remark: Optional[str] = ""
 
     @validator('total_amount')
@@ -847,69 +862,118 @@ async def create_selective_payment(batch_data: BatchPaymentCreate, user_id: int 
         if not ious_info:
             raise HTTPException(404, "No valid IOUs found")
 
-        # Separate negative and positive IOUs
-        negative_ious = [i for i in ious_info if float(i['rest']) < 0]
-        positive_ious = [i for i in ious_info if float(i['rest']) > 0]
-
-        # Calculate totals
-        total_rest = sum(float(i['rest']) for i in ious_info)
-
-        if batch_data.total_amount > total_rest:
-            raise HTTPException(400, f"Payment amount ({batch_data.total_amount}) exceeds total remaining ({total_rest})")
-
-        remaining_amount = batch_data.total_amount
         created_payments = []
 
-        # First, clear negative IOUs (pay their absolute value to bring to 0)
-        for iou in negative_ious:
-            rest = float(iou['rest'])  # This is negative
-            payment_amount = rest  # Negative payment to bring to 0
-            remaining_amount -= rest  # Subtracting negative = adding
+        if batch_data.allocations is not None:
+            # ---- Explicit allocation mode (WYSIWYG) ----
+            # The client tells us exactly how much to apply to each IOU, and we
+            # record those amounts verbatim. This keeps the on-screen preview and
+            # the persisted payments identical.
+            iou_by_id = {int(i['id']): i for i in ious_info}
 
-            cursor.execute("""
-                INSERT INTO yif_payments (ious_id, worker_id, user_code, payment_date, payer_name, amount, remark)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                RETURNING id
-            """, (iou['id'], user_id, user_code, batch_data.payment_date,
-                  batch_data.payer_name, payment_amount, batch_data.remark or ""))
+            # Every allocation must target an IOU we actually loaded.
+            for alloc in batch_data.allocations:
+                if alloc.iou_db_id not in iou_by_id:
+                    raise HTTPException(400, f"Allocation targets unknown IOU id {alloc.iou_db_id}")
 
-            payment_id = cursor.fetchone()['id']
+            # Money-conservation guard: what we record against individual IOUs
+            # must equal the total the payer handed over. Reject any mismatch so
+            # money is never silently created or lost.
+            alloc_sum = round(sum(a.amount for a in batch_data.allocations), 2)
+            expected = round(batch_data.total_amount, 2)
+            if abs(alloc_sum - expected) > 0.01:
+                raise HTTPException(
+                    400,
+                    f"分配金额总和 ({alloc_sum}) 与付款总额 ({expected}) 不一致，请检查各票分配金额"
+                )
 
-            # Update IOU status
-            update_iou_status(cursor, iou['id'])
+            for alloc in batch_data.allocations:
+                amount = round(alloc.amount, 2)
+                if amount == 0:
+                    continue  # A zero allocation means "don't pay this IOU"
 
-            created_payments.append({
-                "id": payment_id,
-                "ious_id": iou['ious_id'],
-                "amount": payment_amount
-            })
+                iou = iou_by_id[alloc.iou_db_id]
+                cursor.execute("""
+                    INSERT INTO yif_payments (ious_id, worker_id, user_code, payment_date, payer_name, amount, remark)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                """, (iou['id'], user_id, user_code, batch_data.payment_date,
+                      batch_data.payer_name, amount, batch_data.remark or ""))
 
-        # Then distribute to positive IOUs
-        for iou in positive_ious:
-            if remaining_amount <= 0:
-                break
+                payment_id = cursor.fetchone()['id']
 
-            rest = float(iou['rest'])
-            payment_amount = min(rest, remaining_amount)
-            remaining_amount -= payment_amount
+                # Update IOU status
+                update_iou_status(cursor, iou['id'])
 
-            cursor.execute("""
-                INSERT INTO yif_payments (ious_id, worker_id, user_code, payment_date, payer_name, amount, remark)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                RETURNING id
-            """, (iou['id'], user_id, user_code, batch_data.payment_date,
-                  batch_data.payer_name, payment_amount, batch_data.remark or ""))
+                created_payments.append({
+                    "id": payment_id,
+                    "ious_id": iou['ious_id'],
+                    "amount": amount
+                })
+        else:
+            # ---- Legacy auto-allocation mode (negative IOUs first) ----
+            # Separate negative and positive IOUs
+            negative_ious = [i for i in ious_info if float(i['rest']) < 0]
+            positive_ious = [i for i in ious_info if float(i['rest']) > 0]
 
-            payment_id = cursor.fetchone()['id']
+            # Calculate totals
+            total_rest = sum(float(i['rest']) for i in ious_info)
 
-            # Update IOU status
-            update_iou_status(cursor, iou['id'])
+            if batch_data.total_amount > total_rest:
+                raise HTTPException(400, f"Payment amount ({batch_data.total_amount}) exceeds total remaining ({total_rest})")
 
-            created_payments.append({
-                "id": payment_id,
-                "ious_id": iou['ious_id'],
-                "amount": payment_amount
-            })
+            remaining_amount = batch_data.total_amount
+
+            # First, clear negative IOUs (pay their absolute value to bring to 0)
+            for iou in negative_ious:
+                rest = float(iou['rest'])  # This is negative
+                payment_amount = rest  # Negative payment to bring to 0
+                remaining_amount -= rest  # Subtracting negative = adding
+
+                cursor.execute("""
+                    INSERT INTO yif_payments (ious_id, worker_id, user_code, payment_date, payer_name, amount, remark)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                """, (iou['id'], user_id, user_code, batch_data.payment_date,
+                      batch_data.payer_name, payment_amount, batch_data.remark or ""))
+
+                payment_id = cursor.fetchone()['id']
+
+                # Update IOU status
+                update_iou_status(cursor, iou['id'])
+
+                created_payments.append({
+                    "id": payment_id,
+                    "ious_id": iou['ious_id'],
+                    "amount": payment_amount
+                })
+
+            # Then distribute to positive IOUs
+            for iou in positive_ious:
+                if remaining_amount <= 0:
+                    break
+
+                rest = float(iou['rest'])
+                payment_amount = min(rest, remaining_amount)
+                remaining_amount -= payment_amount
+
+                cursor.execute("""
+                    INSERT INTO yif_payments (ious_id, worker_id, user_code, payment_date, payer_name, amount, remark)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                """, (iou['id'], user_id, user_code, batch_data.payment_date,
+                      batch_data.payer_name, payment_amount, batch_data.remark or ""))
+
+                payment_id = cursor.fetchone()['id']
+
+                # Update IOU status
+                update_iou_status(cursor, iou['id'])
+
+                created_payments.append({
+                    "id": payment_id,
+                    "ious_id": iou['ious_id'],
+                    "amount": payment_amount
+                })
 
         # Log
         cursor.execute("""
