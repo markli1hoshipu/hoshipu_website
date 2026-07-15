@@ -403,6 +403,8 @@ export default function SelectivePaymentPage() {
   }, [paymentData.amount, pendingQueue]);
 
   // Calculate totals based on pendingQueue
+  // 搜索结果的剩余金额总计（每次搜索后重新计算）
+  const searchRestTotal = useMemo(() => searchResults.reduce((sum, iou) => sum + iou.rest, 0), [searchResults]);
   const pendingTotal = useMemo(() => pendingQueue.reduce((sum, iou) => sum + iou.rest, 0), [pendingQueue]);
   const negativeTotal = useMemo(() => pendingQueue.filter((iou) => iou.rest < 0).reduce((sum, iou) => sum + Math.abs(iou.rest), 0), [pendingQueue]);
   const positiveTotal = useMemo(() => pendingQueue.filter((iou) => iou.rest > 0).reduce((sum, iou) => sum + iou.rest, 0), [pendingQueue]);
@@ -973,7 +975,14 @@ export default function SelectivePaymentPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div>
-              <CardTitle>选择欠条</CardTitle>
+              <CardTitle>
+                选择欠条
+                {searchResults.length > 0 && (
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    {searchResults.length} 条，剩余总额: <span className={searchRestTotal < 0 ? "text-blue-600" : "text-red-600"}>¥{searchRestTotal.toLocaleString()}</span>
+                  </span>
+                )}
+              </CardTitle>
               <CardDescription>勾选要包含在付款中的欠条，点击展开按钮查看明细</CardDescription>
             </div>
             <div className="flex gap-2 flex-wrap">
