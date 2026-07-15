@@ -375,6 +375,11 @@
       "description": "Convert IATA airport codes to city names, supporting various separator formats.",
       "tags": ["Aviation", "Code Conversion"]
     },
+    "passportDocs": {
+      "title": "Passport → DOCS Command",
+      "description": "Read a passport's MRZ from a photo and generate the SR DOCS command line for each passenger.",
+      "tags": ["Aviation", "OCR"]
+    },
     "embodybench": {
       "title": "EmbodyBench",
       "description": "Evaluate VLA policy models on embodied benchmarks (RoboTwin, RoboPRO). Submit a run, point at your model's API, watch results stream in.",

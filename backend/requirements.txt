@@ -34,3 +34,7 @@ email-validator==2.1.0
 # bench_validation.py degrades gracefully if this is missing or
 # ANTHROPIC_API_KEY is unset.
 anthropic==0.40.0
+
+# Passport → DOCS command generator (passport_router); reads passport MRZ
+# via OpenAI vision. Degrades gracefully if OPENAI_API_KEY is unset.
+openai==1.109.1

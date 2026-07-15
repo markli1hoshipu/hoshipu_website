@@ -375,6 +375,11 @@
       "description": "将IATA机场三字代码转换为中文城市名称，支持多种分隔符格式。",
       "tags": ["航空", "代码转换"]
     },
+    "passportDocs": {
+      "title": "护照 → DOCS 指令",
+      "description": "从护照照片识别机读区（MRZ），为每位乘客生成 SR DOCS 指令。",
+      "tags": ["航空", "OCR"]
+    },
     "embodybench": {
       "title": "EmbodyBench",
       "description": "在具身基准（RoboTwin, RoboPRO）上评估 VLA 策略模型。提交任务、指向模型 API，结果实时回传。",
