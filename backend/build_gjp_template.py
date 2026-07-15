@@ -52,6 +52,10 @@ def main() -> None:
     ws["F1"].value = "=SUM(Y8:Y2000)"
     ws["F2"].value = "=SUM(N8:N2000)"
 
+    # hide the GL lookup sheet — its VLOOKUP still works while hidden, so the
+    # exported file looks like a single 电子发票 tab
+    wb["GL"].sheet_state = "hidden"
+
     # blank the base-column values on the prototype row (keep styling + formulas)
     for col in BASE_COLS:
         ws[f"{col}8"].value = None
