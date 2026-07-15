@@ -20,6 +20,7 @@ from routers.pdf_router import router as pdf_router
 from routers.messages_router import router as messages_router
 from routers.pdf_template_router import router as pdf_template_router
 from routers.gjp_invoice_router import router as gjp_invoice_router
+from routers.ae_qff_router import router as ae_qff_router
 from routers.qff_travel_router import router as qff_travel_router
 from routers.collection_router import router as collection_router
 from routers.yif_router import router as yif_router
@@ -63,6 +64,7 @@ app.include_router(pdf_router, prefix="/api/pdf", tags=["PDF Processing"])
 app.include_router(messages_router)
 app.include_router(pdf_template_router)
 app.include_router(gjp_invoice_router)
+app.include_router(ae_qff_router)
 app.include_router(qff_travel_router)
 app.include_router(collection_router)
 app.include_router(yif_router)
