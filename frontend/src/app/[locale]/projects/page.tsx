@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, ArrowRight, Calculator, Plane, DollarSign, LayoutDashboard, Globe, Gamepad2, Beaker, ExternalLink } from "lucide-react";
+import { FileText, ArrowRight, Calculator, Plane, DollarSign, LayoutDashboard, Globe, Gamepad2, Beaker, ExternalLink, FileSpreadsheet } from "lucide-react";
 import Link from "next/link";
 import Messages from "@/components/Messages";
 import { useTranslations, useLocale } from "next-intl";
@@ -26,6 +26,7 @@ const projectGroups: ProjectGroup[] = [
     groupId: "yuhang",
     projects: [
       { id: "pdfRename", link: "/projects/pdf-rename", icon: FileText },
+      { id: "gjpInvoice", link: "/projects/gjp-invoice-export", icon: FileSpreadsheet },
       { id: "qffTravel", link: "/projects/qff-travel", icon: Plane },
       { id: "yifPayment", link: "/projects/yif", icon: DollarSign },
       { id: "iataCode", link: "/projects/iata-code", icon: Globe },

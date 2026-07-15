@@ -42,6 +42,70 @@ export async function processPDFs(files: File[], template: string): Promise<Proc
   return response.json();
 }
 
+// ---------------------------------------------------------------------------
+// GJP 发票导出 — flight e-invoice PDFs -> YUHANG SAP Excel
+// ---------------------------------------------------------------------------
+export interface GjpInvoiceInfo {
+  category?: string | null;
+  intl_dom?: string | null;
+  name?: string | null;
+  depart_date?: string | null;
+  routing?: string | null;
+  route_cn?: string | null;
+  flight_no?: string | null;
+  caac_fund?: number | null;
+  total?: number | null;
+  invoice_number?: string | null;
+  buyer?: string | null;
+  issue_date?: string | null;
+  ticket_number?: string | null;
+  unmapped_airports?: string[];
+}
+
+export interface GjpInvoiceResult {
+  filename: string;
+  info: GjpInvoiceInfo;
+  status: 'success' | 'incomplete' | 'error';
+  missing_fields?: string[];
+  error?: string;
+}
+
+export interface GjpInvoiceResponse {
+  results: GjpInvoiceResult[];
+}
+
+export async function processGjpInvoices(files: File[]): Promise<GjpInvoiceResponse> {
+  const formData = new FormData();
+  files.forEach((file) => formData.append('files', file));
+
+  const response = await fetch(`${API_BASE_URL}/api/gjp-invoice/process`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function exportGjpInvoices(files: File[]): Promise<Blob> {
+  const formData = new FormData();
+  files.forEach((file) => formData.append('files', file));
+
+  const response = await fetch(`${API_BASE_URL}/api/gjp-invoice/export`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.statusText}`);
+  }
+
+  return response.blob();
+}
+
 export async function processPDFsAndDownload(files: File[], template: string): Promise<Blob> {
   const formData = new FormData();
   

@@ -335,6 +335,11 @@
       "description": "Intelligent PDF batch rename tool that extracts invoice information and renames files using custom templates.",
       "tags": ["PDF Processing", "Batch Rename"]
     },
+    "gjpInvoice": {
+      "title": "GJP Invoice Export Tool",
+      "description": "Batch-extract flight e-invoice PDFs and export them into the Yuhang SAP-entry Excel format.",
+      "tags": ["PDF Processing", "Excel Export"]
+    },
     "game24": {
       "title": "Game 24",
       "description": "Classic math puzzle game where you use four numbers and basic operators to make 24. Train your mathematical thinking and calculation skills!",
