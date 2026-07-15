@@ -1,9 +1,10 @@
 """
 Passport → GDS DOCS command generator.
 
-The OCR provider defaults to OpenAI (gpt-4.1-mini); set OCR_PROVIDER=aliyun to use
-Aliyun 国际护照识别 (RecognizePassport) instead, which returns the MRZ that we parse
-deterministically. Python then formats an SR DOCS command line per passport, e.g.:
+Production always uses OpenAI gpt-4.1-mini to read the passport MRZ. (An Aliyun
+国际护照识别 (RecognizePassport) path exists but is reachable only via the gated
+ALLOW_OCR_OVERRIDE benchmark flag.) Python then formats an SR DOCS command line
+per passport, e.g.:
 
     DOCS KE HK1 P/IDN/E6090613/IDN/30NOV91/M/12FEB34/PONTO/GOOD AGUN/P1
 
@@ -29,11 +30,10 @@ router = APIRouter(prefix="/api/passport", tags=["passport"])
 
 MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 
-# Which OpenAI vision model to use (override via env without a code change).
-# gpt-4.1-mini: accurate on passport MRZ, cheap, and ~3x faster than gpt-5-mini
-# (a reasoning model). gpt-4o-mini is NOT reliable (drops digits, misreads MRZ).
-# For max speed use gpt-4.1 or gpt-4o (~4s).
-VISION_MODEL = os.getenv("OPENAI_VISION_MODEL", "gpt-4.1-mini")
+# Fixed production model: gpt-4.1-mini (accurate on passport MRZ, cheap, fast).
+# Hardcoded on purpose so no env var can change it. (Aliyun remains available
+# only through the gated ALLOW_OCR_OVERRIDE benchmark path — off in production.)
+VISION_MODEL = "gpt-4.1-mini"
 
 EXTRACT_PROMPT = """Read this passport's photo page and extract the traveler's document details \
 FROM THE MACHINE READABLE ZONE (MRZ) — the two lines of monospaced characters (with '<' fillers) at \
@@ -283,19 +283,13 @@ def _extract_via_aliyun(image_bytes: bytes) -> Tuple[Dict[str, str], List[str]]:
     return fields, _sanity_warnings(fields)
 
 
-def _ocr_provider() -> str:
-    """Default OpenAI (gpt-4.1-mini). Set OCR_PROVIDER=aliyun to use Aliyun instead.
-    (Presence of Aliyun keys alone does NOT switch the default.)"""
-    return os.getenv("OCR_PROVIDER", "").strip().lower() or "openai"
-
-
 def _extract(image_bytes: bytes, mime: str, provider: Optional[str] = None,
              model: Optional[str] = None) -> Tuple[Dict[str, str], List[str]]:
-    """Dispatch to the OCR provider (override wins over env); return (fields, warnings)."""
-    prov = provider or _ocr_provider()
-    if prov == "aliyun":
+    """Production always uses OpenAI/gpt-4.1-mini. Aliyun runs only when explicitly
+    requested via the gated benchmark override (provider="aliyun")."""
+    if provider == "aliyun":
         return _extract_via_aliyun(image_bytes)
-    fields = _extract_fields(image_bytes, mime, model=model)  # OpenAI vision
+    fields = _extract_fields(image_bytes, mime, model=model)  # OpenAI gpt-4.1-mini
     return fields, _sanity_warnings(fields)
 
 
