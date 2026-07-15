@@ -17,7 +17,9 @@ Output: backend/src/assets/gjp_invoice_template.xlsx
 Run:  backend/venv/Scripts/python.exe backend/build_gjp_template.py
 """
 import os
+from copy import copy
 import openpyxl
+from openpyxl.worksheet.views import Selection
 
 HERE = os.path.dirname(__file__)
 SRC = os.path.join(HERE, "..", "docs", "2026.06 YUHANG.xlsx")
@@ -55,6 +57,16 @@ def main() -> None:
     # hide the GL lookup sheet — its VLOOKUP still works while hidden, so the
     # exported file looks like a single 电子发票 tab
     wb["GL"].sheet_state = "hidden"
+
+    # add a 电子客票号码 header in the (unused) U column, styled like the others
+    ws["U7"].value = "电子客票号码"
+    if ws["T7"].has_style:
+        ws["U7"]._style = copy(ws["T7"]._style)
+
+    # open at the top-left, not scrolled to where the old data used to end
+    ws.sheet_view.topLeftCell = "A1"
+    ws.sheet_view.selection = [Selection(activeCell="A1", sqref="A1")]
+    wb.active = wb.sheetnames.index(DATA_SHEET)
 
     # blank the base-column values on the prototype row (keep styling + formulas)
     for col in BASE_COLS:

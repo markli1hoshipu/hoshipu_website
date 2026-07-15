@@ -264,6 +264,7 @@ _BASE_COL_MAP = {
     "M": "caac_fund",
     "N": "total",
     "T": "invoice_number",
+    "U": "ticket_number",
 }
 
 # derived formula templates ({r} -> row number). Mirror the source workbook.
@@ -308,6 +309,13 @@ def build_workbook(rows: List[Dict[str, Any]]) -> bytes:
 
         for col, tmpl in _DERIVED_FORMULAS.items():
             ws[f"{col}{r}"] = tmpl.format(r=r)
+
+    # make sure the file opens at the top-left, not scrolled down
+    from openpyxl.worksheet.views import Selection
+
+    ws.sheet_view.topLeftCell = "A1"
+    ws.sheet_view.selection = [Selection(activeCell="A1", sqref="A1")]
+    wb.active = wb.sheetnames.index(_DATA_SHEET)
 
     buf = io.BytesIO()
     wb.save(buf)

@@ -207,6 +207,7 @@ export default function GjpInvoiceExportPage() {
                         <th className="py-2 pr-3 font-medium text-right">基金</th>
                         <th className="py-2 pr-3 font-medium text-right">合计</th>
                         <th className="py-2 pr-3 font-medium">发票号</th>
+                        <th className="py-2 pr-3 font-medium">客票号</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -231,6 +232,7 @@ export default function GjpInvoiceExportPage() {
                           <td className="py-2 pr-3 text-right">{r.info.caac_fund ?? "—"}</td>
                           <td className="py-2 pr-3 text-right">{r.info.total ?? "—"}</td>
                           <td className="py-2 pr-3 font-mono text-xs">{r.info.invoice_number || "—"}</td>
+                          <td className="py-2 pr-3 font-mono text-xs">{r.info.ticket_number || "—"}</td>
                         </tr>
                       ))}
                     </tbody>
