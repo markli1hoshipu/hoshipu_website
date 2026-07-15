@@ -170,6 +170,71 @@ export default function PassportDocsPage() {
           </div>
         )}
 
+        {/* Results — shown above the input form so generated text sits on top */}
+        {lines.length > 0 && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle>生成结果</CardTitle>
+                <CardDescription>点击复制单条，或右上角复制全部</CardDescription>
+              </div>
+              {allCommands && (
+                <Button variant="outline" size="sm" onClick={() => copy(allCommands, "__all__")}>
+                  <Copy className="h-4 w-4 mr-1" />
+                  {copiedKey === "__all__" ? "已复制" : "复制全部"}
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {lines.map((line) => {
+                const key = `line-${line.pax}`;
+                return (
+                  <div key={key} className="border rounded-lg p-3">
+                    {line.error ? (
+                      <div className="text-sm text-red-600 flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        P{line.pax}: 识别失败 — {line.error}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-start justify-between gap-2">
+                          <code className="font-mono text-sm break-all">{line.command}</code>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 shrink-0"
+                            onClick={() => copy(line.command, key)}
+                          >
+                            <Copy className="h-4 w-4 mr-1" />
+                            {copiedKey === key ? "已复制" : "复制"}
+                          </Button>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                          {Object.entries(FIELD_LABELS).map(([k, label]) => (
+                            <span key={k}>
+                              {label}: <span className="text-foreground">{line.fields[k] || "-"}</span>
+                            </span>
+                          ))}
+                        </div>
+                        {line.warnings && line.warnings.length > 0 && (
+                          <div className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 space-y-0.5">
+                            {line.warnings.map((w, i) => (
+                              <div key={i} className="flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3 shrink-0" />
+                                {w}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Inputs */}
         <Card>
           <CardHeader>
@@ -271,71 +336,6 @@ export default function PassportDocsPage() {
             </p>
           </CardContent>
         </Card>
-
-        {/* Results */}
-        {lines.length > 0 && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div>
-                <CardTitle>生成结果</CardTitle>
-                <CardDescription>点击复制单条，或右上角复制全部</CardDescription>
-              </div>
-              {allCommands && (
-                <Button variant="outline" size="sm" onClick={() => copy(allCommands, "__all__")}>
-                  <Copy className="h-4 w-4 mr-1" />
-                  {copiedKey === "__all__" ? "已复制" : "复制全部"}
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {lines.map((line) => {
-                const key = `line-${line.pax}`;
-                return (
-                  <div key={key} className="border rounded-lg p-3">
-                    {line.error ? (
-                      <div className="text-sm text-red-600 flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4" />
-                        P{line.pax}: 识别失败 — {line.error}
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex items-start justify-between gap-2">
-                          <code className="font-mono text-sm break-all">{line.command}</code>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 shrink-0"
-                            onClick={() => copy(line.command, key)}
-                          >
-                            <Copy className="h-4 w-4 mr-1" />
-                            {copiedKey === key ? "已复制" : "复制"}
-                          </Button>
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                          {Object.entries(FIELD_LABELS).map(([k, label]) => (
-                            <span key={k}>
-                              {label}: <span className="text-foreground">{line.fields[k] || "-"}</span>
-                            </span>
-                          ))}
-                        </div>
-                        {line.warnings && line.warnings.length > 0 && (
-                          <div className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 space-y-0.5">
-                            {line.warnings.map((w, i) => (
-                              <div key={i} className="flex items-center gap-1">
-                                <AlertCircle className="h-3 w-3 shrink-0" />
-                                {w}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-        )}
 
         <div className="text-xs text-muted-foreground bg-muted/50 p-4 rounded-lg">
           指令格式：<code className="font-mono">DOCS {"{航司}"} HK1 P/签发国/护照号/国籍/出生/性别/到期/姓/名/P{"{乘客号}"}</code>
