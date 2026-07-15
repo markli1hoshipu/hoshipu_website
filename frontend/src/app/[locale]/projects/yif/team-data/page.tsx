@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Download, FileText, ChevronDown, ChevronUp, UserSearch, AlertTriangle, Users } from "lucide-react";
 import { useYIFAuth } from "@/hooks/useYIFAuth";
+import { useDefaultExpandDetails } from "@/components/yif/DetailViewSettings";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
 
@@ -74,6 +75,7 @@ export default function TeamDataQueryPage() {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [total, setTotal] = useState(0);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [defaultExpand] = useDefaultExpandDetails();
 
   // Summary stats
   const [summary, setSummary] = useState({
@@ -161,6 +163,7 @@ export default function TeamDataQueryPage() {
       if (data.success) {
         setResults(data.ious);
         setTotal(data.total);
+        setExpandedRows(defaultExpand ? new Set((data.ious as IOU[]).map((iou) => iou.id)) : new Set());
 
         // Calculate summary
         const ious = data.ious as IOU[];
@@ -179,7 +182,7 @@ export default function TeamDataQueryPage() {
     } finally {
       setIsSearching(false);
     }
-  }, [searchParams, selectedWorkerId, getToken, user]);
+  }, [searchParams, selectedWorkerId, getToken, user, defaultExpand]);
 
   if (authLoading || loadingUsers) {
     return (

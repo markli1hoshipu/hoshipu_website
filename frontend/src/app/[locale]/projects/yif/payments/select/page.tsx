@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CheckSquare, Search, Upload, FileText, CheckCircle, AlertCircle, Square, CheckSquare2, ArrowRight, ChevronDown, ChevronUp, ArrowUpDown, ArrowUp, ArrowDown, Settings2, Plus, X, ListOrdered, GripVertical } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useYIFAuth } from "@/hooks/useYIFAuth";
+import { useDefaultExpandDetails } from "@/components/yif/DetailViewSettings";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -97,16 +98,19 @@ function SortablePendingItem({
   iou,
   index,
   allocation,
+  defaultExpanded,
   onRemove,
   onManualChange,
 }: {
   iou: PendingIOU;
   index: number;
   allocation: number;
+  defaultExpanded: boolean;
   onRemove: (id: number) => void;
   onManualChange: (id: number, value: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: iou.id });
+  const [expanded, setExpanded] = useState(defaultExpanded);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -121,67 +125,129 @@ function SortablePendingItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 p-3 rounded-lg border ${
+      className={`rounded-lg border ${
         isNegative ? "bg-blue-50 border-blue-200" : "bg-white border-gray-200"
       } ${isDragging ? "shadow-lg" : ""}`}
     >
-      {/* 拖拽手柄 */}
-      <div
-        {...attributes}
-        {...listeners}
-        className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none"
-      >
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
-      </div>
-
-      {/* 序号 */}
-      <span className="text-xs text-muted-foreground w-6">{index + 1}.</span>
-
-      {/* 欠条信息 */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-mono text-sm">{iou.ious_id}</span>
-          <span className="text-sm text-muted-foreground">{iou.items[0]?.client || '-'}</span>
-          <span className={`text-sm font-medium ${isNegative ? "text-blue-600" : "text-red-600"}`}>
-            ¥{iou.rest.toLocaleString()}
-          </span>
+      {/* 顶部摘要行 */}
+      <div className="flex items-center gap-2 p-3">
+        {/* 拖拽手柄 */}
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
         </div>
+
+        {/* 序号 */}
+        <span className="text-xs text-muted-foreground w-6">{index + 1}.</span>
+
+        {/* 展开明细按钮 */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded((v) => !v);
+          }}
+          className="p-1 hover:bg-muted rounded"
+          title={expanded ? "收起明细" : "展开明细"}
+        >
+          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
+
+        {/* 欠条信息 */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-sm">{iou.ious_id}</span>
+            <span className="text-sm text-muted-foreground">{iou.items[0]?.client || '-'}</span>
+            <span className={`text-sm font-medium ${isNegative ? "text-blue-600" : "text-red-600"}`}>
+              ¥{iou.rest.toLocaleString()}
+            </span>
+          </div>
+        </div>
+
+        {/* 手动分配金额 */}
+        {!isNegative && (
+          <div className="flex items-center gap-1">
+            <Input
+              type="number"
+              placeholder="自动"
+              className="w-20 h-8 text-sm"
+              value={iou.manualAmount ?? ''}
+              onChange={(e) => onManualChange(iou.id, e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+
+        {/* 预览分配 */}
+        <div className={`w-24 text-right text-sm font-medium ${
+          allocation !== 0 ? (allocation < 0 ? "text-blue-600" : "text-green-600") : "text-muted-foreground"
+        }`}>
+          {allocation !== 0 ? (
+            <>{allocation < 0 ? '−' : '→ '}¥{Math.abs(allocation).toLocaleString()}</>
+          ) : (
+            <span className="text-xs">不付款</span>
+          )}
+        </div>
+
+        {/* 移除按钮 */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0"
+          onClick={() => onRemove(iou.id)}
+        >
+          <X className="h-4 w-4" />
+        </Button>
       </div>
 
-      {/* 手动分配金额 */}
-      {!isNegative && (
-        <div className="flex items-center gap-1">
-          <Input
-            type="number"
-            placeholder="自动"
-            className="w-20 h-8 text-sm"
-            value={iou.manualAmount ?? ''}
-            onChange={(e) => onManualChange(iou.id, e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-          />
+      {/* 明细（子欠条 + 付款记录） */}
+      {expanded && (
+        <div className="border-t px-4 py-3 bg-muted/20">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 欠条明细 */}
+            <div>
+              <h4 className="font-medium mb-2 text-sm">欠条明细</h4>
+              <div className="space-y-1 text-sm">
+                {iou.items.map((item, idx) => (
+                  <div key={idx}>
+                    <div className="flex justify-between">
+                      <span>{item.client} | {item.flight || "-"} | {item.ticket_number || "-"}</span>
+                      <span>¥{item.amount.toLocaleString()}</span>
+                    </div>
+                    {item.remark && (
+                      <div className="text-muted-foreground text-xs pl-2">└ {item.remark}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 付款记录 */}
+            <div>
+              <h4 className="font-medium mb-2 text-sm">付款记录 ({iou.payments?.length || 0})</h4>
+              {!iou.payments || iou.payments.length === 0 ? (
+                <p className="text-sm text-muted-foreground">暂无付款</p>
+              ) : (
+                <div className="space-y-1 text-sm">
+                  {iou.payments.map((payment, idx) => (
+                    <div key={idx}>
+                      <div className="flex justify-between">
+                        <span>{payment.payment_date} | {payment.payer_name}</span>
+                        <span className="text-green-600">¥{payment.amount.toLocaleString()}</span>
+                      </div>
+                      {payment.remark && (
+                        <div className="text-muted-foreground text-xs pl-2">└ {payment.remark}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
-
-      {/* 预览分配 */}
-      <div className={`w-24 text-right text-sm font-medium ${
-        allocation !== 0 ? (allocation < 0 ? "text-blue-600" : "text-green-600") : "text-muted-foreground"
-      }`}>
-        {allocation !== 0 ? (
-          <>{allocation < 0 ? '−' : '→ '}¥{Math.abs(allocation).toLocaleString()}</>
-        ) : (
-          <span className="text-xs">不付款</span>
-        )}
-      </div>
-
-      {/* 移除按钮 */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-8 w-8 p-0"
-        onClick={() => onRemove(iou.id)}
-      >
-        <X className="h-4 w-4" />
-      </Button>
     </div>
   );
 }
@@ -204,6 +270,7 @@ export default function SelectivePaymentPage() {
     flightSegment: "",
     remark: "",
   });
+  const [defaultExpand] = useDefaultExpandDetails();
   const [searchResults, setSearchResults] = useState<IOU[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
@@ -405,7 +472,7 @@ export default function SelectivePaymentPage() {
           .sort((a: IOU, b: IOU) => b.ious_date.localeCompare(a.ious_date) || b.ious_id.localeCompare(a.ious_id));
         setSearchResults(ious);
         setSelectedIds(new Set());
-        setExpandedRows(new Set());
+        setExpandedRows(defaultExpand ? new Set(ious.map((iou: IOU) => iou.id)) : new Set());
         setMessage(null);
       } else {
         setMessage({ type: "error", text: data.detail || "搜索失败" });
@@ -745,6 +812,7 @@ export default function SelectivePaymentPage() {
                           iou={iou}
                           index={index}
                           allocation={getPreviewAllocation(iou.id)}
+                          defaultExpanded={defaultExpand}
                           onRemove={removeFromPending}
                           onManualChange={updateManualAmount}
                         />

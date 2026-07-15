@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Search, Download, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { useYIFAuth } from "@/hooks/useYIFAuth";
+import { useDefaultExpandDetails } from "@/components/yif/DetailViewSettings";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
 
@@ -71,6 +72,7 @@ export default function IOUSearchPage() {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [total, setTotal] = useState(0);
   const [exportFileName, setExportFileName] = useState("");
+  const [defaultExpand] = useDefaultExpandDetails();
 
   // All hooks must be before early returns
   const handleSearch = useCallback(async () => {
@@ -108,15 +110,17 @@ export default function IOUSearchPage() {
 
       const data = await response.json();
       if (data.success) {
-        setResults(data.ious);
+        const ious: IOU[] = data.ious;
+        setResults(ious);
         setTotal(data.total);
+        setExpandedRows(defaultExpand ? new Set(ious.map((iou) => iou.id)) : new Set());
       }
     } catch (err) {
       console.error("Search failed:", err);
     } finally {
       setIsSearching(false);
     }
-  }, [searchParams, selectedStatuses, getToken, user]);
+  }, [searchParams, selectedStatuses, getToken, user, defaultExpand]);
 
 
   // Early returns after hooks
