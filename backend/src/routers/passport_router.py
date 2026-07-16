@@ -20,6 +20,8 @@ import os
 import io
 import re
 import json
+import time
+import uuid
 import base64
 from typing import List, Optional, Dict, Tuple
 
@@ -296,6 +298,54 @@ def _extract(image_bytes: bytes, mime: str, provider: Optional[str] = None,
     return _extract_via_aliyun(image_bytes)
 
 
+def _client_ip(request: Request) -> str:
+    """Real client IP behind Render's proxy (X-Forwarded-For), else socket peer."""
+    xff = request.headers.get("x-forwarded-for", "")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else ""
+
+
+def _log_passport_image(request_id: str, client_ip: str, user_agent: str, airline: str,
+                        provider: str, filename: str, image_bytes: Optional[bytes],
+                        line: DocsLine, duration_ms: int) -> None:
+    """Best-effort audit log — one row per processed image. Stores the (downscaled)
+    input image plus the generated output and request metadata. Never raises into
+    the request path: a logging failure must not break the OCR response."""
+    try:
+        from database import get_db_connection  # lazy: keep module import light
+        import psycopg2
+        from psycopg2.extras import Json
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO passport_docs_log
+                (request_id, client_ip, user_agent, airline, pax, provider,
+                 filename, image_mime, image_size, image_bytes,
+                 command, fields, warnings, error, duration_ms)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """,
+            (
+                request_id, client_ip, user_agent, airline, line.pax, provider,
+                filename, "image/jpeg" if image_bytes else None,
+                len(image_bytes) if image_bytes else None,
+                psycopg2.Binary(image_bytes) if image_bytes else None,
+                line.command or None,
+                Json(line.fields or {}),
+                Json(line.warnings) if line.warnings else None,
+                line.error,
+                duration_ms,
+            ),
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:  # noqa: BLE001 — audit logging is best-effort
+        print(f"[passport] audit log failed: {e}")
+
+
 @router.post("/docs", response_model=DocsResponse)
 @limiter.limit("20/minute")
 async def passport_to_docs(
@@ -323,27 +373,44 @@ async def passport_to_docs(
     ov_provider = ((provider or "").strip().lower() or None) if allow_override else None
     ov_model = ((model or "").strip() or None) if allow_override else None
 
+    # Request-level audit metadata (one request_id links all images in this upload).
+    request_id = uuid.uuid4().hex
+    client_ip = _client_ip(request)
+    user_agent = request.headers.get("user-agent", "")
+    effective_provider = "openai" if ov_provider == "openai" else "aliyun"
+
     lines: List[DocsLine] = []
     pax = start_pax
     for f in files:
-        data = await f.read()
-        if not data:
-            lines.append(DocsLine(pax=pax, command="", fields={}, error="空文件"))
+        filename = f.filename or ""
+        raw = await f.read()
+        prepped: Optional[bytes] = None
+        t0 = time.monotonic()
+        if not raw:
+            line = DocsLine(pax=pax, command="", fields={}, error="空文件")
+            lines.append(line)
+            _log_passport_image(request_id, client_ip, user_agent, airline,
+                                effective_provider, filename, None, line, 0)
             pax += 1
             continue
         try:
-            data = _prepare_image(data)  # downscale/recompress before OCR
-            fields, warnings = _extract(data, "image/jpeg", provider=ov_provider, model=ov_model)
+            prepped = _prepare_image(raw)  # downscale/recompress before OCR
+            fields, warnings = _extract(prepped, "image/jpeg", provider=ov_provider, model=ov_model)
             if not (fields.get("passport_number") or "").strip():
-                lines.append(DocsLine(pax=pax, command="", fields=fields,
-                                      error="未能识别到有效护照信息，请检查图片"))
+                line = DocsLine(pax=pax, command="", fields=fields,
+                                error="未能识别到有效护照信息，请检查图片")
             else:
                 command = _build_command(airline, fields, pax)
-                lines.append(DocsLine(pax=pax, command=command, fields=fields, warnings=warnings or None))
+                line = DocsLine(pax=pax, command=command, fields=fields, warnings=warnings or None)
+            lines.append(line)
         except HTTPException:
             raise  # config error — surface immediately
         except Exception as e:  # per-image failure shouldn't abort the batch
-            lines.append(DocsLine(pax=pax, command="", fields={}, error=str(e)))
+            line = DocsLine(pax=pax, command="", fields={}, error=str(e))
+            lines.append(line)
+        duration_ms = int((time.monotonic() - t0) * 1000)
+        _log_passport_image(request_id, client_ip, user_agent, airline,
+                            effective_provider, filename, prepped, line, duration_ms)
         pax += 1
 
     return DocsResponse(success=True, lines=lines)

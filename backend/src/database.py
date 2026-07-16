@@ -74,6 +74,50 @@ def init_embodybench_tables():
         print(f"[DB] embodybench init skipped: {e}")
 
 
+def init_passport_log_table():
+    """
+    Create passport_docs_log (audit log for the passport→DOCS tool) on boot.
+    Idempotent: one row per processed passport image, storing the input image
+    (downscaled JPEG bytes), the generated command/fields, and request metadata
+    (time, client IP, user-agent). Best-effort — never blocks app boot.
+    """
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS passport_docs_log (
+                id           SERIAL PRIMARY KEY,
+                request_id   TEXT NOT NULL,
+                created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+                client_ip    TEXT,
+                user_agent   TEXT,
+                airline      TEXT,
+                pax          INTEGER,
+                provider     TEXT,
+                filename     TEXT,
+                image_mime   TEXT,
+                image_size   INTEGER,
+                image_bytes  BYTEA,
+                command      TEXT,
+                fields       JSONB,
+                warnings     JSONB,
+                error        TEXT,
+                duration_ms  INTEGER
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_passport_log_created ON passport_docs_log (created_at)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_passport_log_request ON passport_docs_log (request_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_passport_log_provider ON passport_docs_log (provider)")
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print("[DB] passport_docs_log table ready")
+    except psycopg2.OperationalError as e:
+        print(f"[DB] passport log init failed - database connection error: {e}")
+    except Exception as e:
+        print(f"[DB] passport log init skipped: {e}")
+
+
 def init_yif_triggers():
     """
     Initialize YIF database triggers (backup safety net).

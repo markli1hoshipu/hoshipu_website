@@ -33,7 +33,7 @@ from routers.accounting_router import router as accounting_router
 from routers.contact_router import router as contact_router
 from routers.passport_router import router as passport_router
 from routers.bench_router import router as bench_router, reclaim_stale_jobs_loop
-from database import init_yif_triggers, init_embodybench_tables
+from database import init_yif_triggers, init_embodybench_tables, init_passport_log_table
 import uvicorn
 import logging
 
@@ -84,6 +84,9 @@ init_yif_triggers()
 
 # Initialize EmbodyBench tables (auto-creates if not exists)
 init_embodybench_tables()
+
+# Initialize passport→DOCS audit log table (auto-creates if not exists)
+init_passport_log_table()
 
 
 @app.on_event("startup")
