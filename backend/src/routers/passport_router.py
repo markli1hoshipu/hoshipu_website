@@ -1,10 +1,12 @@
 """
 Passport → GDS DOCS command generator.
 
-Production always uses OpenAI gpt-4.1-mini to read the passport MRZ. (An Aliyun
-国际护照识别 (RecognizePassport) path exists but is reachable only via the gated
-ALLOW_OCR_OVERRIDE benchmark flag.) Python then formats an SR DOCS command line
-per passport, e.g.:
+Production uses Aliyun 国际护照识别 (RecognizePassport) to read the passport MRZ:
+it parses the raw MRZ lines deterministically (fixed-position slicing + ICAO
+check digits), so it can't confuse the MRZ country-code prefix with the surname
+the way an LLM occasionally does. (An OpenAI gpt-4.1-mini path still exists but
+is reachable only via the gated ALLOW_OCR_OVERRIDE benchmark flag.) Python then
+formats an SR DOCS command line per passport, e.g.:
 
     DOCS KE HK1 P/IDN/E6090613/IDN/30NOV91/M/12FEB34/PONTO/GOOD AGUN/P1
 
@@ -285,12 +287,13 @@ def _extract_via_aliyun(image_bytes: bytes) -> Tuple[Dict[str, str], List[str]]:
 
 def _extract(image_bytes: bytes, mime: str, provider: Optional[str] = None,
              model: Optional[str] = None) -> Tuple[Dict[str, str], List[str]]:
-    """Production always uses OpenAI/gpt-4.1-mini. Aliyun runs only when explicitly
-    requested via the gated benchmark override (provider="aliyun")."""
-    if provider == "aliyun":
-        return _extract_via_aliyun(image_bytes)
-    fields = _extract_fields(image_bytes, mime, model=model)  # OpenAI gpt-4.1-mini
-    return fields, _sanity_warnings(fields)
+    """Production always uses Aliyun 国际护照识别 (deterministic MRZ parsing).
+    OpenAI gpt-4.1-mini runs only when explicitly requested via the gated
+    benchmark override (provider="openai")."""
+    if provider == "openai":
+        fields = _extract_fields(image_bytes, mime, model=model)  # OpenAI gpt-4.1-mini
+        return fields, _sanity_warnings(fields)
+    return _extract_via_aliyun(image_bytes)
 
 
 @router.post("/docs", response_model=DocsResponse)

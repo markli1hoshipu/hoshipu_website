@@ -35,9 +35,9 @@ email-validator==2.1.0
 # ANTHROPIC_API_KEY is unset.
 anthropic==0.40.0
 
-# Passport → DOCS command generator (passport_router). OCR provider is
-# selectable via OCR_PROVIDER: Aliyun 国际护照识别 (default when its keys are
-# set) or OpenAI vision. Both degrade gracefully if their keys are unset.
+# Passport → DOCS command generator (passport_router). Production reads the MRZ
+# via Aliyun 国际护照识别 (deterministic parsing); OpenAI gpt-4.1-mini is a gated
+# benchmark-only fallback. Both degrade gracefully if their keys are unset.
 openai==1.109.1
 alibabacloud_ocr_api20210707==3.1.3
 alibabacloud_tea_openapi==0.4.5
