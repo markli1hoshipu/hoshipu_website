@@ -139,22 +139,23 @@ def _build_day_columns(ws) -> Dict[str, int]:
     return cols
 
 
-def _build_qff_debtor_rows(ws) -> Dict[str, int]:
-    """Map normalized debtor name -> row, for rows whose 负责人 (col A) == 'QFF'."""
+def _build_debtor_rows(ws, owner: str) -> Dict[str, int]:
+    """Map normalized debtor name -> row, for rows whose 负责人 (col A) == owner."""
     out: Dict[str, int] = {}
     for r in range(3, ws.max_row + 1):
-        if ws.cell(r, 1).value == "QFF":
+        if ws.cell(r, 1).value == owner:
             name = ws.cell(r, 2).value
             if name is not None:
                 out.setdefault(_norm(name), r)
     return out
 
 
-def _last_qff_row(ws) -> int:
-    """The last row whose 负责人 (col A) == 'QFF' — new debtors go just after it."""
-    last = 2
+def _last_group_row(ws, owner: str) -> Optional[int]:
+    """The last row whose 负责人 (col A) == owner — new debtors go just after it.
+    Returns None if the owner group is not present in the sheet."""
+    last: Optional[int] = None
     for r in range(3, ws.max_row + 1):
-        if ws.cell(r, 1).value == "QFF":
+        if ws.cell(r, 1).value == owner:
             last = r
     return last
 
@@ -219,8 +220,15 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
         "log_rows": [],         # rows to append to the hidden log
     }
 
-    # group accepted IOUs by target sheet
-    # plan[sheet] = {"existing": [(row,col,amt,iou)], "new": {normname: {"name":..,"cells":{col:amt}, "ious":[...]}}}
+    # Placement is driven by the 负责人 code in QFF column E: each IOU merges into
+    # its own owner's group (QFF / WW / LYC / …) in the target month sheet.
+    #
+    # plan[sheet] = {
+    #   "day_cols": {yymmdd: col},
+    #   "owner_rows": {owner: {normname: row}},          # existing debtor rows per group
+    #   "existing": [(row, col, amount, iou)],
+    #   "new": {owner: {normname: {"name","cells","ious"}}},
+    # }
     plan: Dict[str, Dict[str, Any]] = {}
 
     for iou in ious:
@@ -244,7 +252,7 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
         if sheet_name not in plan:
             plan[sheet_name] = {
                 "day_cols": _build_day_columns(ws),
-                "debtor_rows": _build_qff_debtor_rows(ws),
+                "owner_rows": {},
                 "existing": [],
                 "new": {},
             }
@@ -255,13 +263,22 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
             report["skipped"].append({"iou_no": no, "reason": f"no day column {yymmdd} in {sheet_name}"})
             continue
 
+        owner = iou["owner"] or "QFF"
+        if owner not in st["owner_rows"]:
+            st["owner_rows"][owner] = _build_debtor_rows(ws, owner)
+        # the owner group must exist in the sheet to place a row
+        if _last_group_row(ws, owner) is None:
+            report["skipped"].append({"iou_no": no, "reason": f"no group {owner} in {sheet_name}"})
+            continue
+
         amount = iou["initial"] or 0
         nk = _norm(iou["debtor"])
-        row = st["debtor_rows"].get(nk)
+        row = st["owner_rows"][owner].get(nk)
         if row:
             st["existing"].append((row, col, amount, iou))
         else:
-            nd = st["new"].setdefault(nk, {"name": iou["debtor"], "cells": {}, "ious": []})
+            grp = st["new"].setdefault(owner, {})
+            nd = grp.setdefault(nk, {"name": iou["debtor"], "cells": {}, "ious": []})
             nd["cells"][col] = nd["cells"].get(col, 0) + amount
             nd["ious"].append(iou)
 
@@ -270,7 +287,8 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
         ws = wb[sheet_name]
         max_col = ws.max_column
 
-        # 1) existing debtors: add amount into the day cell (aggregate)
+        # 1) existing debtors: add amount into the day cell (aggregate).
+        #    Done before any row insertion; the values move with their cells.
         for row, col, amount, iou in st["existing"]:
             cur = ws.cell(row, col).value
             base = cur if isinstance(cur, (int, float)) else 0
@@ -281,24 +299,31 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
             report["log_rows"].append([iou["iou_no"], iou["date"], iou["debtor"],
                                        amount, sheet_name, "added", iou.get("remark")])
 
-        # 2) new debtors: insert rows at the end of the QFF group
-        new_list = list(st["new"].values())
-        if new_list:
-            insert_at = _last_qff_row(ws) + 1
-            # a QFF debtor row above the insertion point, used as a style template
-            tpl = next((r for r in _build_qff_debtor_rows(ws).values() if r < insert_at), 3)
+        # 2) new debtors: insert rows at the end of each owner's group.
+        #    Process groups bottom-up (largest insertion row first) so earlier
+        #    insertions don't shift the still-original insertion points above.
+        batches = []
+        for owner, grp in st["new"].items():
+            insert_at = _last_group_row(ws, owner)  # original coords
+            if insert_at is None:
+                continue
+            batches.append((insert_at + 1, owner, list(grp.values())))
+        batches.sort(key=lambda b: b[0], reverse=True)
+
+        for insert_at, owner, new_list in batches:
+            tpl = next((r for r in _build_debtor_rows(ws, owner).values() if r < insert_at), 3)
             _insert_rows_with_remap(ws, insert_at, len(new_list))
             for i, nd in enumerate(new_list):
                 r = insert_at + i
                 _copy_row_style(ws, tpl, r, max_col)
-                ws.cell(r, 1).value = "QFF"
+                ws.cell(r, 1).value = owner
                 ws.cell(r, 2).value = nd["name"]
                 ws.cell(r, 3).value = f"=SUM(E{r}:ZC{r})"   # 余额
                 ws.cell(r, 4).value = f"=SUM(F{r}:ZE{r})"   # 当月发生额
                 for col, amt in nd["cells"].items():
                     ws.cell(r, col).value = amt
                 report["new_debtors"] += 1
-                report["new_debtor_names"].append(nd["name"])
+                report["new_debtor_names"].append(f"{owner}: {nd['name']}")
                 for iou in nd["ious"]:
                     report["added"] += 1
                     report["log_rows"].append([iou["iou_no"], iou["date"], iou["debtor"],
