@@ -355,6 +355,11 @@
       "description": "Classic Pong against an AI opponent! Use W/S or arrow keys to control your paddle, or just move your mouse. First to 7 points wins — ball speeds up with every hit!",
       "tags": ["Game", "Classic"]
     },
+    "codeQuiz": {
+      "title": "Airline / Airport Code Quiz",
+      "description": "Multiple-choice quiz on IATA airline and airport codes — match Chinese names to codes and back. Pick a category, build your streak, and memorize codes the fun way!",
+      "tags": ["Game", "Quiz"]
+    },
     "qffTravel": {
       "title": "QFF Travel Itinerary Tool",
       "description": "Manage travel translation output templates, airline code mappings, and airport code mappings for easy flight information organization.",
