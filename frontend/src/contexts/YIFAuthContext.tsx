@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useLocale } from "next-intl";
+import { clearSessionCache } from "@/hooks/useSessionCachedState";
 
 interface User {
   id: number;
@@ -82,6 +83,7 @@ export function YIFAuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem('yif_access_token');
     localStorage.removeItem('yif_user');
+    clearSessionCache(); // 清除缓存的搜索结果 / 草稿，避免不同用户串数据
     setUser(null);
     setVerified(false);
     router.push(`/${locale}/projects`);

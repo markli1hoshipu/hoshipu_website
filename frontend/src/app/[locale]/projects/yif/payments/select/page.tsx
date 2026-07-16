@@ -9,6 +9,7 @@ import { CheckSquare, Search, Upload, FileText, CheckCircle, AlertCircle, Square
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useYIFAuth } from "@/hooks/useYIFAuth";
 import { useDefaultExpandDetails } from "@/components/yif/DetailViewSettings";
+import { useSessionCachedState } from "@/hooks/useSessionCachedState";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -254,14 +255,14 @@ function SortablePendingItem({
 
 export default function SelectivePaymentPage() {
   const { user, loading: authLoading, getToken } = useYIFAuth();
-  const [paymentData, setPaymentData] = useState({
+  const [paymentData, setPaymentData] = useSessionCachedState("payments/select:paymentData", {
     userName: "",
     date: "",
     payerName: "",
     amount: "",
     remark: "",
   });
-  const [searchParams, setSearchParams] = useState({
+  const [searchParams, setSearchParams] = useSessionCachedState("payments/select:searchParams", {
     startDate: "",
     endDate: "",
     customer: "",
@@ -271,22 +272,22 @@ export default function SelectivePaymentPage() {
     remark: "",
   });
   const [defaultExpand] = useDefaultExpandDetails();
-  const [searchResults, setSearchResults] = useState<IOU[]>([]);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [searchResults, setSearchResults] = useSessionCachedState<IOU[]>("payments/select:searchResults", []);
+  const [selectedIds, setSelectedIds] = useSessionCachedState<Set<number>>("payments/select:selectedIds", new Set());
+  const [expandedRows, setExpandedRows] = useSessionCachedState<Set<number>>("payments/select:expandedRows", new Set());
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error" | "warning"; text: string } | null>(null);
 
   // 排序状态
-  const [sortField, setSortField] = useState<SortField>('ious_date');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [sortField, setSortField] = useSessionCachedState<SortField>("payments/select:sortField", 'ious_date');
+  const [sortOrder, setSortOrder] = useSessionCachedState<SortOrder>("payments/select:sortOrder", 'desc');
 
   // 可选列显示状态
-  const [visibleOptionalColumns, setVisibleOptionalColumns] = useState<Set<string>>(new Set());
+  const [visibleOptionalColumns, setVisibleOptionalColumns] = useSessionCachedState<Set<string>>("payments/select:visibleOptionalColumns", new Set());
 
   // 待清理欠条队列
-  const [pendingQueue, setPendingQueue] = useState<PendingIOU[]>([]);
+  const [pendingQueue, setPendingQueue] = useSessionCachedState<PendingIOU[]>("payments/select:pendingQueue", []);
 
   // 拖拽排序传感器 - 必须在早期 return 之前
   const sensors = useSensors(

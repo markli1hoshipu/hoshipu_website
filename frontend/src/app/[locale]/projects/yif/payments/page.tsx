@@ -9,6 +9,7 @@ import { DollarSign, Search, Upload, FileText, CheckCircle, AlertCircle, Chevron
 import { useYIFAuth } from "@/hooks/useYIFAuth";
 import { useDefaultExpandDetails } from "@/components/yif/DetailViewSettings";
 import { useIOUDetailCache, IOUDetailPanel } from "@/components/yif/IOUDetail";
+import { useSessionCachedState } from "@/hooks/useSessionCachedState";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
 
@@ -65,7 +66,7 @@ const buildRemark = (amountStr: string, targetIOU: IOU | undefined, selectedIdxs
 export default function PaymentEntryPage() {
   const { user, loading: authLoading, getToken } = useYIFAuth();
   const [defaultExpand] = useDefaultExpandDetails();
-  const [paymentData, setPaymentData] = useState({
+  const [paymentData, setPaymentData] = useSessionCachedState("payments:paymentData", {
     iouDbId: "",
     iouId: "",
     userName: "",
@@ -74,7 +75,7 @@ export default function PaymentEntryPage() {
     amount: "",
     remark: "",
   });
-  const [searchParams, setSearchParams] = useState({
+  const [searchParams, setSearchParams] = useSessionCachedState("payments:searchParams", {
     startDate: "",
     endDate: "",
     customer: "",
@@ -83,18 +84,18 @@ export default function PaymentEntryPage() {
     flightSegment: "",
     remark: "",
   });
-  const [searchResults, setSearchResults] = useState<IOU[]>([]);
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [searchResults, setSearchResults] = useSessionCachedState<IOU[]>("payments:searchResults", []);
+  const [expandedRows, setExpandedRows] = useSessionCachedState<Set<number>>("payments:expandedRows", new Set());
   // 已勾选的子欠条（仅属于当前付款目标欠条），仅用于自动填充备注
-  const [selectedItemIdxs, setSelectedItemIdxs] = useState<Set<number>>(new Set());
+  const [selectedItemIdxs, setSelectedItemIdxs] = useSessionCachedState<Set<number>>("payments:selectedItemIdxs", new Set());
   // 备注是否处于自动生成模式（用户手动编辑后关闭）
-  const [remarkAuto, setRemarkAuto] = useState(true);
+  const [remarkAuto, setRemarkAuto] = useSessionCachedState("payments:remarkAuto", true);
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [createdPayments, setCreatedPayments] = useState<CreatedPayment[]>([]);
+  const [createdPayments, setCreatedPayments] = useSessionCachedState<CreatedPayment[]>("payments:createdPayments", []);
   // 最近付款记录的明细展开
-  const [expandedPayments, setExpandedPayments] = useState<Set<number>>(new Set());
+  const [expandedPayments, setExpandedPayments] = useSessionCachedState<Set<number>>("payments:expandedPayments", new Set());
   const { cache: iouCache, errors: iouErrors, ensureLoaded } = useIOUDetailCache(getToken);
 
   const targetIOU = searchResults.find((iou) => iou.id.toString() === paymentData.iouDbId);

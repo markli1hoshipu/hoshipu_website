@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { Search, Download, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { useYIFAuth } from "@/hooks/useYIFAuth";
 import { useDefaultExpandDetails } from "@/components/yif/DetailViewSettings";
+import { useSessionCachedState } from "@/hooks/useSessionCachedState";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
 
@@ -52,7 +53,7 @@ interface IOU {
 
 export default function IOUSearchPage() {
   const { user, loading: authLoading, getToken } = useYIFAuth();
-  const [searchParams, setSearchParams] = useState({
+  const [searchParams, setSearchParams] = useSessionCachedState("ious/search:searchParams", {
     startDate: "",
     endDate: "",
     customer: "",
@@ -65,13 +66,13 @@ export default function IOUSearchPage() {
     remark: "",
     iouId: "",
   });
-  const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set());
-  const [results, setResults] = useState<IOU[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useSessionCachedState<Set<string>>("ious/search:selectedStatuses", new Set());
+  const [results, setResults] = useSessionCachedState<IOU[]>("ious/search:results", []);
   const [isSearching, setIsSearching] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
-  const [total, setTotal] = useState(0);
-  const [exportFileName, setExportFileName] = useState("");
+  const [expandedRows, setExpandedRows] = useSessionCachedState<Set<number>>("ious/search:expandedRows", new Set());
+  const [total, setTotal] = useSessionCachedState("ious/search:total", 0);
+  const [exportFileName, setExportFileName] = useSessionCachedState("ious/search:exportFileName", "");
   const [defaultExpand] = useDefaultExpandDetails();
 
   // All hooks must be before early returns

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, FileSpreadsheet, Plus, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useYIFAuth } from "@/hooks/useYIFAuth";
 import { useIOUDetailCache, IOUDetailPanel } from "@/components/yif/IOUDetail";
+import { useSessionCachedState } from "@/hooks/useSessionCachedState";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
 
@@ -22,7 +23,7 @@ export default function IOUEntryPage() {
   const { user, loading: authLoading, getToken } = useYIFAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useSessionCachedState("ious:formData", {
     userName: "",
     date: "",
     customer: "",
@@ -31,13 +32,13 @@ export default function IOUEntryPage() {
     ticketNumber: "",
     remark: "",
   });
-  const [excelFile, setExcelFile] = useState<File | null>(null);
-  const [sheetName, setSheetName] = useState("");
+  const [excelFile, setExcelFile] = useState<File | null>(null); // File 不可序列化，不缓存
+  const [sheetName, setSheetName] = useSessionCachedState("ious:sheetName", "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [createdIOUs, setCreatedIOUs] = useState<CreatedIOU[]>([]);
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [createdIOUs, setCreatedIOUs] = useSessionCachedState<CreatedIOU[]>("ious:createdIOUs", []);
+  const [expandedRows, setExpandedRows] = useSessionCachedState<Set<number>>("ious:expandedRows", new Set());
   const { cache: iouCache, errors: iouErrors, ensureLoaded } = useIOUDetailCache(getToken);
 
   // 展开的行 → 确保其欠条明细已加载（懒加载）

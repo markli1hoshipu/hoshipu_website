@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Download, FileText, ChevronDown, ChevronUp, UserSearch, AlertTriangle, Users } from "lucide-react";
 import { useYIFAuth } from "@/hooks/useYIFAuth";
 import { useDefaultExpandDetails } from "@/components/yif/DetailViewSettings";
+import { useSessionCachedState } from "@/hooks/useSessionCachedState";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
 
@@ -56,10 +57,10 @@ export default function TeamDataQueryPage() {
   const locale = useLocale();
   const { user, loading: authLoading, getToken } = useYIFAuth();
 
-  const [teamUsers, setTeamUsers] = useState<TeamUser[]>([]);
-  const [selectedWorkerId, setSelectedWorkerId] = useState<string>("all");
+  const [teamUsers, setTeamUsers] = useSessionCachedState<TeamUser[]>("team-data:teamUsers", []);
+  const [selectedWorkerId, setSelectedWorkerId] = useSessionCachedState<string>("team-data:selectedWorkerId", "all");
 
-  const [searchParams, setSearchParams] = useState({
+  const [searchParams, setSearchParams] = useSessionCachedState("team-data:searchParams", {
     startDate: "",
     endDate: "",
     customer: "",
@@ -69,16 +70,16 @@ export default function TeamDataQueryPage() {
     status: "all",
     iouId: "",
   });
-  const [results, setResults] = useState<IOU[]>([]);
+  const [results, setResults] = useSessionCachedState<IOU[]>("team-data:results", []);
   const [isSearching, setIsSearching] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
-  const [total, setTotal] = useState(0);
+  const [expandedRows, setExpandedRows] = useSessionCachedState<Set<number>>("team-data:expandedRows", new Set());
+  const [total, setTotal] = useSessionCachedState("team-data:total", 0);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [defaultExpand] = useDefaultExpandDetails();
 
   // Summary stats
-  const [summary, setSummary] = useState({
+  const [summary, setSummary] = useSessionCachedState("team-data:summary", {
     totalAmount: 0,
     totalPaid: 0,
     totalRest: 0,

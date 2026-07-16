@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Upload, ChevronDown, ChevronUp, Filter } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useYIFAuth } from "@/hooks/useYIFAuth";
+import { useSessionCachedState } from "@/hooks/useSessionCachedState";
 
 interface Summary {
   total_ious: number;
@@ -53,9 +54,9 @@ export default function YIFDataAnalysis() {
   const { user, loading: authLoading, getToken } = useYIFAuth();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
+  const [summary, setSummary] = useSessionCachedState<Summary | null>("data:summary", null);
+  const [businesses, setBusinesses] = useSessionCachedState<Business[]>("data:businesses", []);
+  const [filteredBusinesses, setFilteredBusinesses] = useSessionCachedState<Business[]>("data:filteredBusinesses", []);
 
   // Check admin access
   useEffect(() => {
@@ -65,11 +66,11 @@ export default function YIFDataAnalysis() {
   }, [authLoading, user, router, locale]);
 
   // 筛选和排序状态
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterClient, setFilterClient] = useState<string>('');
-  const [sortBy, setSortBy] = useState<string>('date_desc');
-  const [expandedRow, setExpandedRow] = useState<number | null>(null);
-  const [paymentDetails, setPaymentDetails] = useState<Record<string, PaymentDetail[]>>({});
+  const [filterStatus, setFilterStatus] = useSessionCachedState<string>("data:filterStatus", 'all');
+  const [filterClient, setFilterClient] = useSessionCachedState<string>("data:filterClient", '');
+  const [sortBy, setSortBy] = useSessionCachedState<string>("data:sortBy", 'date_desc');
+  const [expandedRow, setExpandedRow] = useSessionCachedState<number | null>("data:expandedRow", null);
+  const [paymentDetails, setPaymentDetails] = useSessionCachedState<Record<string, PaymentDetail[]>>("data:paymentDetails", {});
   const [loadingPayments, setLoadingPayments] = useState<Record<string, boolean>>({});
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:6101';

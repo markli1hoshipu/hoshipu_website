@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ListOrdered, Search, Upload, FileText, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
 import { useYIFAuth } from "@/hooks/useYIFAuth";
+import { useSessionCachedState } from "@/hooks/useSessionCachedState";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
 
@@ -28,14 +29,14 @@ interface AllocationPreview {
 
 export default function BatchPaymentPage() {
   const { user, loading: authLoading, getToken } = useYIFAuth();
-  const [paymentData, setPaymentData] = useState({
+  const [paymentData, setPaymentData] = useSessionCachedState("payments/batch:paymentData", {
     userName: "",
     date: "",
     payerName: "",
     amount: "",
     remark: "",
   });
-  const [searchParams, setSearchParams] = useState({
+  const [searchParams, setSearchParams] = useSessionCachedState("payments/batch:searchParams", {
     startDate: "",
     endDate: "",
     customer: "",
@@ -44,7 +45,7 @@ export default function BatchPaymentPage() {
     flightSegment: "",
     remark: "",
   });
-  const [searchResults, setSearchResults] = useState<IOU[]>([]);
+  const [searchResults, setSearchResults] = useSessionCachedState<IOU[]>("payments/batch:searchResults", []);
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);

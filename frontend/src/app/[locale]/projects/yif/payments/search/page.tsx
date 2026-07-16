@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Download, DollarSign, Trash2, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useYIFAuth } from "@/hooks/useYIFAuth";
 import { useDefaultExpandDetails } from "@/components/yif/DetailViewSettings";
+import { useSessionCachedState } from "@/hooks/useSessionCachedState";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
 
@@ -56,19 +57,19 @@ interface PaidIOU {
 
 export default function PaymentSearchPage() {
   const { user, loading: authLoading, getToken } = useYIFAuth();
-  const [searchParams, setSearchParams] = useState({
+  const [searchParams, setSearchParams] = useSessionCachedState("payments/search:searchParams", {
     startDate: "",
     endDate: "",
     payerName: "",
     remark: "",
   });
-  const [searchResults, setSearchResults] = useState<Payment[]>([]);
+  const [searchResults, setSearchResults] = useSessionCachedState<Payment[]>("payments/search:searchResults", []);
   const [defaultExpand] = useDefaultExpandDetails();
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
-  const [iouCache, setIouCache] = useState<Record<number, IOUDetail>>({});
+  const [expandedRows, setExpandedRows] = useSessionCachedState<Set<number>>("payments/search:expandedRows", new Set());
+  const [iouCache, setIouCache] = useSessionCachedState<Record<number, IOUDetail>>("payments/search:iouCache", {});
   const [iouError, setIouError] = useState<Set<number>>(new Set());
   const requestedRef = useRef<Set<number>>(new Set());
-  const [paidIOUs, setPaidIOUs] = useState<PaidIOU[]>([]);
+  const [paidIOUs, setPaidIOUs] = useSessionCachedState<PaidIOU[]>("payments/search:paidIOUs", []);
 
   // 按需拉取欠条明细（按数据库ID缓存，去重，避免重复请求）
   const ensureIOULoaded = useCallback(async (iouDbId: number) => {
@@ -112,8 +113,8 @@ export default function PaymentSearchPage() {
   const [isClearing, setIsClearing] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [total, setTotal] = useState(0);
-  const [exportFileName, setExportFileName] = useState("");
+  const [total, setTotal] = useSessionCachedState("payments/search:total", 0);
+  const [exportFileName, setExportFileName] = useSessionCachedState("payments/search:exportFileName", "");
 
   // All hooks must be before early returns
   const handleSearch = useCallback(async () => {
