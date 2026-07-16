@@ -2,10 +2,12 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
+import { useLocale } from "next-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plane, Upload, Copy, CheckCircle, AlertCircle, ImagePlus, X, Loader2, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Plane, Upload, Copy, CheckCircle, AlertCircle, ImagePlus, X, Loader2, ThumbsUp, ThumbsDown, Search } from "lucide-react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
 
@@ -54,6 +56,7 @@ function fmtAccuracy(a?: ProviderAccuracy): string {
 }
 
 export default function PassportDocsPage() {
+  const locale = useLocale();
   const [airline, setAirline] = useState("CZ");
   const [startPax, setStartPax] = useState(1);
   const [provider, setProvider] = useState<Provider>("aliyun");
@@ -206,14 +209,22 @@ export default function PassportDocsPage() {
         transition={{ duration: 0.5 }}
         className="space-y-6"
       >
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Plane className="h-7 w-7" />
-            护照 → DOCS 指令
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            上传护照照片页，自动识别 MRZ 并生成 SR DOCS 指令（每张护照一行，乘客号自动递增）
-          </p>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              <Plane className="h-7 w-7" />
+              护照 → DOCS 指令
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              上传护照照片页，自动识别 MRZ 并生成 SR DOCS 指令（每张护照一行，乘客号自动递增）
+            </p>
+          </div>
+          <Button asChild variant="outline" size="sm" className="shrink-0">
+            <Link href={`/${locale}/projects/passport-docs/records`}>
+              <Search className="h-4 w-4 mr-1" />
+              历史记录
+            </Link>
+          </Button>
         </div>
 
         {message && (
@@ -286,31 +297,35 @@ export default function PassportDocsPage() {
                         )}
                         {/* Correctness vote — feeds the accuracy tracker */}
                         {line.log_id != null && (
-                          <div className="mt-2 flex items-center gap-2 text-xs">
-                            <span className="text-muted-foreground">识别是否正确？</span>
+                          <div className="mt-3 flex items-center gap-3 flex-wrap">
+                            <span className="text-sm font-medium">识别是否正确？</span>
                             <button
                               type="button"
                               onClick={() => handleVote(line.log_id!, true)}
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border transition-colors ${
+                              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all ${
                                 voted === true
-                                  ? "bg-green-100 text-green-800 border-green-300"
-                                  : "hover:bg-muted border-muted-foreground/25"
+                                  ? "bg-green-600 text-white border-green-600 shadow-md scale-105"
+                                  : voted === false
+                                  ? "bg-green-50 text-green-700 border-green-200 opacity-50 hover:opacity-100"
+                                  : "bg-green-100 text-green-800 border-green-300 hover:bg-green-200 hover:border-green-400"
                               }`}
                             >
-                              <ThumbsUp className="h-3.5 w-3.5" /> 正确
+                              <ThumbsUp className="h-4 w-4" /> 正确
                             </button>
                             <button
                               type="button"
                               onClick={() => handleVote(line.log_id!, false)}
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border transition-colors ${
+                              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all ${
                                 voted === false
-                                  ? "bg-red-100 text-red-800 border-red-300"
-                                  : "hover:bg-muted border-muted-foreground/25"
+                                  ? "bg-red-600 text-white border-red-600 shadow-md scale-105"
+                                  : voted === true
+                                  ? "bg-red-50 text-red-700 border-red-200 opacity-50 hover:opacity-100"
+                                  : "bg-red-100 text-red-800 border-red-300 hover:bg-red-200 hover:border-red-400"
                               }`}
                             >
-                              <ThumbsDown className="h-3.5 w-3.5" /> 有误
+                              <ThumbsDown className="h-4 w-4" /> 有误
                             </button>
-                            {voted !== undefined && <span className="text-muted-foreground">已反馈，谢谢</span>}
+                            {voted !== undefined && <span className="text-sm text-muted-foreground">已反馈，谢谢</span>}
                           </div>
                         )}
                       </>

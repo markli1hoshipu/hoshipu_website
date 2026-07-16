@@ -490,3 +490,80 @@ async def accuracy(request: Request):
         return ProviderAccuracy(votes=v, correct=c, accuracy=(c / v) if v else None)
 
     return AccuracyResponse(aliyun=pack(stats["aliyun"]), openai=pack(stats["openai"]))
+
+
+class LogItem(BaseModel):
+    id: int
+    created_at: Optional[str] = None
+    provider: Optional[str] = None
+    airline: Optional[str] = None
+    pax: Optional[int] = None
+    command: Optional[str] = None
+    fields: Dict[str, str] = {}
+    warnings: Optional[List[str]] = None
+    error: Optional[str] = None
+    vote: Optional[int] = None       # 1 correct, 0 incorrect, None not voted
+    duration_ms: Optional[int] = None
+    client_ip: Optional[str] = None
+
+
+class LogsResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    items: List[LogItem]
+
+
+@router.get("/logs", response_model=LogsResponse)
+@limiter.limit("60/minute")
+async def list_logs(request: Request, q: str = "", page: int = 1, page_size: int = 20):
+    """Browse past scans (outputs only). `q` searches by name (surname/given
+    names), passport number, or the command text — so a passport already
+    processed can be looked up instead of scanned again."""
+    q = (q or "").strip()
+    page = max(1, page)
+    page_size = min(max(1, page_size), 100)
+    offset = (page - 1) * page_size
+
+    items: List[LogItem] = []
+    total = 0
+    where, params = "", []
+    if q:
+        like = f"%{q}%"
+        where = (
+            "WHERE command ILIKE %s OR fields->>'surname' ILIKE %s "
+            "OR fields->>'given_names' ILIKE %s OR fields->>'passport_number' ILIKE %s"
+        )
+        params = [like, like, like, like]
+
+    try:
+        from database import get_db_connection
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(f"SELECT count(*) FROM passport_docs_log {where}", params)
+        total = int(cur.fetchone()[0])
+        cur.execute(
+            f"""
+            SELECT id, created_at, provider, airline, pax, command, fields, warnings,
+                   error, vote, duration_ms, client_ip
+            FROM passport_docs_log {where}
+            ORDER BY id DESC
+            LIMIT %s OFFSET %s
+            """,
+            params + [page_size, offset],
+        )
+        for (rid, created_at, provider, airline, pax, command, fields, warnings,
+             error, vote, duration_ms, client_ip) in cur.fetchall():
+            items.append(LogItem(
+                id=rid,
+                created_at=created_at.isoformat() if created_at else None,
+                provider=provider, airline=airline, pax=pax, command=command,
+                fields=fields or {}, warnings=warnings, error=error,
+                vote=vote, duration_ms=duration_ms, client_ip=client_ip,
+            ))
+        cur.close()
+        conn.close()
+    except Exception as e:  # noqa: BLE001 — viewer is read-only; degrade to empty
+        print(f"[passport] logs query failed: {e}")
+
+    return LogsResponse(total=total, page=page, page_size=page_size, items=items)
