@@ -49,9 +49,23 @@ function fmtTime(iso?: string | null): string {
 }
 
 function voteBadge(vote?: number | null) {
-  if (vote === 1) return <span className="text-green-700 bg-green-100 border border-green-200 rounded px-1.5 py-0.5 text-[10px]">✓ 正确</span>;
-  if (vote === 0) return <span className="text-red-700 bg-red-100 border border-red-200 rounded px-1.5 py-0.5 text-[10px]">✗ 有误</span>;
-  return <span className="text-muted-foreground bg-muted rounded px-1.5 py-0.5 text-[10px]">未反馈</span>;
+  if (vote === 1)
+    return (
+      <span className="inline-flex items-center gap-1 text-green-800 bg-green-100 border-2 border-green-400 rounded-md px-2.5 py-1 text-xs font-bold">
+        ✓ 正确
+      </span>
+    );
+  if (vote === 0)
+    return (
+      <span className="inline-flex items-center gap-1 text-white bg-red-600 border-2 border-red-600 rounded-md px-2.5 py-1 text-xs font-bold shadow-sm">
+        ✗ 错误
+      </span>
+    );
+  return (
+    <span className="inline-flex items-center gap-1 text-muted-foreground bg-muted border-2 border-transparent rounded-md px-2.5 py-1 text-xs font-medium">
+      未投票
+    </span>
+  );
 }
 
 export default function PassportRecordsPage() {
@@ -177,8 +191,14 @@ export default function PassportRecordsPage() {
             )}
             {data?.items.map((item) => {
               const name = [item.fields.surname, item.fields.given_names].filter(Boolean).join(" ") || "-";
+              const rowTint =
+                item.vote === 0
+                  ? "border-red-300 bg-red-50/60"
+                  : item.vote === 1
+                  ? "border-green-300 bg-green-50/50"
+                  : "";
               return (
-                <div key={item.id} className="border rounded-lg p-3">
+                <div key={item.id} className={`border rounded-lg p-3 ${rowTint}`}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground mb-1">
