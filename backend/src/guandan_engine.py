@@ -68,62 +68,129 @@ def _consecutive(sorted_unique: List[int]) -> bool:
     return True
 
 
+def is_wild(card: Dict, level: str) -> bool:
+    """The ♥ card matching the current level is the 逢人配 wild card."""
+    return card["suit"] == "♥" and card["rank"] == level
+
+
+def _rank_val(rank: str, level: str) -> float:
+    return 15.5 if rank == level else BASE[rank]
+
+
+def _seq_top(nat_by_rank: Dict[str, List[Dict]], w: int, mult: int, k: int) -> Optional[int]:
+    """Highest top-base of a run of k consecutive ranks (each needing `mult`
+    copies), filling shortfalls with `w` wilds. Every natural must be usable
+    inside the window and consumed; wilds must be used exactly. None if no fit."""
+    if k <= 0:
+        return None
+    counts: Dict[int, int] = {}
+    for r, cs in nat_by_rank.items():
+        b = BASE[r]
+        if b == 15:  # '2' cannot appear in a run
+            return None
+        counts[b] = counts.get(b, 0) + len(cs)
+    best: Optional[int] = None
+    for lo in range(3, 15 - k + 1):  # window [lo, lo+k-1] within base 3..14
+        window = set(range(lo, lo + k))
+        if any(b not in window for b in counts):
+            continue
+        if any(counts.get(b, 0) > mult for b in window):
+            continue
+        need = sum(mult - counts.get(b, 0) for b in window)
+        if need == w:
+            top = lo + k - 1
+            if best is None or top > best:
+                best = top
+    return best
+
+
 def analyze(cards: List[Dict], level: str) -> Optional[Dict]:
+    """Identify the combo a set of cards forms (wild-card aware). Returns the
+    strongest sensible interpretation, or None if the cards form no legal combo."""
     n = len(cards)
     if n == 0:
         return None
-    by_rank: Dict[str, List[Dict]] = {}
-    for c in cards:
-        by_rank.setdefault(c["rank"], []).append(c)
-    ranks = list(by_rank.keys())
-    joker_count = sum(1 for c in cards if is_joker(c["rank"]))
+    wilds = [c for c in cards if is_wild(c, level)]
+    w = len(wilds)
+    naturals = [c for c in cards if not is_wild(c, level)]
+    jc = sum(1 for c in naturals if is_joker(c["rank"]))
 
-    # 天王炸
-    if n == 4:
-        big = sum(1 for c in cards if c["rank"] == "大王")
-        small = sum(1 for c in cards if c["rank"] == "小王")
-        if big == 2 and small == 2:
-            return {"kind": "天王炸", "cat": 100, "len": 4, "value": 1000, "cards": cards}
-
-    # same-rank bomb 4-8
-    if len(ranks) == 1 and joker_count == 0 and n >= 4:
-        return {"kind": "炸弹", "cat": n, "len": n, "value": card_val(cards[0], level), "cards": cards}
-
-    # 同花顺
-    if n >= 5 and joker_count == 0 and cards[0]["suit"] and all(c["suit"] == cards[0]["suit"] for c in cards) and "2" not in by_rank:
-        bv = sorted(BASE[c["rank"]] for c in cards)
-        if _consecutive(bv):
-            return {"kind": "同花顺", "cat": 6.5, "len": n, "value": max(bv), "cards": cards}
-
-    # single / pair / triple
-    if len(ranks) == 1:
+    # Combos containing jokers: wilds may not mix with jokers.
+    if jc > 0:
+        if w > 0:
+            return None
+        if n == 4:
+            big = sum(1 for c in cards if c["rank"] == "大王")
+            small = sum(1 for c in cards if c["rank"] == "小王")
+            if big == 2 and small == 2:
+                return {"kind": "天王炸", "cat": 100, "len": 4, "value": 1000, "cards": cards}
         if n == 1:
-            return {"kind": "单牌", "cat": 0, "len": 1, "value": card_val(cards[0], level), "cards": cards}
-        if n == 2:
-            return {"kind": "对子", "cat": 0, "len": 2, "value": card_val(cards[0], level), "cards": cards}
-        if n == 3 and joker_count == 0:
-            return {"kind": "三张", "cat": 0, "len": 3, "value": card_val(cards[0], level), "cards": cards}
+            return {"kind": "单牌", "cat": 0, "len": 1, "value": BASE[cards[0]["rank"]], "cards": cards}
+        if n == 2 and cards[0]["rank"] == cards[1]["rank"]:
+            return {"kind": "对子", "cat": 0, "len": 2, "value": BASE[cards[0]["rank"]], "cards": cards}
+        return None
 
-    # 三带二
-    if n == 5 and len(ranks) == 2 and joker_count == 0:
-        sizes = sorted(len(by_rank[r]) for r in ranks)
-        if sizes == [2, 3]:
-            triple_rank = next(r for r in ranks if len(by_rank[r]) == 3)
-            return {"kind": "三带二", "cat": 0, "len": 5, "value": card_val(by_rank[triple_rank][0], level), "cards": cards}
+    nat_by_rank: Dict[str, List[Dict]] = {}
+    for c in naturals:
+        nat_by_rank.setdefault(c["rank"], []).append(c)
+    nat_ranks = list(nat_by_rank.keys())
 
-    # sequences — base values, no jokers, no '2'
-    if joker_count == 0 and "2" not in by_rank:
-        rank_vals = sorted(BASE[r] for r in ranks)
+    # same-rank bomb (4–8), wilds fill
+    if n >= 4 and len(nat_ranks) <= 1 and naturals:
+        return {"kind": "炸弹", "cat": n, "len": n, "value": _rank_val(nat_ranks[0], level), "cards": cards}
 
-        def all_same_count(k: int) -> bool:
-            return all(len(by_rank[r]) == k for r in ranks)
+    # 同花顺 — naturals same suit, wilds fill
+    if n >= 5 and naturals:
+        suits = set(c["suit"] for c in naturals)
+        if len(suits) == 1 and "" not in suits:
+            top = _seq_top(nat_by_rank, w, 1, n)
+            if top is not None:
+                return {"kind": "同花顺", "cat": 6.5, "len": n, "value": top, "cards": cards}
 
-        if n >= 5 and all_same_count(1) and _consecutive(rank_vals):
-            return {"kind": "顺子", "cat": 0, "len": n, "value": max(rank_vals), "cards": cards}
-        if n >= 6 and n % 2 == 0 and all_same_count(2) and len(ranks) >= 3 and _consecutive(rank_vals):
-            return {"kind": "连对", "cat": 0, "len": len(ranks), "value": max(rank_vals), "cards": cards}
-        if n >= 6 and n % 3 == 0 and all_same_count(3) and len(ranks) >= 2 and _consecutive(rank_vals):
-            return {"kind": "飞机", "cat": 0, "len": len(ranks), "value": max(rank_vals), "cards": cards}
+    # single / pair / triple (same rank, wilds fill)
+    if n == 1:
+        r = nat_ranks[0] if naturals else level
+        return {"kind": "单牌", "cat": 0, "len": 1, "value": _rank_val(r, level), "cards": cards}
+    if n == 2 and len(nat_ranks) <= 1:
+        r = nat_ranks[0] if naturals else level
+        return {"kind": "对子", "cat": 0, "len": 2, "value": _rank_val(r, level), "cards": cards}
+    if n == 3 and len(nat_ranks) <= 1 and naturals:
+        return {"kind": "三张", "cat": 0, "len": 3, "value": _rank_val(nat_ranks[0], level), "cards": cards}
+
+    # 三带二 — triple + pair, wilds fill
+    if n == 5:
+        best_t: Optional[float] = None
+        for t in nat_ranks:
+            need_t = 3 - len(nat_by_rank[t])
+            if need_t < 0 or need_t > w:
+                continue
+            remw = w - need_t
+            others = [r for r in nat_ranks if r != t]
+            ok = False
+            if len(others) == 0:
+                ok = (remw == 2)
+            elif len(others) == 1:
+                cp = len(nat_by_rank[others[0]])
+                ok = (cp <= 2 and (2 - cp) == remw)
+            if ok:
+                val = _rank_val(t, level)
+                best_t = val if best_t is None else max(best_t, val)
+        if best_t is not None:
+            return {"kind": "三带二", "cat": 0, "len": 5, "value": best_t, "cards": cards}
+
+    # 顺子 / 连对 / 飞机
+    if n >= 5:
+        top = _seq_top(nat_by_rank, w, 1, n)
+        if top is not None:
+            return {"kind": "顺子", "cat": 0, "len": n, "value": top, "cards": cards}
+    if n >= 6 and n % 2 == 0 and n // 2 >= 3:
+        top = _seq_top(nat_by_rank, w, 2, n // 2)
+        if top is not None:
+            return {"kind": "连对", "cat": 0, "len": n // 2, "value": top, "cards": cards}
+    if n >= 6 and n % 3 == 0 and n // 3 >= 2:
+        top = _seq_top(nat_by_rank, w, 3, n // 3)
+        if top is not None:
+            return {"kind": "飞机", "cat": 0, "len": n // 3, "value": top, "cards": cards}
 
     return None
 
@@ -298,17 +365,17 @@ def init_match(seats: List[Dict]) -> Dict:
         "plays": [None, None, None, None], "finishOrder": [],
         "dealLevel": "2", "levels": ["2", "2"], "onLevelTeam": 0, "nextLeader": 0,
         "phase": "playing", "message": "新的一局，出牌吧！", "result": None,
+        "tribute": None, "lastOrder": None,
     }
     start_deal(state, random.randint(0, 3))
     return state
 
 
-def start_deal(state: Dict, leader: int) -> None:
+def start_deal(state: Dict, leader: int, tribute_from: Optional[List[int]] = None) -> None:
     hands = deal()
     for i, p in enumerate(state["players"]):
         p["cards"] = sort_hand(hands[i], state["dealLevel"])
         p["finished"] = False
-    state["current"] = leader
     state["lastPlay"] = None
     state["lastPlayer"] = -1
     state["passed"] = []
@@ -316,7 +383,96 @@ def start_deal(state: Dict, leader: int) -> None:
     state["finishOrder"] = []
     state["result"] = None
     state["phase"] = "playing"
-    state["message"] = "新的一局，出牌吧！"
+    state["tribute"] = None
+    if tribute_from:
+        override = _apply_tribute(state, tribute_from)
+        if override is not None:
+            leader = override
+    state["current"] = leader
+    state["message"] = ("进贡完成，" + state["tribute"] + "，出牌吧！") if state["tribute"] else "新的一局，出牌吧！"
+
+
+# ── 进贡 / 还贡 (tribute) ────────────────────────────────────────────────────
+def _tribute_summary(state: Dict, events: List[Dict]) -> Optional[str]:
+    def nm(i):
+        return state["players"][i]["name"]
+    parts = []
+    for e in events:
+        if e["type"] == "抗贡":
+            parts.append(f'{nm(e["from"])} 抗贡（双大王）')
+        else:
+            c, b = e["card"], e["back"]
+            parts.append(f'{nm(e["from"])}进贡{c["suit"]}{c["rank"]}给{nm(e["to"])}（还{b["suit"]}{b["rank"]}）')
+    return "；".join(parts) if parts else None
+
+
+def _apply_tribute(state: Dict, order: List[int]) -> Optional[int]:
+    """Move tribute cards on the freshly dealt hands. Returns a leader override
+    (the tribute payer / larger payer), or None to keep the given leader.
+    Ruleset: losers pay their biggest non-wild card to winners; winner returns a
+    small (≤10) card. 双大王 refuses (抗贡). Payer leads the new deal."""
+    lvl = state["dealLevel"]
+    players = state["players"]
+    head = order[0]
+    wteam = team_of(head)
+
+    def biggest_nonwild(hand):
+        pool = [c for c in hand if not is_wild(c, lvl)]
+        return max(pool, key=lambda c: card_val(c, lvl))
+
+    def has_two_big_jokers(hand):
+        return sum(1 for c in hand if c["rank"] == "大王") >= 2
+
+    def small_return(hand):
+        small = [c for c in hand if BASE[c["rank"]] <= 10]
+        pool = small if small else hand
+        return min(pool, key=lambda c: BASE[c["rank"]])
+
+    def move(frm, to, card):
+        players[frm]["cards"] = [c for c in players[frm]["cards"] if c["id"] != card["id"]]
+        players[to]["cards"].append(card)
+
+    events: List[Dict] = []
+    leader: Optional[int] = None
+    double = team_of(order[0]) == team_of(order[1])  # winners took 1st & 2nd
+
+    if double:
+        pays = []
+        for p in (order[2], order[3]):
+            if has_two_big_jokers(players[p]["cards"]):
+                events.append({"type": "抗贡", "from": p})
+            else:
+                pays.append([p, biggest_nonwild(players[p]["cards"])])
+        if not pays:
+            leader = head
+        else:
+            pays.sort(key=lambda x: card_val(x[1], lvl), reverse=True)
+            receivers = [head, order[1]]  # larger tribute → head, smaller → partner
+            for i, (payer, card) in enumerate(pays):
+                recv = receivers[i] if i < len(receivers) else head
+                move(payer, recv, card)
+                ret = small_return(players[recv]["cards"])
+                move(recv, payer, ret)
+                events.append({"type": "进贡", "from": payer, "to": recv, "card": card, "back": ret})
+            leader = pays[0][0]
+    else:
+        losers = [p for p in order if team_of(p) != wteam]
+        payer = losers[-1]  # lower-ranked loser pays
+        if has_two_big_jokers(players[payer]["cards"]):
+            events.append({"type": "抗贡", "from": payer})
+            leader = head
+        else:
+            card = biggest_nonwild(players[payer]["cards"])
+            move(payer, head, card)
+            ret = small_return(players[head]["cards"])
+            move(head, payer, ret)
+            events.append({"type": "进贡", "from": payer, "to": head, "card": card, "back": ret})
+            leader = payer
+
+    for p in players:
+        p["cards"] = sort_hand(p["cards"], lvl)
+    state["tribute"] = _tribute_summary(state, events)
+    return leader
 
 
 def _end_deal(state: Dict) -> None:
@@ -333,6 +489,7 @@ def _end_deal(state: Dict) -> None:
     state["onLevelTeam"] = winner_team
     state["dealLevel"] = state["levels"][winner_team]
     state["nextLeader"] = head
+    state["lastOrder"] = order  # drives the next deal's tribute
     state["result"] = {"winnerTeam": winner_team, "gain": gain, "order": order, "matchWin": match_win}
     state["phase"] = "matchOver" if match_win else "dealOver"
     tn = "我方" if winner_team == 0 else "对方"

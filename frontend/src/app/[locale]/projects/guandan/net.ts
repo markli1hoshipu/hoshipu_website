@@ -48,6 +48,7 @@ export interface ViewState {
   phase: "playing" | "dealOver" | "matchOver";
   message: string;
   result: { winnerTeam: number; gain: number; order: number[]; matchWin: boolean } | null;
+  tribute?: string | null;
 }
 
 export interface TableView {

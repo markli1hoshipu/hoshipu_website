@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Play, RotateCcw, Lightbulb, Users, Info } from "lucide-react";
 import {
-  Card, Combo, LEVEL_SEQ, analyze, canBeat, deal, sortHand, decideAIMove, findNonBombBeat, findBombs,
+  Card, Combo, LEVEL_SEQ, BASE, analyze, canBeat, deal, sortHand, decideAIMove, findNonBombBeat, findBombs,
+  isWild, cardVal,
 } from "../engine";
 
 // Seats: 0 you (bottom), 1 right, 2 partner (top), 3 left. Teams: {0,2} vs {1,3}.
@@ -41,6 +42,8 @@ interface Game {
   phase: Phase;
   message: string;
   result: { winnerTeam: number; gain: number; order: number[]; matchWin: boolean } | null;
+  tribute: string | null;
+  lastOrder: number[] | null;
 }
 
 function suitColor(rank: string, suit: string) {
@@ -103,6 +106,7 @@ export default function GuandanPage() {
     g.onLevelTeam = winnerTeam;
     g.dealLevel = g.levels[winnerTeam];
     g.nextLeader = head;
+    g.lastOrder = order;
     g.result = { winnerTeam, gain, order, matchWin };
     g.phase = matchWin ? "matchOver" : "dealOver";
     g.message = matchWin
@@ -169,13 +173,74 @@ export default function GuandanPage() {
   };
 
   // ── setup ───────────────────────────────────────────────────────────────
-  const startDeal = (g: Game, leader: number) => {
+  // 进贡/还贡 — mirrors the server engine. Returns a leader override or null.
+  const applyTribute = (g: Game, order: number[]): number | null => {
+    const lvl = g.dealLevel;
+    const ps = g.players;
+    const biggest = (hand: Card[]) =>
+      hand.filter((c) => !isWild(c, lvl)).reduce((a, b) => (cardVal(b, lvl) > cardVal(a, lvl) ? b : a));
+    const twoBigJokers = (hand: Card[]) => hand.filter((c) => c.rank === "大王").length >= 2;
+    const smallReturn = (hand: Card[]) => {
+      const small = hand.filter((c) => BASE[c.rank] <= 10);
+      const pool = small.length ? small : hand;
+      return pool.reduce((a, b) => (BASE[b.rank] < BASE[a.rank] ? b : a));
+    };
+    const move = (frm: number, to: number, card: Card) => {
+      ps[frm].cards = ps[frm].cards.filter((c) => c.id !== card.id);
+      ps[to].cards.push(card);
+    };
+    const nm = (i: number) => ps[i].name;
+    const events: string[] = [];
+    let leader: number | null = null;
+    const head = order[0];
+    const wteam = teamOf(head);
+    const double = teamOf(order[0]) === teamOf(order[1]);
+
+    if (double) {
+      const pays: [number, Card][] = [];
+      for (const p of [order[2], order[3]]) {
+        if (twoBigJokers(ps[p].cards)) events.push(`${nm(p)} 抗贡（双大王）`);
+        else pays.push([p, biggest(ps[p].cards)]);
+      }
+      if (!pays.length) leader = head;
+      else {
+        pays.sort((a, b) => cardVal(b[1], lvl) - cardVal(a[1], lvl));
+        const receivers = [head, order[1]];
+        pays.forEach(([payer, card], i) => {
+          const recv = i < receivers.length ? receivers[i] : head;
+          move(payer, recv, card);
+          const ret = smallReturn(ps[recv].cards);
+          move(recv, payer, ret);
+          events.push(`${nm(payer)}进贡${card.suit}${card.rank}给${nm(recv)}（还${ret.suit}${ret.rank}）`);
+        });
+        leader = pays[0][0];
+      }
+    } else {
+      const losers = order.filter((p) => teamOf(p) !== wteam);
+      const payer = losers[losers.length - 1];
+      if (twoBigJokers(ps[payer].cards)) {
+        events.push(`${nm(payer)} 抗贡（双大王）`);
+        leader = head;
+      } else {
+        const card = biggest(ps[payer].cards);
+        move(payer, head, card);
+        const ret = smallReturn(ps[head].cards);
+        move(head, payer, ret);
+        events.push(`${nm(payer)}进贡${card.suit}${card.rank}给${nm(head)}（还${ret.suit}${ret.rank}）`);
+        leader = payer;
+      }
+    }
+    g.players.forEach((pl) => { pl.cards = sortHand(pl.cards, lvl); });
+    g.tribute = events.length ? events.join("；") : null;
+    return leader;
+  };
+
+  const startDeal = (g: Game, leader: number, tributeFrom?: number[] | null) => {
     const hands = deal();
     g.players.forEach((pl, i) => {
       pl.cards = sortHand(hands[i], g.dealLevel);
       pl.finished = false;
     });
-    g.current = leader;
     g.lastPlay = null;
     g.lastPlayer = -1;
     g.passed = new Set();
@@ -183,7 +248,13 @@ export default function GuandanPage() {
     g.finishOrder = [];
     g.result = null;
     g.phase = "playing";
-    g.message = "新的一局，出牌吧！";
+    g.tribute = null;
+    if (tributeFrom) {
+      const ov = applyTribute(g, tributeFrom);
+      if (ov !== null) leader = ov;
+    }
+    g.current = leader;
+    g.message = g.tribute ? `进贡完成，${g.tribute}，出牌吧！` : "新的一局，出牌吧！";
     setSelected(new Set());
   };
 
@@ -208,6 +279,8 @@ export default function GuandanPage() {
       phase: "playing",
       message: "",
       result: null,
+      tribute: null,
+      lastOrder: null,
     };
     gRef.current = g;
     startDeal(g, Math.floor(Math.random() * 4));
@@ -217,7 +290,7 @@ export default function GuandanPage() {
 
   const nextDeal = () => {
     const g = gRef.current!;
-    startDeal(g, g.nextLeader);
+    startDeal(g, g.nextLeader, g.lastOrder);
     force();
     scheduleAI();
   };
@@ -314,7 +387,7 @@ export default function GuandanPage() {
       </Button>
       <h1 className="text-4xl md:text-5xl font-bold mb-2">掼蛋 · 单机练习</h1>
       <p className="text-muted-foreground max-w-3xl">
-        与三台电脑对战（你 + AI 队友 对 两台 AI）。答对牌型自动比较，含炸弹/同花顺/天王炸，逐级打级至 A 获胜。
+        与三台电脑对战（你 + AI 队友 对 两台 AI）。含炸弹/同花顺/天王炸、红桃逢人配（百搭）与局间进贡/还贡，逐级打级至 A 获胜。
       </p>
     </motion.div>
   );
@@ -410,8 +483,15 @@ export default function GuandanPage() {
           对方等级 {g.levels[1]}
         </span>
         <span className="px-3 py-1.5 rounded-lg bg-muted">本局打 <b>{g.dealLevel}</b></span>
+        <span className="px-3 py-1.5 rounded-lg bg-amber-100 text-amber-800">百搭 <b>♥{g.dealLevel}</b></span>
         <span className="ml-auto text-muted-foreground">{g.message}</span>
       </div>
+
+      {g.tribute && (
+        <div className="mb-3 text-sm rounded-lg border border-amber-200 bg-amber-50 text-amber-800 px-3 py-2">
+          🎴 进贡：{g.tribute}
+        </div>
+      )}
 
       {/* table */}
       <div className="rounded-2xl p-4 bg-gradient-to-br from-emerald-800/90 to-emerald-950 text-white shadow-inner space-y-3">
@@ -455,13 +535,15 @@ export default function GuandanPage() {
           <div className="flex flex-wrap gap-1 justify-center">
             {myHand.map((c) => {
               const sel = selected.has(c.id);
+              const wild = isWild(c, g.dealLevel);
               return (
                 <button
                   key={c.id}
                   onClick={() => toggleSelect(c.id)}
-                  className={`w-9 h-14 rounded-md bg-white border-2 font-bold text-sm flex items-center justify-center transition-transform ${suitColor(c.rank, c.suit)} ${sel ? "-translate-y-3 border-yellow-500 shadow-lg" : "border-slate-300"}`}
+                  className={`relative w-9 h-14 rounded-md bg-white border-2 font-bold text-sm flex items-center justify-center transition-transform ${suitColor(c.rank, c.suit)} ${sel ? "-translate-y-3 border-yellow-500 shadow-lg" : wild ? "border-amber-400 ring-2 ring-amber-300" : "border-slate-300"}`}
                 >
                   {cardFace(c)}
+                  {wild && <span className="absolute -top-1.5 -right-1.5 bg-amber-400 text-black text-[8px] font-bold rounded-full px-1 leading-tight">百搭</span>}
                 </button>
               );
             })}

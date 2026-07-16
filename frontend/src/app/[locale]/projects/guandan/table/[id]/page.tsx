@@ -9,7 +9,7 @@ import { Card as UICard, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Play, Bot, Lightbulb, Loader2, LogOut, Users } from "lucide-react";
 import { API_BASE_URL, getPlayerId, getPlayerName, TableView, ViewState } from "../../net";
-import { analyze, canBeat, findNonBombBeat, findBombs, sortHand, Card } from "../../engine";
+import { analyze, canBeat, findNonBombBeat, findBombs, sortHand, isWild, Card } from "../../engine";
 
 const teamOf = (i: number) => (i % 2 === 0 ? 0 : 1);
 const teamName = (t: number) => (t === 0 ? "我方" : "对方");
@@ -251,8 +251,15 @@ export default function GuandanTablePage() {
             <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800">我方 {st.levels[0]}</span>
             <span className="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800">对方 {st.levels[1]}</span>
             <span className="px-2.5 py-1 rounded-lg bg-muted">本局打 <b>{st.dealLevel}</b></span>
+            <span className="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800">百搭 <b>♥{st.dealLevel}</b></span>
             <span className="ml-auto text-muted-foreground truncate">{st.message}</span>
           </div>
+
+          {st.tribute && (
+            <div className="mb-3 text-sm rounded-lg border border-amber-200 bg-amber-50 text-amber-800 px-3 py-2">
+              🎴 进贡：{st.tribute}
+            </div>
+          )}
 
           <div className="rounded-2xl p-3 bg-gradient-to-br from-emerald-800/90 to-emerald-950 text-white space-y-2">
             <div className="max-w-xs mx-auto">{seatBox(posSeat["top"])}</div>
@@ -286,10 +293,12 @@ export default function GuandanTablePage() {
               <div className="flex flex-wrap gap-1 justify-center">
                 {myHand.map((c) => {
                   const sel = selected.has(c.id);
+                  const wild = isWild(c, st.dealLevel);
                   return (
                     <button key={c.id} onClick={() => toggle(c.id)}
-                      className={`w-9 h-14 rounded-md bg-white border-2 font-bold text-sm flex items-center justify-center transition-transform ${suitColor(c.rank, c.suit)} ${sel ? "-translate-y-3 border-yellow-500 shadow-lg" : "border-slate-300"}`}>
+                      className={`relative w-9 h-14 rounded-md bg-white border-2 font-bold text-sm flex items-center justify-center transition-transform ${suitColor(c.rank, c.suit)} ${sel ? "-translate-y-3 border-yellow-500 shadow-lg" : wild ? "border-amber-400 ring-2 ring-amber-300" : "border-slate-300"}`}>
                       {cardFace(c)}
+                      {wild && <span className="absolute -top-1.5 -right-1.5 bg-amber-400 text-black text-[8px] font-bold rounded-full px-1 leading-tight">百搭</span>}
                     </button>
                   );
                 })}

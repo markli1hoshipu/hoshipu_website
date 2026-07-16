@@ -118,7 +118,7 @@ export default function GuandanLobbyPage() {
         </Button>
         <h1 className="text-4xl md:text-5xl font-bold mb-2">掼蛋 · 游戏大厅</h1>
         <p className="text-muted-foreground max-w-3xl">
-          创建或加入牌桌，真人可线上组队；空位可加 AI 补齐（1 人 3 AI、2 人 2 AI、4 人皆可）。坐在对面即为队友。
+          创建或加入牌桌，真人可线上组队；空位可加 AI 补齐（1 人 3 AI、2 人 2 AI、4 人皆可）。坐在对面即为队友。含红桃逢人配（百搭）与局间进贡/还贡。
         </p>
       </motion.div>
 

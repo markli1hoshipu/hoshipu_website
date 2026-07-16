@@ -13,7 +13,7 @@ export const RANKS = ["3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A
 // Level progression order for 打级.
 export const LEVEL_SEQ = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
 
-const BASE: Record<string, number> = {
+export const BASE: Record<string, number> = {
   "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10,
   "J": 11, "Q": 12, "K": 13, "A": 14, "2": 15, "小王": 16, "大王": 17,
 };
@@ -88,59 +88,127 @@ function consecutive(sortedUnique: number[]): boolean {
   return true;
 }
 
+/** The ♥ card matching the current level is the 逢人配 wild card. */
+export function isWild(card: Card, level: string): boolean {
+  return card.suit === "♥" && card.rank === level;
+}
+
+function rankVal(rank: string, level: string): number {
+  return rank === level ? 15.5 : BASE[rank];
+}
+
+/** Highest top-base of a run of k consecutive ranks (each needing `mult` copies),
+ * filling shortfalls with `w` wilds; every natural must fit inside the window and
+ * be consumed, wilds used exactly. null if no fit. */
+function seqTop(natByRank: Record<string, Card[]>, w: number, mult: number, k: number): number | null {
+  if (k <= 0) return null;
+  const counts: Record<number, number> = {};
+  for (const r of Object.keys(natByRank)) {
+    const b = BASE[r];
+    if (b === 15) return null; // '2' cannot appear in a run
+    counts[b] = (counts[b] || 0) + natByRank[r].length;
+  }
+  let best: number | null = null;
+  for (let lo = 3; lo <= 14 - k + 1; lo++) {
+    const window: number[] = [];
+    for (let x = lo; x < lo + k; x++) window.push(x);
+    const wset = new Set(window);
+    if (Object.keys(counts).some((b) => !wset.has(Number(b)))) continue;
+    if (window.some((b) => (counts[b] || 0) > mult)) continue;
+    const need = window.reduce((s, b) => s + (mult - (counts[b] || 0)), 0);
+    if (need === w) {
+      const top = lo + k - 1;
+      if (best === null || top > best) best = top;
+    }
+  }
+  return best;
+}
+
 export function analyze(cards: Card[], level: string): Combo | null {
   const n = cards.length;
   if (n === 0) return null;
 
-  const byRank: Record<string, Card[]> = {};
-  for (const c of cards) (byRank[c.rank] ||= []).push(c);
-  const ranks = Object.keys(byRank);
-  const jokerCount = cards.filter((c) => isJoker(c.rank)).length;
+  const wilds = cards.filter((c) => isWild(c, level));
+  const w = wilds.length;
+  const naturals = cards.filter((c) => !isWild(c, level));
+  const jc = naturals.filter((c) => isJoker(c.rank)).length;
 
-  // 天王炸 — two 大王 + two 小王
-  if (n === 4) {
-    const big = cards.filter((c) => c.rank === "大王").length;
-    const small = cards.filter((c) => c.rank === "小王").length;
-    if (big === 2 && small === 2) return { kind: "天王炸", cat: 100, len: 4, value: 1000, cards };
+  // Combos containing jokers: wilds may not mix with jokers.
+  if (jc > 0) {
+    if (w > 0) return null;
+    if (n === 4) {
+      const big = cards.filter((c) => c.rank === "大王").length;
+      const small = cards.filter((c) => c.rank === "小王").length;
+      if (big === 2 && small === 2) return { kind: "天王炸", cat: 100, len: 4, value: 1000, cards };
+    }
+    if (n === 1) return { kind: "单牌", cat: 0, len: 1, value: BASE[cards[0].rank], cards };
+    if (n === 2 && cards[0].rank === cards[1].rank) return { kind: "对子", cat: 0, len: 2, value: BASE[cards[0].rank], cards };
+    return null;
   }
 
-  // same-rank bomb (4–8), non-joker
-  if (ranks.length === 1 && jokerCount === 0 && n >= 4) {
-    return { kind: "炸弹", cat: n, len: n, value: cardVal(cards[0], level), cards };
-  }
+  const natByRank: Record<string, Card[]> = {};
+  for (const c of naturals) (natByRank[c.rank] ||= []).push(c);
+  const natRanks = Object.keys(natByRank);
 
-  // 同花顺 — same suit, ≥5, consecutive (no 2, no joker)
-  if (n >= 5 && jokerCount === 0 && cards[0].suit && cards.every((c) => c.suit === cards[0].suit) && !byRank["2"]) {
-    const bv = cards.map((c) => BASE[c.rank]).sort((a, b) => a - b);
-    if (consecutive(bv)) return { kind: "同花顺", cat: 6.5, len: n, value: Math.max(...bv), cards };
-  }
+  // same-rank bomb (4–8), wilds fill
+  if (n >= 4 && natRanks.length <= 1 && naturals.length > 0)
+    return { kind: "炸弹", cat: n, len: n, value: rankVal(natRanks[0], level), cards };
 
-  // single / pair / triple (same rank, incl. jokers for single/pair)
-  if (ranks.length === 1) {
-    if (n === 1) return { kind: "单牌", cat: 0, len: 1, value: cardVal(cards[0], level), cards };
-    if (n === 2) return { kind: "对子", cat: 0, len: 2, value: cardVal(cards[0], level), cards };
-    if (n === 3 && jokerCount === 0) return { kind: "三张", cat: 0, len: 3, value: cardVal(cards[0], level), cards };
-  }
-
-  // 三带二 — triple + a pair
-  if (n === 5 && ranks.length === 2 && jokerCount === 0) {
-    const sizes = ranks.map((r) => byRank[r].length).sort((a, b) => a - b);
-    if (sizes[0] === 2 && sizes[1] === 3) {
-      const tripleRank = ranks.find((r) => byRank[r].length === 3)!;
-      return { kind: "三带二", cat: 0, len: 5, value: cardVal(byRank[tripleRank][0], level), cards };
+  // 同花顺 — naturals same suit, wilds fill
+  if (n >= 5 && naturals.length > 0) {
+    const suits = new Set(naturals.map((c) => c.suit));
+    if (suits.size === 1 && !suits.has("")) {
+      const top = seqTop(natByRank, w, 1, n);
+      if (top !== null) return { kind: "同花顺", cat: 6.5, len: n, value: top, cards };
     }
   }
 
-  // sequences — base values, no jokers, no '2'
-  if (jokerCount === 0 && !byRank["2"]) {
-    const rankVals = ranks.map((r) => BASE[r]).sort((a, b) => a - b);
-    const allSameCount = (k: number) => ranks.every((r) => byRank[r].length === k);
-    if (n >= 5 && allSameCount(1) && consecutive(rankVals))
-      return { kind: "顺子", cat: 0, len: n, value: Math.max(...rankVals), cards };
-    if (n >= 6 && n % 2 === 0 && allSameCount(2) && ranks.length >= 3 && consecutive(rankVals))
-      return { kind: "连对", cat: 0, len: ranks.length, value: Math.max(...rankVals), cards };
-    if (n >= 6 && n % 3 === 0 && allSameCount(3) && ranks.length >= 2 && consecutive(rankVals))
-      return { kind: "飞机", cat: 0, len: ranks.length, value: Math.max(...rankVals), cards };
+  // single / pair / triple (same rank, wilds fill)
+  if (n === 1) {
+    const r = naturals.length ? natRanks[0] : level;
+    return { kind: "单牌", cat: 0, len: 1, value: rankVal(r, level), cards };
+  }
+  if (n === 2 && natRanks.length <= 1) {
+    const r = naturals.length ? natRanks[0] : level;
+    return { kind: "对子", cat: 0, len: 2, value: rankVal(r, level), cards };
+  }
+  if (n === 3 && natRanks.length <= 1 && naturals.length > 0)
+    return { kind: "三张", cat: 0, len: 3, value: rankVal(natRanks[0], level), cards };
+
+  // 三带二 — triple + pair, wilds fill
+  if (n === 5) {
+    let bestT: number | null = null;
+    for (const t of natRanks) {
+      const needT = 3 - natByRank[t].length;
+      if (needT < 0 || needT > w) continue;
+      const remw = w - needT;
+      const others = natRanks.filter((r) => r !== t);
+      let ok = false;
+      if (others.length === 0) ok = remw === 2;
+      else if (others.length === 1) {
+        const cp = natByRank[others[0]].length;
+        ok = cp <= 2 && 2 - cp === remw;
+      }
+      if (ok) {
+        const val = rankVal(t, level);
+        bestT = bestT === null ? val : Math.max(bestT, val);
+      }
+    }
+    if (bestT !== null) return { kind: "三带二", cat: 0, len: 5, value: bestT, cards };
+  }
+
+  // 顺子 / 连对 / 飞机
+  if (n >= 5) {
+    const top = seqTop(natByRank, w, 1, n);
+    if (top !== null) return { kind: "顺子", cat: 0, len: n, value: top, cards };
+  }
+  if (n >= 6 && n % 2 === 0 && n / 2 >= 3) {
+    const top = seqTop(natByRank, w, 2, n / 2);
+    if (top !== null) return { kind: "连对", cat: 0, len: n / 2, value: top, cards };
+  }
+  if (n >= 6 && n % 3 === 0 && n / 3 >= 2) {
+    const top = seqTop(natByRank, w, 3, n / 3);
+    if (top !== null) return { kind: "飞机", cat: 0, len: n / 3, value: top, cards };
   }
 
   return null;

@@ -105,6 +105,8 @@ def _view(row: Dict[str, Any], player_id: Optional[str]) -> Dict[str, Any]:
             "phase": state["phase"],
             "message": state["message"],
             "result": state["result"],
+            "tribute": state.get("tribute"),
+            "dealLevelWild": "♥" + state["dealLevel"],
         }
     return {
         "id": row["id"],
@@ -377,7 +379,7 @@ async def next_deal(request: Request, table_id: int, body: PlayerBody):
             raise HTTPException(400, "本局尚未结束")
         if _seat_of(row["seats"], pid) < 0:
             raise HTTPException(403, "你不在此牌桌")
-        G.start_deal(state, state["nextLeader"])
+        G.start_deal(state, state["nextLeader"], tribute_from=state.get("lastOrder"))
         G.advance_ai(state)
         row = _persist(cur, row, state=state)
         conn.commit()
