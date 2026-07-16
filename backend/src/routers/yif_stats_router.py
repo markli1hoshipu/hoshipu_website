@@ -131,6 +131,9 @@ async def get_dashboard_stats(user_id: int = Depends(verify_token)):
                     SUM(total_amount) as amount
                 FROM yif_ious
                 WHERE ious_date >= %s AND worker_id = %s
+                  -- skip malformed YYMMDD (e.g. typo '262605'); TO_DATE would
+                  -- otherwise raise DatetimeFieldOverflow and 500 the whole dashboard
+                  AND ious_date ~ '^[0-9]{2}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$'
                 GROUP BY ious_date
             ),
             daily_payments AS (
@@ -139,6 +142,7 @@ async def get_dashboard_stats(user_id: int = Depends(verify_token)):
                     SUM(amount) as amount
                 FROM yif_payments
                 WHERE payment_date >= %s AND worker_id = %s
+                  AND payment_date ~ '^[0-9]{2}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$'
                 GROUP BY payment_date
             )
             SELECT
@@ -198,6 +202,9 @@ async def get_dashboard_stats(user_id: int = Depends(verify_token)):
                     SUM(total_amount) as amount
                 FROM yif_ious
                 WHERE ious_date >= %s AND worker_id = %s
+                  -- skip malformed YYMMDD (e.g. typo '262605'); TO_DATE would
+                  -- otherwise raise DatetimeFieldOverflow and 500 the whole dashboard
+                  AND ious_date ~ '^[0-9]{2}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$'
                 GROUP BY ious_date
             ),
             daily_payments AS (
@@ -207,6 +214,7 @@ async def get_dashboard_stats(user_id: int = Depends(verify_token)):
                     SUM(amount) as amount
                 FROM yif_payments
                 WHERE payment_date >= %s AND worker_id = %s
+                  AND payment_date ~ '^[0-9]{2}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$'
                 GROUP BY payment_date
             )
             SELECT
