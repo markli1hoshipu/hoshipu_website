@@ -12,9 +12,9 @@ export function cardIsRed(c: { suit: string; rank: string }): boolean {
 type Size = "sm" | "md" | "lg";
 
 const SZ: Record<Size, { w: string; corner: string; center: string; pip: string }> = {
-  sm: { w: "w-7 h-10", corner: "text-[8px]", center: "text-sm", pip: "text-[7px]" },
-  md: { w: "w-9 h-[3.25rem]", corner: "text-[10px]", center: "text-xl", pip: "text-[9px]" },
-  lg: { w: "w-11 h-16", corner: "text-xs", center: "text-3xl", pip: "text-[11px]" },
+  sm: { w: "w-9 h-[3.25rem]", corner: "text-[10px]", center: "text-lg", pip: "text-[9px]" },
+  md: { w: "w-12 h-[4.5rem]", corner: "text-sm", center: "text-2xl", pip: "text-[11px]" },
+  lg: { w: "w-16 h-24", corner: "text-lg", center: "text-5xl", pip: "text-sm" },
 };
 
 // texture: subtle sheen so the face doesn't read as flat white

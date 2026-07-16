@@ -482,14 +482,14 @@ export default function GuandanPage() {
       )}
 
       {/* table */}
-      <div className="rounded-2xl p-4 bg-gradient-to-br from-emerald-800/90 to-emerald-950 text-white shadow-inner space-y-3">
+      <div className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-emerald-800/90 to-emerald-950 text-white shadow-inner space-y-4">
         {/* top: partner */}
         <div className="max-w-sm mx-auto"><SeatBox idx={2} /></div>
 
         {/* middle: left | center | right */}
         <div className="grid grid-cols-[1fr_1.4fr_1fr] gap-3 items-stretch">
           <SeatBox idx={3} />
-          <div className="rounded-xl bg-black/25 p-3 flex flex-col items-center justify-center min-h-[120px] text-center">
+          <div className="rounded-xl bg-black/25 p-3 flex flex-col items-center justify-center min-h-[180px] text-center">
             {g.lastPlay ? (
               <>
                 <div className="text-xs text-white/70 mb-1">{seatName(g.lastPlayer)} 出了 {g.lastPlay.kind}</div>

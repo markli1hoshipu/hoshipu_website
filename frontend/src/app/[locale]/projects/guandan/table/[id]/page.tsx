@@ -241,7 +241,7 @@ export default function GuandanTablePage() {
   if (st) for (let s = 0; s < 4; s++) posSeat[relPos(s, mySeat)] = s;
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-3xl">
+    <div className="container mx-auto px-4 py-6 max-w-5xl">
       {header}
 
       {st && (
@@ -260,11 +260,11 @@ export default function GuandanTablePage() {
             </div>
           )}
 
-          <div className="rounded-2xl p-3 bg-gradient-to-br from-emerald-800/90 to-emerald-950 text-white space-y-2">
-            <div className="max-w-xs mx-auto">{seatBox(posSeat["top"])}</div>
-            <div className="grid grid-cols-[1fr_1.3fr_1fr] gap-2 items-stretch">
+          <div className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-emerald-800/90 to-emerald-950 text-white space-y-4">
+            <div className="max-w-sm mx-auto">{seatBox(posSeat["top"])}</div>
+            <div className="grid grid-cols-[1fr_1.4fr_1fr] gap-3 items-stretch">
               {seatBox(posSeat["left"])}
-              <div className="rounded-xl bg-black/25 p-2 flex flex-col items-center justify-center min-h-[110px] text-center">
+              <div className="rounded-xl bg-black/25 p-3 flex flex-col items-center justify-center min-h-[180px] text-center">
                 {st.lastPlay ? (
                   <>
                     <div className="text-xs text-white/70 mb-1">{st.players[st.lastPlayer]?.name} · {st.lastPlay.kind}</div>
