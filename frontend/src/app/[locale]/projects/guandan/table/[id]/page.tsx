@@ -9,21 +9,11 @@ import { Card as UICard, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Play, Bot, Lightbulb, Loader2, LogOut, Users } from "lucide-react";
 import { API_BASE_URL, getPlayerId, getPlayerName, TableView, ViewState } from "../../net";
-import { analyze, canBeat, findNonBombBeat, findBombs, sortHand, isWild, Card } from "../../engine";
+import { analyze, canBeat, findNonBombBeat, findBombs, sortHand, Card } from "../../engine";
+import { CardFace, CardBack } from "../../CardView";
 
 const teamOf = (i: number) => (i % 2 === 0 ? 0 : 1);
 const teamName = (t: number) => (t === 0 ? "我方" : "对方");
-
-function suitColor(rank: string, suit: string) {
-  if (rank === "大王") return "text-red-600";
-  if (rank === "小王") return "text-slate-800";
-  return suit === "♥" || suit === "♦" ? "text-red-600" : "text-slate-800";
-}
-function cardFace(c: { rank: string; suit: string }) {
-  if (c.rank === "小王") return "小王";
-  if (c.rank === "大王") return "大王";
-  return `${c.suit}${c.rank}`;
-}
 
 /** Rotate absolute seat index so the viewer is always at the bottom. */
 function relPos(seat: number, mySeat: number): "bottom" | "right" | "top" | "left" {
@@ -223,13 +213,22 @@ export default function GuandanTablePage() {
           </span>
           <span className="text-xs text-muted-foreground shrink-0">{p.finished ? finishTxt : `${p.count}张`}</span>
         </div>
-        <span className={`text-[10px] px-1.5 py-0.5 rounded ${mine ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
-          {pos === "bottom" ? "你" : mine ? "队友" : "对手"}
-        </span>
+        <div className="flex items-center justify-between gap-1">
+          <span className={`text-[10px] px-1.5 py-0.5 rounded ${mine ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
+            {pos === "bottom" ? "你" : mine ? "队友" : "对手"}
+          </span>
+          {!p.finished && seat !== mySeat && (
+            <div className="flex -space-x-3">
+              {Array.from({ length: Math.min(p.count, 8) }).map((_, i) => (
+                <CardBack key={i} size="sm" />
+              ))}
+            </div>
+          )}
+        </div>
         {st.plays[seat] && (
           <div className="mt-1.5 flex flex-wrap gap-1">
             {st.plays[seat]!.map((c) => (
-              <span key={c.id} className={`text-xs font-mono bg-white rounded px-1 py-0.5 border ${suitColor(c.rank, c.suit)}`}>{cardFace(c)}</span>
+              <CardFace key={c.id} card={c} level={st.dealLevel} size="sm" />
             ))}
           </div>
         )}
@@ -271,7 +270,7 @@ export default function GuandanTablePage() {
                     <div className="text-xs text-white/70 mb-1">{st.players[st.lastPlayer]?.name} · {st.lastPlay.kind}</div>
                     <div className="flex flex-wrap gap-1 justify-center">
                       {st.lastPlay.cards.map((c) => (
-                        <span key={c.id} className={`text-sm font-mono bg-white rounded px-1.5 py-1 border ${suitColor(c.rank, c.suit)}`}>{cardFace(c)}</span>
+                        <CardFace key={c.id} card={c} level={st.dealLevel} size="md" />
                       ))}
                     </div>
                   </>
@@ -291,17 +290,10 @@ export default function GuandanTablePage() {
                 </span>
               </div>
               <div className="flex flex-wrap gap-1 justify-center">
-                {myHand.map((c) => {
-                  const sel = selected.has(c.id);
-                  const wild = isWild(c, st.dealLevel);
-                  return (
-                    <button key={c.id} onClick={() => toggle(c.id)}
-                      className={`relative w-9 h-14 rounded-md bg-white border-2 font-bold text-sm flex items-center justify-center transition-transform ${suitColor(c.rank, c.suit)} ${sel ? "-translate-y-3 border-yellow-500 shadow-lg" : wild ? "border-amber-400 ring-2 ring-amber-300" : "border-slate-300"}`}>
-                      {cardFace(c)}
-                      {wild && <span className="absolute -top-1.5 -right-1.5 bg-amber-400 text-black text-[8px] font-bold rounded-full px-1 leading-tight">百搭</span>}
-                    </button>
-                  );
-                })}
+                {myHand.map((c) => (
+                  <CardFace key={c.id} card={c} level={st.dealLevel} size="lg"
+                    selected={selected.has(c.id)} onClick={() => toggle(c.id)} />
+                ))}
                 {mySeat < 0 && <div className="text-sm text-white/60 py-4">你在围观本局</div>}
               </div>
             </div>

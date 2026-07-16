@@ -11,6 +11,7 @@ import {
   Card, Combo, LEVEL_SEQ, BASE, analyze, canBeat, deal, sortHand, decideAIMove, findNonBombBeat, findBombs,
   isWild, cardVal,
 } from "../engine";
+import { CardFace, CardBack } from "../CardView";
 
 // Seats: 0 you (bottom), 1 right, 2 partner (top), 3 left. Teams: {0,2} vs {1,3}.
 const SEAT_LABEL = ["你", "对手·右", "队友", "对手·左"];
@@ -46,17 +47,6 @@ interface Game {
   lastOrder: number[] | null;
 }
 
-function suitColor(rank: string, suit: string) {
-  if (rank === "大王") return "text-red-600";
-  if (rank === "小王") return "text-slate-800";
-  return suit === "♥" || suit === "♦" ? "text-red-600" : "text-slate-800";
-}
-
-function cardFace(c: Card) {
-  if (c.rank === "小王") return "小王";
-  if (c.rank === "大王") return "大王";
-  return `${c.suit}${c.rank}`;
-}
 
 export default function GuandanPage() {
   const gRef = useRef<Game | null>(null);
@@ -448,19 +438,17 @@ export default function GuandanPage() {
           </span>
         </div>
         {/* card backs */}
-        <div className="flex flex-wrap gap-0.5 min-h-[1rem]">
+        <div className="flex -space-x-3 min-h-[2.5rem] items-center">
           {!p.finished &&
-            Array.from({ length: Math.min(p.cards.length, 14) }).map((_, i) => (
-              <div key={i} className="w-3 h-5 rounded-sm bg-gradient-to-br from-blue-700 to-blue-900 border border-blue-950" />
+            Array.from({ length: Math.min(p.cards.length, 10) }).map((_, i) => (
+              <CardBack key={i} size="sm" />
             ))}
         </div>
         {/* last play */}
         {g.plays[idx] && (
           <div className="mt-2 flex flex-wrap gap-1">
             {g.plays[idx]!.map((c) => (
-              <span key={c.id} className={`text-xs font-mono bg-white rounded px-1 py-0.5 border ${suitColor(c.rank, c.suit)}`}>
-                {cardFace(c)}
-              </span>
+              <CardFace key={c.id} card={c} level={g.dealLevel} size="sm" />
             ))}
           </div>
         )}
@@ -507,9 +495,7 @@ export default function GuandanPage() {
                 <div className="text-xs text-white/70 mb-1">{seatName(g.lastPlayer)} 出了 {g.lastPlay.kind}</div>
                 <div className="flex flex-wrap gap-1 justify-center">
                   {g.lastPlay.cards.map((c) => (
-                    <span key={c.id} className={`text-sm font-mono bg-white rounded px-1.5 py-1 border ${suitColor(c.rank, c.suit)}`}>
-                      {cardFace(c)}
-                    </span>
+                    <CardFace key={c.id} card={c} level={g.dealLevel} size="md" />
                   ))}
                 </div>
               </>
@@ -533,20 +519,10 @@ export default function GuandanPage() {
             </span>
           </div>
           <div className="flex flex-wrap gap-1 justify-center">
-            {myHand.map((c) => {
-              const sel = selected.has(c.id);
-              const wild = isWild(c, g.dealLevel);
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => toggleSelect(c.id)}
-                  className={`relative w-9 h-14 rounded-md bg-white border-2 font-bold text-sm flex items-center justify-center transition-transform ${suitColor(c.rank, c.suit)} ${sel ? "-translate-y-3 border-yellow-500 shadow-lg" : wild ? "border-amber-400 ring-2 ring-amber-300" : "border-slate-300"}`}
-                >
-                  {cardFace(c)}
-                  {wild && <span className="absolute -top-1.5 -right-1.5 bg-amber-400 text-black text-[8px] font-bold rounded-full px-1 leading-tight">百搭</span>}
-                </button>
-              );
-            })}
+            {myHand.map((c) => (
+              <CardFace key={c.id} card={c} level={g.dealLevel} size="lg"
+                selected={selected.has(c.id)} onClick={() => toggleSelect(c.id)} />
+            ))}
           </div>
         </div>
       </div>
