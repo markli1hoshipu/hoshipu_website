@@ -360,6 +360,11 @@
       "description": "Multiple-choice quiz on IATA airline and airport codes — match Chinese names to codes and back. Pick a category, build your streak, and memorize codes the fun way!",
       "tags": ["Game", "Quiz"]
     },
+    "guandan": {
+      "title": "Guandan 掼蛋 2v2",
+      "description": "The classic Jiangsu partnership card game. You and your AI partner take on two AI opponents — full combos incl. bombs, straight flushes and the four-joker bomb, with level-up (打级) all the way to A.",
+      "tags": ["Game", "Cards"]
+    },
     "qffTravel": {
       "title": "QFF Travel Itinerary Tool",
       "description": "Manage travel translation output templates, airline code mappings, and airport code mappings for easy flight information organization.",

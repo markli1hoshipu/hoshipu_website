@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, ArrowRight, Calculator, Plane, DollarSign, LayoutDashboard, Globe, Gamepad2, Beaker, ExternalLink, FileSpreadsheet, ClipboardList, ScanLine, HelpCircle } from "lucide-react";
+import { FileText, ArrowRight, Calculator, Plane, DollarSign, LayoutDashboard, Globe, Gamepad2, Beaker, ExternalLink, FileSpreadsheet, ClipboardList, ScanLine, HelpCircle, Spade } from "lucide-react";
 import Link from "next/link";
 import Messages from "@/components/Messages";
 import { useTranslations, useLocale } from "next-intl";
@@ -47,6 +47,7 @@ const projectGroups: ProjectGroup[] = [
       { id: "game24", link: "/projects/game24", icon: Calculator },
       { id: "pong", link: "/projects/pong", icon: Gamepad2 },
       { id: "codeQuiz", link: "/projects/code-quiz", icon: HelpCircle },
+      { id: "guandan", link: "/projects/guandan", icon: Spade },
     ],
   },
 ];
