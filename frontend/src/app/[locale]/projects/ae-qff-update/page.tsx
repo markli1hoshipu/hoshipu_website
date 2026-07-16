@@ -73,8 +73,9 @@ export default function AeQffUpdatePage() {
       >
         <h1 className="text-4xl md:text-5xl font-bold mb-6">AE 欠条报表更新</h1>
         <p className="text-lg text-muted-foreground max-w-3xl">
-          上传当前的 AE 欠条报表和一批 QFF 欠条文件，系统按欠款人和日期把每笔初始金额并入对应月份表格，
-          自动新增未出现过的欠款人，并用隐藏表记录每个欠单号，重复上传不会重复计入。
+          上传当前的 AE 欠条报表和一批欠条文件（QFF / WW / LYC 等），系统按<b>负责人代码（列 E）</b>、
+          欠款人和日期把每笔初始金额并入对应月份表格的对应分组，自动新增未出现过的欠款人，
+          并用隐藏表记录每个欠单号，重复上传不会重复计入。
         </p>
       </motion.div>
 
@@ -113,8 +114,8 @@ export default function AeQffUpdatePage() {
           {/* QFF upload */}
           <Card>
             <CardHeader>
-              <CardTitle>QFF 欠条文件（待加入）</CardTitle>
-              <CardDescription>可一次选择多个 QFF 文件</CardDescription>
+              <CardTitle>欠条文件（待加入）</CardTitle>
+              <CardDescription>可一次选择多个文件（QFF / WW / LYC 等，按列 E 归组）</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
@@ -292,8 +293,10 @@ export default function AeQffUpdatePage() {
               <CardTitle>说明</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground space-y-2">
-              <p>• 按欠款人姓名匹配（忽略空格）；写入每笔的初始金额。</p>
-              <p>• 未匹配到的欠款人会在 QFF 分组内新增一行。</p>
+              <p>• 按列 E 的负责人代码归入对应分组（QFF / WW / LYC …）。</p>
+              <p>• 组内按欠款人姓名匹配（忽略空格）；写入每笔的初始金额。</p>
+              <p>• 未匹配到的欠款人会在该负责人分组内新增一行。</p>
+              <p>• 报表中没有的负责人分组，其欠条会列入「跳过」。</p>
               <p>• 隐藏表 <span className="font-mono">_QFF_imported</span> 记录已导入的欠单号，重复上传自动跳过。</p>
             </CardContent>
           </Card>
