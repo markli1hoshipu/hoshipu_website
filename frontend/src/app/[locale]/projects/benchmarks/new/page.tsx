@@ -519,6 +519,7 @@ function Step2Config({
           onChange={(e) =>
             setForm({ ...form, episodesPerTask: parseInt(e.target.value || "1") })
           }
+          onWheel={(e) => e.currentTarget.blur()}
           className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
         />
         <p className="mt-2 text-xs text-slate-500">
