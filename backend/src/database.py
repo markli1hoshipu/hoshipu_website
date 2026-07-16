@@ -77,9 +77,10 @@ def init_embodybench_tables():
 def init_passport_log_table():
     """
     Create passport_docs_log (audit log for the passport→DOCS tool) on boot.
-    Idempotent: one row per processed passport image, storing the input image
-    (downscaled JPEG bytes), the generated command/fields, and request metadata
-    (time, client IP, user-agent). Best-effort — never blocks app boot.
+    Idempotent: one row per processed passport image, storing ONLY the outputs
+    (command/fields/warnings/error), request metadata (time, client IP,
+    user-agent, provider), and a correctness vote used as an accuracy signal.
+    The input photo is NOT stored. Best-effort — never blocks app boot.
     """
     try:
         conn = psycopg2.connect(DATABASE_URL)
@@ -95,16 +96,22 @@ def init_passport_log_table():
                 pax          INTEGER,
                 provider     TEXT,
                 filename     TEXT,
-                image_mime   TEXT,
-                image_size   INTEGER,
-                image_bytes  BYTEA,
                 command      TEXT,
                 fields       JSONB,
                 warnings     JSONB,
                 error        TEXT,
-                duration_ms  INTEGER
+                duration_ms  INTEGER,
+                vote         SMALLINT,       -- 1 = correct, 0 = incorrect, NULL = no vote
+                voted_at     TIMESTAMPTZ
             )
         """)
+        # Migrate an earlier version of the table: drop the image columns (we no
+        # longer store photos) and add the vote columns if missing.
+        cursor.execute("ALTER TABLE passport_docs_log DROP COLUMN IF EXISTS image_bytes")
+        cursor.execute("ALTER TABLE passport_docs_log DROP COLUMN IF EXISTS image_mime")
+        cursor.execute("ALTER TABLE passport_docs_log DROP COLUMN IF EXISTS image_size")
+        cursor.execute("ALTER TABLE passport_docs_log ADD COLUMN IF NOT EXISTS vote SMALLINT")
+        cursor.execute("ALTER TABLE passport_docs_log ADD COLUMN IF NOT EXISTS voted_at TIMESTAMPTZ")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_passport_log_created ON passport_docs_log (created_at)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_passport_log_request ON passport_docs_log (request_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_passport_log_provider ON passport_docs_log (provider)")

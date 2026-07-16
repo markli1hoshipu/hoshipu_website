@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plane, Upload, Copy, CheckCircle, AlertCircle, ImagePlus, X, Loader2 } from "lucide-react";
+import { Plane, Upload, Copy, CheckCircle, AlertCircle, ImagePlus, X, Loader2, ThumbsUp, ThumbsDown } from "lucide-react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6101";
+
+type Provider = "aliyun" | "openai";
 
 interface DocsLine {
   pax: number;
@@ -15,7 +17,24 @@ interface DocsLine {
   fields: Record<string, string>;
   warnings?: string[] | null;
   error?: string | null;
+  log_id?: number | null;
 }
+
+interface ProviderAccuracy {
+  votes: number;
+  correct: number;
+  accuracy: number | null;
+}
+
+interface AccuracyResponse {
+  aliyun: ProviderAccuracy;
+  openai: ProviderAccuracy;
+}
+
+const PROVIDER_LABELS: Record<Provider, string> = {
+  aliyun: "阿里云 护照识别",
+  openai: "OpenAI gpt-4.1-mini",
+};
 
 const FIELD_LABELS: Record<string, string> = {
   doc_type: "类型",
@@ -29,20 +48,41 @@ const FIELD_LABELS: Record<string, string> = {
   given_names: "名",
 };
 
+function fmtAccuracy(a?: ProviderAccuracy): string {
+  if (!a || a.votes === 0 || a.accuracy === null) return "暂无数据";
+  return `${Math.round(a.accuracy * 100)}% (${a.correct}/${a.votes})`;
+}
+
 export default function PassportDocsPage() {
   const [airline, setAirline] = useState("CZ");
   const [startPax, setStartPax] = useState(1);
+  const [provider, setProvider] = useState<Provider>("aliyun");
   const [files, setFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lines, setLines] = useState<DocsLine[]>([]);
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [accuracy, setAccuracy] = useState<AccuracyResponse | null>(null);
+  const [votes, setVotes] = useState<Record<number, boolean>>({}); // log_id -> correct?
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Object-URL thumbnails; revoked when the file list changes or on unmount.
   const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
   useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
+
+  const refreshAccuracy = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/passport/accuracy`);
+      if (res.ok) setAccuracy(await res.json());
+    } catch {
+      /* accuracy is a nice-to-have; ignore failures */
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshAccuracy();
+  }, [refreshAccuracy]);
 
   const addFiles = (incoming: File[]) => {
     const images = incoming.filter((f) => f.type.startsWith("image/"));
@@ -60,6 +100,7 @@ export default function PassportDocsPage() {
       return merged;
     });
     setLines([]);
+    setVotes({});
     setMessage(null);
   };
 
@@ -102,6 +143,20 @@ export default function PassportDocsPage() {
     });
   };
 
+  const handleVote = async (logId: number, correct: boolean) => {
+    setVotes((v) => ({ ...v, [logId]: correct })); // optimistic
+    try {
+      await fetch(`${API_BASE_URL}/api/passport/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ log_id: logId, correct }),
+      });
+      refreshAccuracy();
+    } catch {
+      /* keep the optimistic mark even if the network hiccups */
+    }
+  };
+
   const handleSubmit = async () => {
     if (!airline.trim()) {
       setMessage({ type: "error", text: "请填写航空公司代码（如 KE）" });
@@ -115,10 +170,12 @@ export default function PassportDocsPage() {
     setIsProcessing(true);
     setMessage(null);
     setLines([]);
+    setVotes({});
     try {
       const fd = new FormData();
       fd.append("airline", airline.trim());
       fd.append("start_pax", String(startPax));
+      fd.append("provider", provider);
       files.forEach((f) => fd.append("files", f));
 
       const res = await fetch(`${API_BASE_URL}/api/passport/docs`, { method: "POST", body: fd });
@@ -127,7 +184,7 @@ export default function PassportDocsPage() {
       if (res.ok && data.success) {
         setLines(data.lines);
         const okCount = data.lines.filter((l: DocsLine) => l.command && !l.error).length;
-        setMessage({ type: "success", text: `已生成 ${okCount}/${data.lines.length} 条指令` });
+        setMessage({ type: "success", text: `已用${PROVIDER_LABELS[provider]}生成 ${okCount}/${data.lines.length} 条指令` });
       } else {
         setMessage({ type: "error", text: data.detail || "生成失败" });
       }
@@ -176,7 +233,7 @@ export default function PassportDocsPage() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div>
                 <CardTitle>生成结果</CardTitle>
-                <CardDescription>点击复制单条，或右上角复制全部</CardDescription>
+                <CardDescription>点击复制单条，或右上角复制全部；请核对后为每条反馈是否正确</CardDescription>
               </div>
               {allCommands && (
                 <Button variant="outline" size="sm" onClick={() => copy(allCommands, "__all__")}>
@@ -188,6 +245,7 @@ export default function PassportDocsPage() {
             <CardContent className="space-y-3">
               {lines.map((line) => {
                 const key = `line-${line.pax}`;
+                const voted = line.log_id != null ? votes[line.log_id] : undefined;
                 return (
                   <div key={key} className="border rounded-lg p-3">
                     {line.error ? (
@@ -226,6 +284,35 @@ export default function PassportDocsPage() {
                             ))}
                           </div>
                         )}
+                        {/* Correctness vote — feeds the accuracy tracker */}
+                        {line.log_id != null && (
+                          <div className="mt-2 flex items-center gap-2 text-xs">
+                            <span className="text-muted-foreground">识别是否正确？</span>
+                            <button
+                              type="button"
+                              onClick={() => handleVote(line.log_id!, true)}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border transition-colors ${
+                                voted === true
+                                  ? "bg-green-100 text-green-800 border-green-300"
+                                  : "hover:bg-muted border-muted-foreground/25"
+                              }`}
+                            >
+                              <ThumbsUp className="h-3.5 w-3.5" /> 正确
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleVote(line.log_id!, false)}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border transition-colors ${
+                                voted === false
+                                  ? "bg-red-100 text-red-800 border-red-300"
+                                  : "hover:bg-muted border-muted-foreground/25"
+                              }`}
+                            >
+                              <ThumbsDown className="h-3.5 w-3.5" /> 有误
+                            </button>
+                            {voted !== undefined && <span className="text-muted-foreground">已反馈，谢谢</span>}
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -239,9 +326,38 @@ export default function PassportDocsPage() {
         <Card>
           <CardHeader>
             <CardTitle>参数</CardTitle>
-            <CardDescription>填写航空公司代码，上传一张或多张护照照片</CardDescription>
+            <CardDescription>选择识别引擎，填写航空公司代码，上传一张或多张护照照片</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Provider selector with live accuracy */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">识别引擎</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {(["aliyun", "openai"] as Provider[]).map((p) => {
+                  const acc = accuracy?.[p];
+                  const active = provider === p;
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setProvider(p)}
+                      className={`text-left rounded-lg border p-3 transition-colors ${
+                        active ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-muted-foreground/25 hover:border-primary/50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{PROVIDER_LABELS[p]}</span>
+                        {p === "aliyun" && <span className="text-[10px] text-muted-foreground">默认</span>}
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        用户反馈准确率：<span className="text-foreground font-medium">{fmtAccuracy(acc)}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">航空公司代码 *</label>
@@ -332,7 +448,7 @@ export default function PassportDocsPage() {
               )}
             </Button>
             <p className="text-xs text-muted-foreground">
-              识别结果请人工核对无误后再使用。
+              识别结果请人工核对无误后再使用；核对后点击“正确/有误”可帮助统计各引擎准确率。
             </p>
           </CardContent>
         </Card>
@@ -340,7 +456,7 @@ export default function PassportDocsPage() {
         <div className="text-xs text-muted-foreground bg-muted/50 p-4 rounded-lg">
           指令格式：<code className="font-mono">DOCS {"{航司}"} HK1 P/签发国/护照号/国籍/出生/性别/到期/姓/名/P{"{乘客号}"}</code>
           <br />
-          姓名取自护照 MRZ（机读区），而非印刷姓名栏，以保证姓/名顺序正确。
+          姓名取自护照 MRZ（机读区），而非印刷姓名栏，以保证姓/名顺序正确。仅记录识别结果与准确率反馈，不保存护照照片。
         </div>
       </motion.div>
     </div>

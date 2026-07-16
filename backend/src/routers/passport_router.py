@@ -1,12 +1,15 @@
 """
 Passport → GDS DOCS command generator.
 
-Production uses Aliyun 国际护照识别 (RecognizePassport) to read the passport MRZ:
-it parses the raw MRZ lines deterministically (fixed-position slicing + ICAO
-check digits), so it can't confuse the MRZ country-code prefix with the surname
-the way an LLM occasionally does. (An OpenAI gpt-4.1-mini path still exists but
-is reachable only via the gated ALLOW_OCR_OVERRIDE benchmark flag.) Python then
-formats an SR DOCS command line per passport, e.g.:
+Reads the passport MRZ with one of two providers (the caller picks; default
+Aliyun):
+  - Aliyun 国际护照识别 (RecognizePassport): parses the raw MRZ lines
+    deterministically (fixed-position slicing + ICAO check digits), so it can't
+    confuse the MRZ country-code prefix with the surname the way an LLM can.
+  - OpenAI gpt-4.1-mini: vision transcription of the MRZ.
+Every scan is logged (outputs only, no photo) and can be voted correct/incorrect
+to track each provider's live accuracy. Python then formats an SR DOCS command
+line per passport, e.g.:
 
     DOCS KE HK1 P/IDN/E6090613/IDN/30NOV91/M/12FEB34/PONTO/GOOD AGUN/P1
 
@@ -66,6 +69,7 @@ class DocsLine(BaseModel):
     fields: Dict[str, str]
     warnings: Optional[List[str]] = None
     error: Optional[str] = None
+    log_id: Optional[int] = None  # audit-log row id, so the client can vote on it
 
 
 class DocsResponse(BaseModel):
@@ -306,15 +310,15 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else ""
 
 
-def _log_passport_image(request_id: str, client_ip: str, user_agent: str, airline: str,
-                        provider: str, filename: str, image_bytes: Optional[bytes],
-                        line: DocsLine, duration_ms: int) -> None:
-    """Best-effort audit log — one row per processed image. Stores the (downscaled)
-    input image plus the generated output and request metadata. Never raises into
-    the request path: a logging failure must not break the OCR response."""
+def _log_passport_scan(request_id: str, client_ip: str, user_agent: str, airline: str,
+                       provider: str, filename: str, line: DocsLine,
+                       duration_ms: int) -> Optional[int]:
+    """Best-effort audit log — one row per processed image. Stores ONLY outputs
+    (command/fields/warnings/error) plus request metadata; the photo is not kept.
+    Returns the new row id (so the client can vote on it) or None on failure.
+    Never raises into the request path: a logging failure must not break OCR."""
     try:
         from database import get_db_connection  # lazy: keep module import light
-        import psycopg2
         from psycopg2.extras import Json
 
         conn = get_db_connection()
@@ -323,27 +327,26 @@ def _log_passport_image(request_id: str, client_ip: str, user_agent: str, airlin
             """
             INSERT INTO passport_docs_log
                 (request_id, client_ip, user_agent, airline, pax, provider,
-                 filename, image_mime, image_size, image_bytes,
-                 command, fields, warnings, error, duration_ms)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                 filename, command, fields, warnings, error, duration_ms)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            RETURNING id
             """,
             (
                 request_id, client_ip, user_agent, airline, line.pax, provider,
-                filename, "image/jpeg" if image_bytes else None,
-                len(image_bytes) if image_bytes else None,
-                psycopg2.Binary(image_bytes) if image_bytes else None,
-                line.command or None,
+                filename, line.command or None,
                 Json(line.fields or {}),
                 Json(line.warnings) if line.warnings else None,
-                line.error,
-                duration_ms,
+                line.error, duration_ms,
             ),
         )
+        new_id = cur.fetchone()[0]
         conn.commit()
         cur.close()
         conn.close()
+        return new_id
     except Exception as e:  # noqa: BLE001 — audit logging is best-effort
         print(f"[passport] audit log failed: {e}")
+        return None
 
 
 @router.post("/docs", response_model=DocsResponse)
@@ -352,8 +355,7 @@ async def passport_to_docs(
     request: Request,
     airline: str = Form(...),
     start_pax: int = Form(1),
-    provider: Optional[str] = Form(None),  # benchmarking override, gated by ALLOW_OCR_OVERRIDE
-    model: Optional[str] = Form(None),     # benchmarking override, gated by ALLOW_OCR_OVERRIDE
+    provider: str = Form("aliyun"),  # "aliyun" (default) or "openai" — user's choice
     files: List[UploadFile] = File(...),
 ):
     """Generate one DOCS command line per uploaded passport image."""
@@ -367,17 +369,15 @@ async def passport_to_docs(
     if start_pax < 1:
         start_pax = 1
 
-    # Per-request provider/model override — only honored when explicitly enabled,
-    # so the public endpoint can't be steered to a pricier model by default.
-    allow_override = os.getenv("ALLOW_OCR_OVERRIDE") == "1"
-    ov_provider = ((provider or "").strip().lower() or None) if allow_override else None
-    ov_model = ((model or "").strip() or None) if allow_override else None
+    # Provider is user-selectable but whitelisted to the two supported backends.
+    effective_provider = (provider or "").strip().lower()
+    if effective_provider not in ("aliyun", "openai"):
+        effective_provider = "aliyun"
 
     # Request-level audit metadata (one request_id links all images in this upload).
     request_id = uuid.uuid4().hex
     client_ip = _client_ip(request)
     user_agent = request.headers.get("user-agent", "")
-    effective_provider = "openai" if ov_provider == "openai" else "aliyun"
 
     lines: List[DocsLine] = []
     pax = start_pax
@@ -388,29 +388,105 @@ async def passport_to_docs(
         t0 = time.monotonic()
         if not raw:
             line = DocsLine(pax=pax, command="", fields={}, error="空文件")
+            line.log_id = _log_passport_scan(request_id, client_ip, user_agent, airline,
+                                             effective_provider, filename, line, 0)
             lines.append(line)
-            _log_passport_image(request_id, client_ip, user_agent, airline,
-                                effective_provider, filename, None, line, 0)
             pax += 1
             continue
         try:
             prepped = _prepare_image(raw)  # downscale/recompress before OCR
-            fields, warnings = _extract(prepped, "image/jpeg", provider=ov_provider, model=ov_model)
+            fields, warnings = _extract(prepped, "image/jpeg", provider=effective_provider)
             if not (fields.get("passport_number") or "").strip():
                 line = DocsLine(pax=pax, command="", fields=fields,
                                 error="未能识别到有效护照信息，请检查图片")
             else:
                 command = _build_command(airline, fields, pax)
                 line = DocsLine(pax=pax, command=command, fields=fields, warnings=warnings or None)
-            lines.append(line)
         except HTTPException:
             raise  # config error — surface immediately
         except Exception as e:  # per-image failure shouldn't abort the batch
             line = DocsLine(pax=pax, command="", fields={}, error=str(e))
-            lines.append(line)
         duration_ms = int((time.monotonic() - t0) * 1000)
-        _log_passport_image(request_id, client_ip, user_agent, airline,
-                            effective_provider, filename, prepped, line, duration_ms)
+        line.log_id = _log_passport_scan(request_id, client_ip, user_agent, airline,
+                                         effective_provider, filename, line, duration_ms)
+        lines.append(line)
         pax += 1
 
     return DocsResponse(success=True, lines=lines)
+
+
+class VoteRequest(BaseModel):
+    log_id: int
+    correct: bool
+
+
+class VoteResponse(BaseModel):
+    success: bool
+
+
+@router.post("/vote", response_model=VoteResponse)
+@limiter.limit("60/minute")
+async def vote_scan(request: Request, payload: VoteRequest):
+    """Record whether a scan's extracted info was correct — a reflection signal
+    used to track each provider's live accuracy."""
+    try:
+        from database import get_db_connection
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE passport_docs_log SET vote = %s, voted_at = now() WHERE id = %s",
+            (1 if payload.correct else 0, payload.log_id),
+        )
+        updated = cur.rowcount
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(500, f"记录投票失败: {e}")
+    if not updated:
+        raise HTTPException(404, "未找到该识别记录")
+    return VoteResponse(success=True)
+
+
+class ProviderAccuracy(BaseModel):
+    votes: int
+    correct: int
+    accuracy: Optional[float] = None  # correct/votes, or None if no votes yet
+
+
+class AccuracyResponse(BaseModel):
+    aliyun: ProviderAccuracy
+    openai: ProviderAccuracy
+
+
+@router.get("/accuracy", response_model=AccuracyResponse)
+@limiter.limit("60/minute")
+async def accuracy(request: Request):
+    """Per-provider accuracy from user votes: correct votes / total votes."""
+    stats = {"aliyun": {"votes": 0, "correct": 0}, "openai": {"votes": 0, "correct": 0}}
+    try:
+        from database import get_db_connection
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT provider,
+                   count(*) FILTER (WHERE vote IS NOT NULL) AS votes,
+                   count(*) FILTER (WHERE vote = 1)         AS correct
+            FROM passport_docs_log
+            WHERE provider IN ('aliyun', 'openai')
+            GROUP BY provider
+            """
+        )
+        for provider, votes, correct in cur.fetchall():
+            stats[provider] = {"votes": int(votes), "correct": int(correct)}
+        cur.close()
+        conn.close()
+    except Exception as e:  # noqa: BLE001 — accuracy is a nice-to-have; degrade to zeros
+        print(f"[passport] accuracy query failed: {e}")
+
+    def pack(s: Dict[str, int]) -> ProviderAccuracy:
+        v, c = s["votes"], s["correct"]
+        return ProviderAccuracy(votes=v, correct=c, accuracy=(c / v) if v else None)
+
+    return AccuracyResponse(aliyun=pack(stats["aliyun"]), openai=pack(stats["openai"]))
