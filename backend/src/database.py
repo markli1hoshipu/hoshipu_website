@@ -125,6 +125,45 @@ def init_passport_log_table():
         print(f"[DB] passport log init skipped: {e}")
 
 
+def init_quiz_leaderboard_table():
+    """
+    Create code_quiz_leaderboard (航司/机场代码测验 leaderboard) on boot.
+    Idempotent. One row per completed challenge run: username, score
+    (consecutive correct, capped 100), elapsed time_ms, and a perfect flag
+    (score == 100). Best-effort — never blocks app boot.
+    """
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS code_quiz_leaderboard (
+                id          SERIAL PRIMARY KEY,
+                username    TEXT NOT NULL,
+                score       SMALLINT NOT NULL,
+                time_ms     INTEGER NOT NULL,
+                perfect     BOOLEAN NOT NULL DEFAULT false,
+                client_ip   TEXT,
+                created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+            )
+        """)
+        # Rank: higher score first, then less time. (Time is the tiebreaker,
+        # and the sole differentiator among perfect 100-question runs.)
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_quiz_lb_rank ON code_quiz_leaderboard (score DESC, time_ms ASC)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_quiz_lb_user ON code_quiz_leaderboard (username)"
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print("[DB] code_quiz_leaderboard table ready")
+    except psycopg2.OperationalError as e:
+        print(f"[DB] quiz leaderboard init failed - database connection error: {e}")
+    except Exception as e:
+        print(f"[DB] quiz leaderboard init skipped: {e}")
+
+
 def init_yif_triggers():
     """
     Initialize YIF database triggers (backup safety net).

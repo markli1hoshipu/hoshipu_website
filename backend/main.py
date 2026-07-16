@@ -32,8 +32,9 @@ from routers.yif_team_router import router as yif_team_router
 from routers.accounting_router import router as accounting_router
 from routers.contact_router import router as contact_router
 from routers.passport_router import router as passport_router
+from routers.quiz_router import router as quiz_router
 from routers.bench_router import router as bench_router, reclaim_stale_jobs_loop
-from database import init_yif_triggers, init_embodybench_tables, init_passport_log_table
+from database import init_yif_triggers, init_embodybench_tables, init_passport_log_table, init_quiz_leaderboard_table
 import uvicorn
 import logging
 
@@ -77,6 +78,7 @@ app.include_router(yif_team_router)
 app.include_router(accounting_router)
 app.include_router(contact_router)
 app.include_router(passport_router)
+app.include_router(quiz_router)
 app.include_router(bench_router)
 
 # Initialize YIF triggers (backup safety net, auto-creates if not exists)
@@ -87,6 +89,9 @@ init_embodybench_tables()
 
 # Initialize passport→DOCS audit log table (auto-creates if not exists)
 init_passport_log_table()
+
+# Initialize code-quiz leaderboard table (auto-creates if not exists)
+init_quiz_leaderboard_table()
 
 
 @app.on_event("startup")
