@@ -125,6 +125,40 @@ def init_passport_log_table():
         print(f"[DB] passport log init skipped: {e}")
 
 
+def init_guandan_tables():
+    """
+    Create guandan_tables (online 掼蛋 game hall) on boot. Idempotent.
+    One row per table: 4 seats (empty/human/ai) plus the authoritative game
+    state as JSONB, guarded by a version counter for optimistic concurrency.
+    Best-effort — never blocks app boot.
+    """
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS guandan_tables (
+                id          SERIAL PRIMARY KEY,
+                name        TEXT NOT NULL,
+                status      TEXT NOT NULL DEFAULT 'waiting',  -- waiting | playing | finished
+                host_id     TEXT,
+                seats       JSONB NOT NULL,                   -- [{type,player_id,name}] x4
+                state       JSONB,                            -- full game state, null until start
+                version     INTEGER NOT NULL DEFAULT 0,
+                created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+                updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_guandan_status ON guandan_tables (status, updated_at DESC)")
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print("[DB] guandan_tables table ready")
+    except psycopg2.OperationalError as e:
+        print(f"[DB] guandan init failed - database connection error: {e}")
+    except Exception as e:
+        print(f"[DB] guandan init skipped: {e}")
+
+
 def init_quiz_leaderboard_table():
     """
     Create code_quiz_leaderboard (航司/机场代码测验 leaderboard) on boot.
