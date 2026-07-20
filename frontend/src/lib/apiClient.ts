@@ -126,15 +126,38 @@ export interface AeQffMergeResponse {
   file_base64: string;
 }
 
-export async function mergeAeQff(aeFile: File, qffFiles: File[]): Promise<AeQffMergeResponse> {
+// Hard caps mirrored on the backend; keep in sync with ae_qff_router.py.
+export const AE_MAX_BYTES = 512 * 1024; // 512 KB
+export const QFF_MAX_BYTES = 256 * 1024; // 256 KB
+
+export async function mergeAeQff(
+  aeFile: File,
+  qffFiles: File[],
+  timeoutMs = 120000,
+): Promise<AeQffMergeResponse> {
   const formData = new FormData();
   formData.append('ae_file', aeFile);
   qffFiles.forEach((f) => formData.append('qff_files', f));
 
-  const response = await fetch(`${API_BASE_URL}/api/ae-qff/merge`, {
-    method: 'POST',
-    body: formData,
-  });
+  // Abort instead of spinning forever if the backend hangs / is killed.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api/ae-qff/merge`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
+    });
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      throw new Error('请求超时：服务器长时间无响应（可能文件过大导致后端繁忙）。请稍后重试，或缩小文件。');
+    }
+    throw new Error('无法连接后端，请检查网络或稍后重试。');
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!response.ok) {
     let detail = response.statusText;

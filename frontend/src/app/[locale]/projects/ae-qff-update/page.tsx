@@ -18,7 +18,9 @@ import {
   Copy,
 } from "lucide-react";
 import { saveAs } from "file-saver";
-import { mergeAeQff, type AeQffMergeResponse } from "@/lib/apiClient";
+import { mergeAeQff, AE_MAX_BYTES, QFF_MAX_BYTES, type AeQffMergeResponse } from "@/lib/apiClient";
+
+const kb = (n: number) => `${Math.round(n / 1024)} KB`;
 
 function base64ToBlob(b64: string): Blob {
   const bytes = atob(b64);
@@ -43,6 +45,22 @@ export default function AeQffUpdatePage() {
 
   const handleMerge = async () => {
     if (!aeFile || qffFiles.length === 0) return;
+
+    // Size guards (mirror the backend) — fail fast, no upload, no spinner.
+    if (aeFile.size > AE_MAX_BYTES) {
+      setResult(null);
+      setError(
+        `AE 主表过大（${kb(aeFile.size)}），上限 ${kb(AE_MAX_BYTES)}。请先把历史月份归档，让在用报表变小后再上传。`,
+      );
+      return;
+    }
+    const tooBig = qffFiles.find((f) => f.size > QFF_MAX_BYTES);
+    if (tooBig) {
+      setResult(null);
+      setError(`欠条文件「${tooBig.name}」过大（${kb(tooBig.size)}），单个上限 ${kb(QFF_MAX_BYTES)}。`);
+      return;
+    }
+
     setMerging(true);
     setResult(null);
     setError(null);
