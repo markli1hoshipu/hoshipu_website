@@ -46,6 +46,9 @@ def _norm(name: Any) -> str:
 
 
 def _serial_to_yymmdd(serial: Any) -> Optional[str]:
+    # A date-formatted header round-trips through Excel as a datetime, not a serial.
+    if isinstance(serial, datetime):
+        return serial.strftime("%y%m%d")
     if not isinstance(serial, (int, float)):
         return None
     try:
@@ -177,6 +180,8 @@ def _ensure_day_column(ws, yymmdd: str, day_cols: Dict[str, int]) -> Optional[in
         src = ws.cell(1, min(used))
         if src.has_style:
             hdr._style = copy(src._style)
+    else:  # fresh sheet — give the serial a date display format
+        hdr.number_format = "m/d"
     tot = ws.cell(2, target)
     if not (isinstance(tot.value, str) and tot.value.startswith("=")):
         letter = get_column_letter(target)
@@ -266,6 +271,27 @@ def _make_totals_dynamic(ws) -> None:
         if isinstance(b, str) and b.startswith("=SUM(D"):
             ws.cell(r, 2).value = f'=SUMIF($A:$A,"{p}*",$D:$D)'
 
+    # re-anchor each day column's row-2 total (row insertions may have shifted the $3)
+    for c in range(_FIRST_DAY_COL, ws.max_column + 1):
+        if _serial_to_yymmdd(ws.cell(1, c).value):
+            letter = get_column_letter(c)
+            ws.cell(2, c).value = f"=SUM({letter}$3:{letter}${_EXCEL_MAX_ROW})"
+
+
+def _create_month_sheet(wb, sheet_name: str):
+    """Create a fresh single-month sheet (no prior-month carry-over): grand-total
+    header + column labels only. Day columns, 负责人 groups, debtor rows and their
+    prefix-SUMIF subtotals are all added on demand by the merge. Assumes a
+    standalone current-month sheet (other sheets are irrelevant)."""
+    ws = wb.create_sheet(title=sheet_name)
+    ws.cell(1, 3).value = f"=SUM(C3:C{_EXCEL_MAX_ROW})"  # 余额合计
+    ws.cell(1, 4).value = f"=SUM(D3:D{_EXCEL_MAX_ROW})"  # 当月发生额合计
+    ws.cell(2, 2).value = "欠款人"
+    ws.cell(2, 3).value = "欠款余额"
+    ws.cell(2, 4).value = "当月发生额"
+    ws.cell(2, 5).value = "上月余额"
+    return ws
+
 
 # --------------------------------------------------------------------------- #
 # hidden import log
@@ -314,6 +340,8 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
         "aggregated": 0,
         "new_debtors": 0,
         "duplicates": 0,
+        "new_sheets": 0,        # month sheets auto-created
+        "new_sheet_list": [],   # ["202607", ...]
         "new_days": 0,          # day columns auto-created in month sheets
         "new_day_list": [],     # ["202607-260713", ...]
         "new_groups": 0,        # 负责人 groups auto-created
@@ -348,8 +376,9 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
             continue
         sheet_name = _date_to_ym_sheet(yymmdd)
         if sheet_name not in wb.sheetnames:
-            report["skipped"].append({"iou_no": no, "reason": f"no sheet {sheet_name}"})
-            continue
+            _create_month_sheet(wb, sheet_name)
+            report["new_sheets"] += 1
+            report["new_sheet_list"].append(sheet_name)
 
         ws = wb[sheet_name]
         if sheet_name not in plan:

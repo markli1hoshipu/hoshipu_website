@@ -211,13 +211,14 @@ export default function AeQffUpdatePage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
                     { label: "共读取", value: report.total },
                     { label: "已计入", value: report.added, color: "text-green-600" },
-                    { label: "新增欠款人", value: report.new_debtors, color: "text-blue-600" },
-                    { label: "新增日期列", value: report.new_days ?? 0, color: "text-blue-600" },
+                    { label: "新增月份表", value: report.new_sheets ?? 0, color: "text-blue-600" },
                     { label: "新增分组", value: report.new_groups ?? 0, color: "text-blue-600" },
+                    { label: "新增日期列", value: report.new_days ?? 0, color: "text-blue-600" },
+                    { label: "新增欠款人", value: report.new_debtors, color: "text-blue-600" },
                     { label: "重复跳过", value: report.duplicates, color: "text-amber-600" },
                   ].map((s) => (
                     <div key={s.label} className="rounded-lg border p-3 text-center">
@@ -331,6 +332,7 @@ export default function AeQffUpdatePage() {
               <p>• 按列 E 的负责人代码归入对应分组（QFF / WW / LYC …）。</p>
               <p>• 组内按欠款人姓名匹配（忽略空格）；写入每笔的初始金额。</p>
               <p>• 未匹配到的欠款人会在该负责人分组内新增一行。</p>
+              <p>• 缺整个月份表会自动新建（当月单表，不结转上月余额）。</p>
               <p>• 报表里没有的负责人分组会自动新建（含按前缀 SUMIF 的小计行）。</p>
               <p>• 月份表里缺当天的日期列会自动补上。</p>
               <p>• 合计已改为动态：总计开口 SUM、分组小计按列 A 前缀 SUMIF，加行/加组不再需要维护公式。</p>

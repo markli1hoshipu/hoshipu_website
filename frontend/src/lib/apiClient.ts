@@ -116,6 +116,8 @@ export interface AeQffReport {
   aggregated: number;
   new_debtors: number;
   duplicates: number;
+  new_sheets?: number;
+  new_sheet_list?: string[];
   new_days?: number;
   new_day_list?: string[];
   new_groups?: number;
