@@ -341,7 +341,7 @@
       "tags": ["PDF Processing", "Excel Export"]
     },
     "aeQff": {
-      "title": "AE IOU Ledger Update",
+      "title": "pxb-ae",
       "description": "Merge QFF IOU files into the AE ledger by debtor and date, with auto-dedup and new-debtor insertion.",
       "tags": ["Excel Processing", "Reconciliation"]
     },

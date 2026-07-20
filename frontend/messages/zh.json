@@ -341,7 +341,7 @@
       "tags": ["PDF处理", "Excel导出"]
     },
     "aeQff": {
-      "title": "AE 欠条报表更新",
+      "title": "pxb-ae",
       "description": "把QFF欠条文件按欠款人和日期并入AE欠条报表，自动去重、新增欠款人。",
       "tags": ["Excel处理", "对账"]
     },

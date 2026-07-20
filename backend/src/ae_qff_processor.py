@@ -18,6 +18,7 @@ ranges (grand total, group subtotals, row 541/542) stay correct — openpyxl doe
 NOT adjust formulas on insert, so we rewrite every same-sheet reference ourselves.
 """
 import io
+import os
 import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
@@ -180,7 +181,8 @@ def _ensure_day_column(ws, yymmdd: str, day_cols: Dict[str, int]) -> Optional[in
         src = ws.cell(1, min(used))
         if src.has_style:
             hdr._style = copy(src._style)
-    else:  # fresh sheet — give the serial a date display format
+    else:  # fresh sheet — style from the template + a readable date format
+        _copy_style(_proto().cell(1, 6), hdr)
         hdr.number_format = "m/d"
     tot = ws.cell(2, target)
     if not (isinstance(tot.value, str) and tot.value.startswith("=")):
@@ -222,6 +224,43 @@ def _copy_row_style(ws, src_row: int, dst_row: int, max_col: int) -> None:
 def _family_prefix(name: Any) -> str:
     """Group key = the 负责人 code before any suffix. 'QFF-月中' -> 'QFF', 'WD-纸' -> 'WD'."""
     return str(name or "").split("-")[0].strip()
+
+
+# ---- styling for freshly-created sheets (match the AE-欠条报表 example colors) ----
+_STYLE_PROTO = None  # cached 'proto' worksheet: row1=header, row2=labels, row3=debtor, row4=subtotal
+
+
+def _proto():
+    """Lazy-load the style template (row-prototypes extracted from the example ledger)."""
+    global _STYLE_PROTO
+    if _STYLE_PROTO is None:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "assets", "ae_style_template.xlsx")
+        _STYLE_PROTO = openpyxl.load_workbook(path)["proto"]
+    return _STYLE_PROTO
+
+
+def _copy_style(src, dst) -> None:
+    """Copy visual style across workbooks (attribute copy — _style indices don't
+    transfer between workbooks, but Font/Fill/Border/Alignment objects do)."""
+    dst.font = copy(src.font)
+    dst.fill = copy(src.fill)
+    dst.border = copy(src.border)
+    dst.alignment = copy(src.alignment)
+    dst.number_format = src.number_format
+
+
+def _style_debtor_row(ws, r: int, max_col: int) -> None:
+    """Apply the example's debtor-row colors (per column; day columns reuse col F)."""
+    pr = _proto()
+    for c in range(1, max_col + 1):
+        _copy_style(pr.cell(3, c if c <= 5 else 6), ws.cell(r, c))
+
+
+def _style_subtotal_row(ws, r: int) -> None:
+    pr = _proto()
+    _copy_style(pr.cell(4, 1), ws.cell(r, 1))
+    _copy_style(pr.cell(4, 2), ws.cell(r, 2))
 
 
 def _grand_total_row(ws) -> int:
@@ -269,6 +308,12 @@ def _create_month_sheet(wb, sheet_name: str):
     ws.cell(2, 3).value = "欠款余额"
     ws.cell(2, 4).value = "当月发生额"
     ws.cell(2, 5).value = "上月余额"
+    # colors from the example: C1 yellow / D1 pink totals, bold row-2 labels
+    pr = _proto()
+    _copy_style(pr.cell(1, 3), ws.cell(1, 3))
+    _copy_style(pr.cell(1, 4), ws.cell(1, 4))
+    for c in range(2, 6):
+        _copy_style(pr.cell(2, c), ws.cell(2, c))
     return ws
 
 
@@ -397,8 +442,10 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
             nd["ious"].append(iou)
 
     # apply per sheet
+    created = set(report["new_sheet_list"])  # sheets built fresh -> style from template
     for sheet_name, st in plan.items():
         ws = wb[sheet_name]
+        fresh = sheet_name in created
         max_col = ws.max_column
 
         # 1) existing debtors: add amount into the day cell (aggregate).
@@ -431,7 +478,10 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
             _insert_rows_with_remap(ws, insert_at, n_rows)
             for i, nd in enumerate(new_list):
                 r = insert_at + i
-                _copy_row_style(ws, tpl, r, max_col)
+                if fresh:
+                    _style_debtor_row(ws, r, max_col)
+                else:
+                    _copy_row_style(ws, tpl, r, max_col)
                 ws.cell(r, 1).value = owner
                 ws.cell(r, 2).value = nd["name"]
                 ws.cell(r, 3).value = f"=SUM(E{r}:ZC{r})"   # 余额
@@ -447,7 +497,10 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
                                                "new-row", iou.get("remark")])
             if is_new_group:  # contiguous subtotal row for the brand-new group's block
                 sr = insert_at + len(new_list)
-                _copy_row_style(ws, tpl, sr, max_col)
+                if fresh:
+                    _style_subtotal_row(ws, sr)
+                else:
+                    _copy_row_style(ws, tpl, sr, max_col)
                 first_r, last_r = insert_at, sr - 1
                 ws.cell(sr, 1).value = f"=SUM(C{first_r}:C{last_r})"
                 ws.cell(sr, 2).value = f"=SUM(D{first_r}:D{last_r})"
