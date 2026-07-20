@@ -42,6 +42,12 @@ MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", 
 # only through the gated ALLOW_OCR_OVERRIDE benchmark path — off in production.)
 VISION_MODEL = "gpt-4.1-mini"
 
+# Per-image OCR timeouts (seconds). Generous so a slow single call isn't cut off;
+# batches stay fast because a batch switches to OpenAI after Aliyun fails once.
+OPENAI_TIMEOUT = float(os.getenv("OPENAI_OCR_TIMEOUT", "60"))
+ALIYUN_CONNECT_TIMEOUT_MS = int(os.getenv("ALIYUN_CONNECT_TIMEOUT_MS", "20000"))
+ALIYUN_READ_TIMEOUT_MS = int(os.getenv("ALIYUN_READ_TIMEOUT_MS", "60000"))
+
 EXTRACT_PROMPT = """Read this passport's photo page and extract the traveler's document details \
 FROM THE MACHINE READABLE ZONE (MRZ) — the two lines of monospaced characters (with '<' fillers) at \
 the very bottom. The MRZ is the source of truth; ignore the printed fields above it if they differ.
@@ -190,7 +196,7 @@ def _extract_fields(image_bytes: bytes, mime: str, model: Optional[str] = None) 
     model = model or VISION_MODEL
     from openai import OpenAI  # imported lazily so the app boots without the package
 
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(api_key=api_key, timeout=OPENAI_TIMEOUT, max_retries=1)
     b64 = base64.b64encode(image_bytes).decode("ascii")
     if not (mime or "").startswith("image/"):
         mime = "image/jpeg"
@@ -280,11 +286,12 @@ def _extract_via_aliyun(image_bytes: bytes) -> Tuple[Dict[str, str], List[str]]:
     req = ocr_models.RecognizePassportRequest(body=io.BytesIO(image_bytes))
     runtime = util_models.RuntimeOptions()
     # Render (US/EU) → Aliyun cn-hangzhou is a cross-border hop that can be slow;
-    # give the upload/read more headroom and a couple of retries.
-    runtime.connect_timeout = 15000  # ms
-    runtime.read_timeout = 60000     # ms
-    runtime.autoretry = True
-    runtime.max_attempts = 3
+    # give the upload/read up to ~1 min. One attempt only — if it still fails we
+    # fall back to OpenAI (fast), which is cheaper than burning another minute.
+    runtime.connect_timeout = ALIYUN_CONNECT_TIMEOUT_MS
+    runtime.read_timeout = ALIYUN_READ_TIMEOUT_MS
+    runtime.autoretry = False
+    runtime.max_attempts = 1
     resp = client.recognize_passport_with_options(req, runtime)
 
     outer = json.loads(resp.body.data or "{}")
@@ -449,6 +456,10 @@ async def passport_to_docs(
                                          used_provider, filename, line, duration_ms)
         lines.append(line)
         pax += 1
+        # If Aliyun timed out and we fell back to OpenAI, don't keep waiting the
+        # full Aliyun timeout on every remaining image — use OpenAI for the rest.
+        if effective_provider == "aliyun" and used_provider == "openai":
+            effective_provider = "openai"
         # free this image's buffers before the next one so peak memory stays low
         raw = b""
         prepped = None
