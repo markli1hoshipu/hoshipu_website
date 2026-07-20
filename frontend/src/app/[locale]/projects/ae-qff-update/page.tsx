@@ -241,7 +241,7 @@ export default function AeQffUpdatePage() {
                 {(report.new_group_names?.length ?? 0) > 0 && (
                   <div>
                     <div className="flex items-center gap-2 text-sm font-medium mb-2">
-                      <UserPlus className="h-4 w-4 text-blue-600" /> 新增负责人分组（含小计行，按前缀 SUMIF 汇总）
+                      <UserPlus className="h-4 w-4 text-blue-600" /> 新增负责人分组（含分组小计行）
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {report.new_group_names!.map((n, i) => (
@@ -333,9 +333,9 @@ export default function AeQffUpdatePage() {
               <p>• 组内按欠款人姓名匹配（忽略空格）；写入每笔的初始金额。</p>
               <p>• 未匹配到的欠款人会在该负责人分组内新增一行。</p>
               <p>• 缺整个月份表会自动新建（当月单表，不结转上月余额）。</p>
-              <p>• 报表里没有的负责人分组会自动新建（含按前缀 SUMIF 的小计行）。</p>
+              <p>• 报表里没有的负责人分组会自动新建（含分组小计行）。</p>
               <p>• 月份表里缺当天的日期列会自动补上。</p>
-              <p>• 合计已改为动态：总计开口 SUM、分组小计按列 A 前缀 SUMIF，加行/加组不再需要维护公式。</p>
+              <p>• 总计为开口 SUM、分组小计为区间 SUM（插行自动维护），打开时自动重算。</p>
               <p>• 隐藏表 <span className="font-mono">_QFF_imported</span> 记录已导入的欠单号，重复上传自动跳过。</p>
             </CardContent>
           </Card>

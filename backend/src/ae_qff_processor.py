@@ -233,45 +233,24 @@ def _grand_total_row(ws) -> int:
     return ws.max_row + 1
 
 
-def _make_totals_dynamic(ws) -> None:
-    """Rewrite the sheet's totals so they group by the 负责人 prefix in column A and
-    never need range maintenance when rows/groups are added:
-      * grand total C1/D1  -> open-ended =SUM(C3:C1048576) / =SUM(D3:...)
-      * each single-prefix subtotal row (=SUM(Cx:Cy)) -> =SUMIF($A:$A,"prefix*",$C:$C)
-        (and the matching D subtotal). Rows spanning >1 prefix are left untouched.
-    The grand-total VALUE is unchanged: subtotal rows carry no value in column C, so
-    SUM over column C already equals the sum of every debtor's 余额."""
+def _open_grand_total(ws) -> None:
+    """Make the sheet's grand total range-proof and re-anchor day-column totals.
+
+    * grand total C1/D1 -> open-ended =SUM(C3:C1048576) / =SUM(D3:...), so any
+      added row/group is always counted.
+    * each day column's row-2 total -> =SUM(col$3:col$1048576) (row insertions may
+      have shifted the anchor).
+
+    Subtotal rows are deliberately left as contiguous =SUM(Cx:Cy): the row-insert
+    remap keeps those ranges correct, and — unlike SUMIF($A:$A,…) — a bounded
+    single-column SUM neither self-references its own column (no circular ref) nor
+    hits Excel's flaky full-column-criteria behavior (which returned 0 / triggered
+    a file repair)."""
     for col in (3, 4):  # C1 (余额合计), D1 (发生额合计)
         v = ws.cell(1, col).value
         if isinstance(v, str) and v.startswith("=SUM("):
             letter = get_column_letter(col)
             ws.cell(1, col).value = f"=SUM({letter}3:{letter}{_EXCEL_MAX_ROW})"
-
-    last = ws.max_row
-    a_vals = {r: ws.cell(r, 1).value for r in range(3, last + 1)}
-    for r in range(3, last + 1):
-        a = a_vals[r]
-        if not (isinstance(a, str) and a.startswith("=SUM(C")):
-            continue
-        m = re.search(r"C(\d+):C(\d+)", a)
-        if not m:
-            continue
-        s, e = int(m.group(1)), int(m.group(2))
-        prefixes = {
-            _family_prefix(a_vals[rr])
-            for rr in range(s, e + 1)
-            if isinstance(a_vals.get(rr), str) and not str(a_vals[rr]).startswith("=")
-        }
-        prefixes.discard("")
-        if len(prefixes) != 1:
-            continue  # 0 or >1 prefixes in range -> leave as a plain SUM
-        p = next(iter(prefixes))
-        ws.cell(r, 1).value = f'=SUMIF($A:$A,"{p}*",$C:$C)'
-        b = ws.cell(r, 2).value
-        if isinstance(b, str) and b.startswith("=SUM(D"):
-            ws.cell(r, 2).value = f'=SUMIF($A:$A,"{p}*",$D:$D)'
-
-    # re-anchor each day column's row-2 total (row insertions may have shifted the $3)
     for c in range(_FIRST_DAY_COL, ws.max_column + 1):
         if _serial_to_yymmdd(ws.cell(1, c).value):
             letter = get_column_letter(c)
@@ -466,22 +445,29 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
                     report["log_rows"].append([iou["iou_no"], iou["date"], iou["debtor"],
                                                iou["initial"] or 0, sheet_name,
                                                "new-row", iou.get("remark")])
-            if is_new_group:  # subtotal row for the brand-new group (prefix-keyed)
+            if is_new_group:  # contiguous subtotal row for the brand-new group's block
                 sr = insert_at + len(new_list)
                 _copy_row_style(ws, tpl, sr, max_col)
-                prefix = _family_prefix(owner)
-                ws.cell(sr, 1).value = f'=SUMIF($A:$A,"{prefix}*",$C:$C)'
-                ws.cell(sr, 2).value = f'=SUMIF($A:$A,"{prefix}*",$D:$D)'
+                first_r, last_r = insert_at, sr - 1
+                ws.cell(sr, 1).value = f"=SUM(C{first_r}:C{last_r})"
+                ws.cell(sr, 2).value = f"=SUM(D{first_r}:D{last_r})"
                 report["new_groups"] += 1
                 report["new_group_names"].append(f"{sheet_name}: {owner}")
 
-        # 3) make this sheet's totals dynamic (prefix SUMIF + open-ended grand total)
-        _make_totals_dynamic(ws)
+        # 3) open-ended grand total + re-anchored day totals
+        _open_grand_total(ws)
 
     # append to the hidden import log
     log = _ensure_log_sheet(wb)
     for row in report["log_rows"]:
         log.append(row)
+
+    # Force Excel to recompute every formula on open — openpyxl writes no cached
+    # values, so without this the formula cells would show blank until edited.
+    try:
+        wb.calculation.fullCalcOnLoad = True
+    except Exception:  # noqa: BLE001 — best-effort; older openpyxl
+        pass
 
     buf = io.BytesIO()
     wb.save(buf)
