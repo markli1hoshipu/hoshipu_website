@@ -3,6 +3,7 @@ Router for the AE 欠条报表 updater — merge QFF daily-IOU files into the AE
 """
 import base64
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import List
 
 from fastapi import APIRouter, UploadFile, File
@@ -56,7 +57,9 @@ async def merge_endpoint(
     name = ae_file.filename or "AE.xlsx"
     if name.lower().endswith(".xlsx"):
         name = name[:-5]
-    download_name = f"{name}-updated.xlsx"
+    # append the Beijing-time date, e.g. originalname_20260720.xlsx
+    date_str = datetime.now(timezone(timedelta(hours=8))).strftime("%Y%m%d")
+    download_name = f"{name}_{date_str}.xlsx"
 
     return {
         "report": report,
