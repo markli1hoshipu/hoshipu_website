@@ -342,7 +342,7 @@
     },
     "aeQff": {
       "title": "pxb-ae",
-      "description": "Merge QFF IOU files into the AE ledger by debtor and date, with auto-dedup and new-debtor insertion.",
+      "description": "Merge QFF IOU files into the pxb-ae ledger by 负责人, debtor and date — auto-creating missing month sheets, day columns, groups and debtors, with dedup.",
       "tags": ["Excel Processing", "Reconciliation"]
     },
     "game24": {

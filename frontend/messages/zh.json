@@ -342,7 +342,7 @@
     },
     "aeQff": {
       "title": "pxb-ae",
-      "description": "把QFF欠条文件按欠款人和日期并入AE欠条报表，自动去重、新增欠款人。",
+      "description": "把QFF欠条文件按负责人、欠款人和日期并入pxb-ae报表，自动新建缺失的月份表/日期列/分组/欠款人并去重。",
       "tags": ["Excel处理", "对账"]
     },
     "game24": {

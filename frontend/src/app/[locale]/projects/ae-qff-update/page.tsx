@@ -91,8 +91,8 @@ export default function AeQffUpdatePage() {
       >
         <h1 className="text-4xl md:text-5xl font-bold mb-6">pxb-ae</h1>
         <p className="text-lg text-muted-foreground max-w-3xl">
-          上传当前的 AE 欠条报表和一批欠条文件（QFF / WW / LYC 等），系统按<b>负责人代码（列 E）</b>、
-          欠款人和日期把每笔初始金额并入对应月份表格的对应分组，自动新增未出现过的欠款人，
+          上传当前的 pxb-ae 报表（可以是空表）和一批欠条文件（QFF / WW / LYC 等），系统按<b>负责人代码（列 E）</b>、
+          欠款人和日期把每笔初始金额并入对应月份表的对应分组；缺的<b>月份表、日期列、负责人分组、欠款人</b>都会自动新建，
           并用隐藏表记录每个欠单号，重复上传不会重复计入。
         </p>
       </motion.div>
@@ -102,8 +102,8 @@ export default function AeQffUpdatePage() {
           {/* AE upload */}
           <Card>
             <CardHeader>
-              <CardTitle>当前 AE 欠条报表</CardTitle>
-              <CardDescription>上传要更新的 AE 报表（.xlsx，单个文件）</CardDescription>
+              <CardTitle>当前 pxb-ae 报表</CardTitle>
+              <CardDescription>上传要更新的 pxb-ae 报表（.xlsx，单个文件；空表也可以）</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <Input
@@ -122,7 +122,7 @@ export default function AeQffUpdatePage() {
                   {aeFile ? (
                     <span className="text-sm font-medium truncate">{aeFile.name}</span>
                   ) : (
-                    <span className="text-sm text-muted-foreground">点击选择 AE 报表文件</span>
+                    <span className="text-sm text-muted-foreground">点击选择 pxb-ae 报表文件</span>
                   )}
                 </div>
               </label>
@@ -309,7 +309,7 @@ export default function AeQffUpdatePage() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground">
               {[
-                "上传当前 AE 欠条报表",
+                "上传当前 pxb-ae 报表（空表也行）",
                 "上传一批要加入的 QFF 文件",
                 "点击「开始合并」，核对结果摘要",
                 "下载更新后的报表（余额/合计公式自动重算）",
