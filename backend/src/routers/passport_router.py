@@ -217,24 +217,47 @@ def _extract_fields(image_bytes: bytes, mime: str, model: Optional[str] = None) 
 
 def _prepare_image(image_bytes: bytes) -> bytes:
     """Downscale/recompress to keep uploads small & fast (helps Aliyun upload
-    reliability and OpenAI latency/cost). Falls back to the original on error."""
+    reliability and OpenAI latency/cost) and to bound memory. Falls back to the
+    original on error."""
+    max_side = 1600
+    img = None
+    rotated = None
     try:
         from PIL import Image, ImageOps
 
         img = Image.open(io.BytesIO(image_bytes))
-        img = ImageOps.exif_transpose(img)  # honor camera orientation
-        if img.mode != "RGB":
-            img = img.convert("RGB")
-        max_side = 1600
-        w, h = img.size
+        # draft() lets libjpeg decode a big JPEG at a reduced scale, so we never
+        # materialize the full-resolution bitmap — the main memory-spike guard.
+        try:
+            img.draft("RGB", (max_side, max_side))
+        except Exception:
+            pass
+        rotated = ImageOps.exif_transpose(img)  # honor camera orientation
+        if rotated.mode != "RGB":
+            conv = rotated.convert("RGB")
+            if rotated is not img:
+                rotated.close()
+            rotated = conv
+        w, h = rotated.size
         if max(w, h) > max_side:
             scale = max_side / float(max(w, h))
-            img = img.resize((int(w * scale), int(h * scale)))
+            resized = rotated.resize((int(w * scale), int(h * scale)))
+            if rotated is not img:
+                rotated.close()
+            rotated = resized
         out = io.BytesIO()
-        img.save(out, format="JPEG", quality=85, optimize=True)
+        rotated.save(out, format="JPEG", quality=85, optimize=True)
         return out.getvalue()
     except Exception:
         return image_bytes
+    finally:
+        try:
+            if rotated is not None and rotated is not img:
+                rotated.close()
+            if img is not None:
+                img.close()
+        except Exception:
+            pass
 
 
 def _extract_via_aliyun(image_bytes: bytes) -> Tuple[Dict[str, str], List[str]]:
@@ -426,7 +449,12 @@ async def passport_to_docs(
                                          used_provider, filename, line, duration_ms)
         lines.append(line)
         pax += 1
+        # free this image's buffers before the next one so peak memory stays low
+        raw = b""
+        prepped = None
 
+    # transient decode/upload memory is returned to the OS by the multipart
+    # trim middleware (see main.py) after this response is produced.
     return DocsResponse(success=True, lines=lines)
 
 

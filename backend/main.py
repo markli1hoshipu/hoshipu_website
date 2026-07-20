@@ -66,6 +66,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def _trim_memory_after_uploads(request: Request, call_next):
+    """File uploads (images/PDF/Excel) decode into big transient buffers. On the
+    512MB instance, glibc keeps that freed memory in its arenas, so RSS ratchets
+    up across uploads until OOM. After any multipart request, return freed memory
+    to the OS. Runs only on uploads, so the overhead is negligible."""
+    response = await call_next(request)
+    try:
+        if request.headers.get("content-type", "").startswith("multipart/form-data"):
+            from memutil import release_memory
+            release_memory()
+    except Exception:
+        pass
+    return response
+
+
 app.include_router(pdf_router, prefix="/api/pdf", tags=["PDF Processing"])
 app.include_router(messages_router)
 app.include_router(pdf_template_router)
