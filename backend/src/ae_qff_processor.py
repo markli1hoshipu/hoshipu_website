@@ -214,6 +214,59 @@ def _copy_row_style(ws, src_row: int, dst_row: int, max_col: int) -> None:
             d._style = copy(s._style)
 
 
+def _family_prefix(name: Any) -> str:
+    """Group key = the 负责人 code before any suffix. 'QFF-月中' -> 'QFF', 'WD-纸' -> 'WD'."""
+    return str(name or "").split("-")[0].strip()
+
+
+def _grand_total_row(ws) -> int:
+    """Row of the '当月欠款增减合计' label — new groups are inserted just above it.
+    Falls back to max_row+1 if the label isn't found."""
+    for r in range(ws.max_row, 2, -1):
+        if str(ws.cell(r, 1).value or "").strip() == "当月欠款增减合计":
+            return r
+    return ws.max_row + 1
+
+
+def _make_totals_dynamic(ws) -> None:
+    """Rewrite the sheet's totals so they group by the 负责人 prefix in column A and
+    never need range maintenance when rows/groups are added:
+      * grand total C1/D1  -> open-ended =SUM(C3:C1048576) / =SUM(D3:...)
+      * each single-prefix subtotal row (=SUM(Cx:Cy)) -> =SUMIF($A:$A,"prefix*",$C:$C)
+        (and the matching D subtotal). Rows spanning >1 prefix are left untouched.
+    The grand-total VALUE is unchanged: subtotal rows carry no value in column C, so
+    SUM over column C already equals the sum of every debtor's 余额."""
+    for col in (3, 4):  # C1 (余额合计), D1 (发生额合计)
+        v = ws.cell(1, col).value
+        if isinstance(v, str) and v.startswith("=SUM("):
+            letter = get_column_letter(col)
+            ws.cell(1, col).value = f"=SUM({letter}3:{letter}{_EXCEL_MAX_ROW})"
+
+    last = ws.max_row
+    a_vals = {r: ws.cell(r, 1).value for r in range(3, last + 1)}
+    for r in range(3, last + 1):
+        a = a_vals[r]
+        if not (isinstance(a, str) and a.startswith("=SUM(C")):
+            continue
+        m = re.search(r"C(\d+):C(\d+)", a)
+        if not m:
+            continue
+        s, e = int(m.group(1)), int(m.group(2))
+        prefixes = {
+            _family_prefix(a_vals[rr])
+            for rr in range(s, e + 1)
+            if isinstance(a_vals.get(rr), str) and not str(a_vals[rr]).startswith("=")
+        }
+        prefixes.discard("")
+        if len(prefixes) != 1:
+            continue  # 0 or >1 prefixes in range -> leave as a plain SUM
+        p = next(iter(prefixes))
+        ws.cell(r, 1).value = f'=SUMIF($A:$A,"{p}*",$C:$C)'
+        b = ws.cell(r, 2).value
+        if isinstance(b, str) and b.startswith("=SUM(D"):
+            ws.cell(r, 2).value = f'=SUMIF($A:$A,"{p}*",$D:$D)'
+
+
 # --------------------------------------------------------------------------- #
 # hidden import log
 # --------------------------------------------------------------------------- #
@@ -263,6 +316,8 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
         "duplicates": 0,
         "new_days": 0,          # day columns auto-created in month sheets
         "new_day_list": [],     # ["202607-260713", ...]
+        "new_groups": 0,        # 负责人 groups auto-created
+        "new_group_names": [],  # ["202607: WX", ...]
         "skipped": [],          # {iou_no, reason}
         "new_debtor_names": [],
         "log_rows": [],         # rows to append to the hidden log
@@ -320,10 +375,7 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
         owner = iou["owner"] or "QFF"
         if owner not in st["owner_rows"]:
             st["owner_rows"][owner] = _build_debtor_rows(ws, owner)
-        # the owner group must exist in the sheet to place a row
-        if _last_group_row(ws, owner) is None:
-            report["skipped"].append({"iou_no": no, "reason": f"no group {owner} in {sheet_name}"})
-            continue
+        # Missing groups are no longer skipped — they get created (see apply phase).
 
         amount = iou["initial"] or 0
         nk = _norm(iou["debtor"])
@@ -353,20 +405,22 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
             report["log_rows"].append([iou["iou_no"], iou["date"], iou["debtor"],
                                        amount, sheet_name, "added", iou.get("remark")])
 
-        # 2) new debtors: insert rows at the end of each owner's group.
-        #    Process groups bottom-up (largest insertion row first) so earlier
-        #    insertions don't shift the still-original insertion points above.
+        # 2) new debtors: insert rows into each owner's group (creating the group
+        #    if it doesn't exist yet). Process bottom-up (largest insertion row
+        #    first) so earlier insertions don't shift the still-original points above.
         batches = []
         for owner, grp in st["new"].items():
-            insert_at = _last_group_row(ws, owner)  # original coords
-            if insert_at is None:
-                continue
-            batches.append((insert_at + 1, owner, list(grp.values())))
+            last = _last_group_row(ws, owner)
+            if last is not None:                       # existing group -> append after it
+                batches.append((last + 1, owner, list(grp.values()), False))
+            else:                                      # new group -> just above 当月合计, with its own subtotal
+                batches.append((_grand_total_row(ws), owner, list(grp.values()), True))
         batches.sort(key=lambda b: b[0], reverse=True)
 
-        for insert_at, owner, new_list in batches:
+        for insert_at, owner, new_list, is_new_group in batches:
             tpl = next((r for r in _build_debtor_rows(ws, owner).values() if r < insert_at), 3)
-            _insert_rows_with_remap(ws, insert_at, len(new_list))
+            n_rows = len(new_list) + (1 if is_new_group else 0)
+            _insert_rows_with_remap(ws, insert_at, n_rows)
             for i, nd in enumerate(new_list):
                 r = insert_at + i
                 _copy_row_style(ws, tpl, r, max_col)
@@ -383,6 +437,17 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
                     report["log_rows"].append([iou["iou_no"], iou["date"], iou["debtor"],
                                                iou["initial"] or 0, sheet_name,
                                                "new-row", iou.get("remark")])
+            if is_new_group:  # subtotal row for the brand-new group (prefix-keyed)
+                sr = insert_at + len(new_list)
+                _copy_row_style(ws, tpl, sr, max_col)
+                prefix = _family_prefix(owner)
+                ws.cell(sr, 1).value = f'=SUMIF($A:$A,"{prefix}*",$C:$C)'
+                ws.cell(sr, 2).value = f'=SUMIF($A:$A,"{prefix}*",$D:$D)'
+                report["new_groups"] += 1
+                report["new_group_names"].append(f"{sheet_name}: {owner}")
+
+        # 3) make this sheet's totals dynamic (prefix SUMIF + open-ended grand total)
+        _make_totals_dynamic(ws)
 
     # append to the hidden import log
     log = _ensure_log_sheet(wb)

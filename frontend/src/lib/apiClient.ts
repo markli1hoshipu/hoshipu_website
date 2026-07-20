@@ -116,6 +116,10 @@ export interface AeQffReport {
   aggregated: number;
   new_debtors: number;
   duplicates: number;
+  new_days?: number;
+  new_day_list?: string[];
+  new_groups?: number;
+  new_group_names?: string[];
   skipped: { iou_no: string; reason: string }[];
   new_debtor_names: string[];
 }

@@ -211,11 +211,13 @@ export default function AeQffUpdatePage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                   {[
                     { label: "共读取", value: report.total },
                     { label: "已计入", value: report.added, color: "text-green-600" },
                     { label: "新增欠款人", value: report.new_debtors, color: "text-blue-600" },
+                    { label: "新增日期列", value: report.new_days ?? 0, color: "text-blue-600" },
+                    { label: "新增分组", value: report.new_groups ?? 0, color: "text-blue-600" },
                     { label: "重复跳过", value: report.duplicates, color: "text-amber-600" },
                   ].map((s) => (
                     <div key={s.label} className="rounded-lg border p-3 text-center">
@@ -235,10 +237,25 @@ export default function AeQffUpdatePage() {
                   </div>
                 )}
 
+                {(report.new_group_names?.length ?? 0) > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-medium mb-2">
+                      <UserPlus className="h-4 w-4 text-blue-600" /> 新增负责人分组（含小计行，按前缀 SUMIF 汇总）
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {report.new_group_names!.map((n, i) => (
+                        <span key={i} className="text-xs bg-blue-500/10 text-blue-700 rounded px-2 py-1">
+                          {n}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {report.new_debtor_names.length > 0 && (
                   <div>
                     <div className="flex items-center gap-2 text-sm font-medium mb-2">
-                      <UserPlus className="h-4 w-4 text-blue-600" /> 新增欠款人（已插入 QFF 分组）
+                      <UserPlus className="h-4 w-4 text-blue-600" /> 新增欠款人（已插入对应负责人分组）
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {report.new_debtor_names.map((n, i) => (
@@ -314,7 +331,9 @@ export default function AeQffUpdatePage() {
               <p>• 按列 E 的负责人代码归入对应分组（QFF / WW / LYC …）。</p>
               <p>• 组内按欠款人姓名匹配（忽略空格）；写入每笔的初始金额。</p>
               <p>• 未匹配到的欠款人会在该负责人分组内新增一行。</p>
-              <p>• 报表中没有的负责人分组，其欠条会列入「跳过」。</p>
+              <p>• 报表里没有的负责人分组会自动新建（含按前缀 SUMIF 的小计行）。</p>
+              <p>• 月份表里缺当天的日期列会自动补上。</p>
+              <p>• 合计已改为动态：总计开口 SUM、分组小计按列 A 前缀 SUMIF，加行/加组不再需要维护公式。</p>
               <p>• 隐藏表 <span className="font-mono">_QFF_imported</span> 记录已导入的欠单号，重复上传自动跳过。</p>
             </CardContent>
           </Card>
