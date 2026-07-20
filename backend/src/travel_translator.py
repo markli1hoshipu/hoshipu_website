@@ -7,6 +7,43 @@ import json
 week = {'MO':'周一','TU':'周二','WE':'周三','TH':'周四','FR':'周五','SA':'周六','SU':'周日'}
 month = {'JAN':'1月','FEB':'2月','MAR':'3月','APR':'4月','MAY':'5月','JUN':'6月',
         'JUL':'7月','AUG':'8月','SEP':'9月','OCT':'10月','NOV':'11月','DEC':'12月'}
+month_num = {'JAN':1,'FEB':2,'MAR':3,'APR':4,'MAY':5,'JUN':6,
+             'JUL':7,'AUG':8,'SEP':9,'OCT':10,'NOV':11,'DEC':12}
+
+# City (not full airport) names, keyed by IATA code. Used by the "numbered"
+# layout, which shows 大连-武汉 rather than 大连周水子国际机场-武汉天河国际机场.
+# City cannot be reliably derived from names like "首都国际机场", hence this map.
+AIRPORT_CITY = {
+    # Mainland China + Greater China
+    'BJS':'北京','PEK':'北京','PKX':'北京','NAY':'北京','CAN':'广州','CGO':'郑州',
+    'CGQ':'长春','CKG':'重庆','CSX':'长沙','CTU':'成都','TFU':'成都','DLC':'大连',
+    'FOC':'福州','HAK':'海口','HET':'呼和浩特','HFE':'合肥','HGH':'杭州','HRB':'哈尔滨',
+    'INC':'银川','KHN':'南昌','KMG':'昆明','KWE':'贵阳','LHW':'兰州','LXA':'拉萨',
+    'NGB':'宁波','NKG':'南京','NNG':'南宁','NTG':'南通','SHE':'沈阳','SIA':'西安',
+    'XIY':'西安','SJW':'石家庄','SHA':'上海','PVG':'上海','SYX':'三亚','SZX':'深圳',
+    'TAO':'青岛','TNA':'济南','TSN':'天津','TYN':'太原','URC':'乌鲁木齐','WUH':'武汉',
+    'WUX':'无锡','XMN':'厦门','XNN':'西宁','XUZ':'徐州','HKG':'香港','MFM':'澳门','TSA':'台北',
+    # East Asia / SE Asia
+    'HND':'东京','NRT':'东京','ITM':'大阪','KIX':'大阪','ICN':'首尔','PUS':'釜山',
+    'BKK':'曼谷','SGN':'胡志明市','SIN':'新加坡','KUL':'吉隆坡',
+    # Common long-haul hubs
+    'DXB':'迪拜','AUH':'阿布扎比','DOH':'多哈','DEL':'新德里','LHR':'伦敦','CDG':'巴黎',
+    'FRA':'法兰克福','MUC':'慕尼黑','AMS':'阿姆斯特丹','JFK':'纽约','IAD':'华盛顿',
+    'LAX':'洛杉矶','SFO':'旧金山','SEA':'西雅图','ORD':'芝加哥','YYZ':'多伦多','YVR':'温哥华',
+    'YUL':'蒙特利尔','SYD':'悉尼','MEL':'墨尔本','AKL':'奥克兰','MOW':'莫斯科','SVO':'莫斯科',
+}
+
+
+def _city_name(code, full_name):
+    """City name for the numbered layout: curated map, else the airport name with
+    the trailing 机场 / 国际机场 stripped (best effort for uncommon airports)."""
+    if code in AIRPORT_CITY:
+        return AIRPORT_CITY[code]
+    name = full_name or code
+    for suf in ('国际机场', '机场'):
+        if name.endswith(suf):
+            return name[: -len(suf)]
+    return name
 
 def cleare(ll):
     re = []
@@ -57,6 +94,7 @@ def translate_itinerary(input_text: str, template_config: dict, airlines: dict, 
                 flight_match = re.match(r'^([A-Z0-9]{2}\d{3,4})\s+([A-Z]\d?)\s+([A-Z]{2})\s*(\d{2})([A-Z]{3})\s+([A-Z]{3})([A-Z]{3})\s+\w+\s+(\d{4})\s+(\d{4})\s+E\s+(--|\w+|T?\d?)\s+([T\d\-]+)', content_after_num)
                 if flight_match:
                     flights.append({
+                        'line_num': line_num,
                         'flight_number': flight_match.group(1),
                         'cabin': flight_match.group(2),
                         'weekday': flight_match.group(3),
@@ -77,6 +115,7 @@ def translate_itinerary(input_text: str, template_config: dict, airlines: dict, 
                     )
                     if flight_match_simple:
                         flights.append({
+                            'line_num': line_num,
                             'flight_number': flight_match_simple.group(1),
                             'cabin': flight_match_simple.group(2),
                             'weekday': flight_match_simple.group(3),
@@ -116,6 +155,36 @@ def translate_itinerary(input_text: str, template_config: dict, airlines: dict, 
                 passenger_num = ticket_match.group(2)
                 tickets[passenger_num] = ticket_number
     
+    if template_config.get('layout') == 'numbered':
+        # Keep the source line numbers: "1.名 2.名" then each flight "N.航班 M.D 城-城 起飞/到达".
+        out_lines = []
+        pax_str = ' '.join(f'{n}.{passengers[n]}' for n in sorted(passengers, key=lambda x: int(x)))
+        if pax_str:
+            out_lines.append(pax_str)
+        for flight in flights:
+            dep_city = _city_name(flight['route'][:3], airports.get(flight['route'][:3], flight['route'][:3]))
+            arr_city = _city_name(flight['route'][3:6], airports.get(flight['route'][3:6], flight['route'][3:6]))
+            m = month_num.get(flight['month'], flight['month'])
+            try:
+                d = int(flight['day'])
+            except (ValueError, TypeError):
+                d = flight['day']
+            num = flight.get('line_num', '')
+            prefix = f'{num}.' if num else ''
+            out_lines.append(
+                template_config.get('flight_format',
+                    '{num}{flight_number} {month}.{day} {dep_city}-{arr_city} {dep_time}起飞 {arr_time}到达'
+                ).format(
+                    num=prefix, flight_number=flight['flight_number'],
+                    month=m, day=d, dep_city=dep_city, arr_city=arr_city,
+                    dep_time=flight['dep_time'], arr_time=flight['arr_time'],
+                )
+            )
+        footer = template_config.get('footer', '')
+        if footer:
+            out_lines.append(footer)
+        return '\n'.join(out_lines)
+
     if template_config.get('single_line', False):
         result = template_config.get('header', '')
         
