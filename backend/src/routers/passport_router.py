@@ -256,10 +256,12 @@ def _extract_via_aliyun(image_bytes: bytes) -> Tuple[Dict[str, str], List[str]]:
 
     req = ocr_models.RecognizePassportRequest(body=io.BytesIO(image_bytes))
     runtime = util_models.RuntimeOptions()
-    runtime.connect_timeout = 10000  # ms
-    runtime.read_timeout = 30000     # ms
+    # Render (US/EU) → Aliyun cn-hangzhou is a cross-border hop that can be slow;
+    # give the upload/read more headroom and a couple of retries.
+    runtime.connect_timeout = 15000  # ms
+    runtime.read_timeout = 60000     # ms
     runtime.autoretry = True
-    runtime.max_attempts = 2
+    runtime.max_attempts = 3
     resp = client.recognize_passport_with_options(req, runtime)
 
     outer = json.loads(resp.body.data or "{}")
@@ -292,14 +294,25 @@ def _extract_via_aliyun(image_bytes: bytes) -> Tuple[Dict[str, str], List[str]]:
 
 
 def _extract(image_bytes: bytes, mime: str, provider: Optional[str] = None,
-             model: Optional[str] = None) -> Tuple[Dict[str, str], List[str]]:
-    """Production always uses Aliyun 国际护照识别 (deterministic MRZ parsing).
-    OpenAI gpt-4.1-mini runs only when explicitly requested via the gated
-    benchmark override (provider="openai")."""
+             model: Optional[str] = None) -> Tuple[Dict[str, str], List[str], str]:
+    """Read the passport. Returns (fields, warnings, used_provider).
+
+    Aliyun 国际护照识别 is the accurate default (deterministic MRZ parsing), but its
+    endpoint is in China and can time out from Render — so on any Aliyun failure we
+    fall back to OpenAI gpt-4.1-mini (globally reachable) and record that a fallback
+    happened. When the caller explicitly asks for "openai", no fallback is needed."""
     if provider == "openai":
         fields = _extract_fields(image_bytes, mime, model=model)  # OpenAI gpt-4.1-mini
-        return fields, _sanity_warnings(fields)
-    return _extract_via_aliyun(image_bytes)
+        return fields, _sanity_warnings(fields), "openai"
+    try:
+        fields, warnings = _extract_via_aliyun(image_bytes)
+        return fields, warnings, "aliyun"
+    except Exception as e:  # noqa: BLE001 — network/config failure → try OpenAI
+        if not os.getenv("OPENAI_API_KEY"):
+            raise  # no fallback available; surface the Aliyun error
+        fields = _extract_fields(image_bytes, mime, model=model)
+        warnings = _sanity_warnings(fields) + [f"阿里云识别失败（{type(e).__name__}），已改用 OpenAI 识别"]
+        return fields, warnings, "openai"
 
 
 def _client_ip(request: Request) -> str:
@@ -393,9 +406,10 @@ async def passport_to_docs(
             lines.append(line)
             pax += 1
             continue
+        used_provider = effective_provider
         try:
             prepped = _prepare_image(raw)  # downscale/recompress before OCR
-            fields, warnings = _extract(prepped, "image/jpeg", provider=effective_provider)
+            fields, warnings, used_provider = _extract(prepped, "image/jpeg", provider=effective_provider)
             if not (fields.get("passport_number") or "").strip():
                 line = DocsLine(pax=pax, command="", fields=fields,
                                 error="未能识别到有效护照信息，请检查图片")
@@ -407,8 +421,9 @@ async def passport_to_docs(
         except Exception as e:  # per-image failure shouldn't abort the batch
             line = DocsLine(pax=pax, command="", fields={}, error=str(e))
         duration_ms = int((time.monotonic() - t0) * 1000)
+        # log the provider that actually produced the result (may be an OpenAI fallback)
         line.log_id = _log_passport_scan(request_id, client_ip, user_agent, airline,
-                                         effective_provider, filename, line, duration_ms)
+                                         used_provider, filename, line, duration_ms)
         lines.append(line)
         pax += 1
 
