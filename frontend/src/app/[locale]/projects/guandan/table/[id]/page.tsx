@@ -46,7 +46,10 @@ export default function GuandanTablePage() {
 
   useEffect(() => {
     poll();
-    const iv = setInterval(poll, 1500);
+    // Pause polling while the tab is hidden (background tabs shouldn't keep hitting the server).
+    const iv = setInterval(() => {
+      if (typeof document === "undefined" || !document.hidden) poll();
+    }, 1500);
     return () => clearInterval(iv);
   }, [poll]);
 

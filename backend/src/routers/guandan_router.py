@@ -161,6 +161,16 @@ async def list_tables(request: Request):
     conn = _db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
+        # Reap abandoned tables so the list (and DB) don't grow unbounded:
+        # waiting tables idle >1h, any table idle >12h.
+        cur.execute(
+            """
+            DELETE FROM guandan_tables
+            WHERE (status = 'waiting' AND updated_at < now() - interval '1 hour')
+               OR (updated_at < now() - interval '12 hours')
+            """
+        )
+        conn.commit()
         cur.execute(
             """
             SELECT id, name, status, seats, created_at FROM guandan_tables

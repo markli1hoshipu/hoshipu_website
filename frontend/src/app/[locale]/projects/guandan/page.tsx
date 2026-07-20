@@ -50,7 +50,10 @@ export default function GuandanLobbyPage() {
 
   useEffect(() => {
     load();
-    const iv = setInterval(load, 3000);
+    // Skip polling while the tab is hidden to avoid needless load on the backend.
+    const iv = setInterval(() => {
+      if (typeof document === "undefined" || !document.hidden) load();
+    }, 3000);
     return () => clearInterval(iv);
   }, [load]);
 
