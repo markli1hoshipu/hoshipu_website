@@ -23,10 +23,12 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 import openpyxl
+from openpyxl.utils import get_column_letter
 from copy import copy
 
 LOG_SHEET = "_QFF_imported"
 _EXCEL_MAX_ROW = 1048576
+_FIRST_DAY_COL = 6  # column F — day columns start here (A..E are 负责人/欠款人/余额/发生额/上月余额)
 _EPOCH = datetime(1899, 12, 30)
 
 
@@ -50,6 +52,18 @@ def _serial_to_yymmdd(serial: Any) -> Optional[str]:
         return (_EPOCH + timedelta(days=float(serial))).strftime("%y%m%d")
     except (ValueError, OverflowError):
         return None
+
+
+def _yymmdd_to_serial(yymmdd: str) -> Optional[int]:
+    """Inverse of _serial_to_yymmdd: 'YYMMDD' -> Excel serial (int). '' if invalid."""
+    if not re.fullmatch(r"\d{6}", yymmdd or ""):
+        return None
+    yy, mm, dd = int(yymmdd[0:2]), int(yymmdd[2:4]), int(yymmdd[4:6])
+    try:
+        d = datetime(2000 + yy, mm, dd)
+    except ValueError:
+        return None
+    return (d - _EPOCH).days
 
 
 def _date_to_ym_sheet(yymmdd: str) -> str:
@@ -139,6 +153,38 @@ def _build_day_columns(ws) -> Dict[str, int]:
     return cols
 
 
+def _ensure_day_column(ws, yymmdd: str, day_cols: Dict[str, int]) -> Optional[int]:
+    """Return the column for `yymmdd`, creating it if the month sheet lacks it.
+
+    Day columns are Excel serials in row 1 starting at column F; the slots to the
+    right are pre-provisioned (row 2 already holds the daily-total formula, and the
+    per-debtor C=SUM(E:ZC)/D=SUM(F:ZE) ranges already span them). So creating a day
+    is just dropping the serial into the next free slot — no row/column insertion,
+    no formula remap, no effect on any total. Returns None only if the date is
+    invalid. `day_cols` is updated in place."""
+    if yymmdd in day_cols:
+        return day_cols[yymmdd]
+    serial = _yymmdd_to_serial(yymmdd)
+    if serial is None:
+        return None
+    used = list(day_cols.values())
+    target = (max(used) + 1) if used else _FIRST_DAY_COL
+    while ws.cell(1, target).value is not None:  # never overwrite an existing header
+        target += 1
+    hdr = ws.cell(1, target)
+    hdr.value = serial
+    if used:  # inherit the date number-format from an existing day header
+        src = ws.cell(1, min(used))
+        if src.has_style:
+            hdr._style = copy(src._style)
+    tot = ws.cell(2, target)
+    if not (isinstance(tot.value, str) and tot.value.startswith("=")):
+        letter = get_column_letter(target)
+        tot.value = f"=SUM({letter}$3:{letter}${_EXCEL_MAX_ROW})"
+    day_cols[yymmdd] = target
+    return target
+
+
 def _build_debtor_rows(ws, owner: str) -> Dict[str, int]:
     """Map normalized debtor name -> row, for rows whose 负责人 (col A) == owner."""
     out: Dict[str, int] = {}
@@ -215,6 +261,8 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
         "aggregated": 0,
         "new_debtors": 0,
         "duplicates": 0,
+        "new_days": 0,          # day columns auto-created in month sheets
+        "new_day_list": [],     # ["202607-260713", ...]
         "skipped": [],          # {iou_no, reason}
         "new_debtor_names": [],
         "log_rows": [],         # rows to append to the hidden log
@@ -260,8 +308,14 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
 
         col = st["day_cols"].get(yymmdd)
         if not col:
-            report["skipped"].append({"iou_no": no, "reason": f"no day column {yymmdd} in {sheet_name}"})
-            continue
+            # Auto-create the day column (safe: fills a pre-provisioned slot).
+            col = _ensure_day_column(ws, yymmdd, st["day_cols"])
+            if col:
+                report["new_days"] += 1
+                report["new_day_list"].append(f"{sheet_name}-{yymmdd}")
+            else:
+                report["skipped"].append({"iou_no": no, "reason": f"bad date for day column {yymmdd}"})
+                continue
 
         owner = iou["owner"] or "QFF"
         if owner not in st["owner_rows"]:
