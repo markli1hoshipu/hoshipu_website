@@ -427,8 +427,10 @@ export default function PDFRenamePage() {
                   onChange={(e) => setCustomTemplate(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground mt-2">
-                  可用字段: {"{buyer}"}, {"{name}"}, {"{origin}"}, {"{destination}"},
+                  可用字段: {"{buyer}"}, {"{name}"}, {"{origin}"}, {"{destination}"}, {"{route}"},
                   {"{amount}"}, {"{invoice_number}"}, {"{issue_date}"}, {"{insurance}"}, {"{insurance_suffix}"}
+                  <br />
+                  多段/往返行程：{"{destination}"} 会包含所有到达段（如 银川河东-大连周水子）；{"{route}"} = 出发地+全部航段。
                 </p>
               </div>
             </CardContent>

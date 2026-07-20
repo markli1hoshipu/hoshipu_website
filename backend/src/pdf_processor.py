@@ -6,18 +6,32 @@ from typing import Optional, Dict, Any
 
 def extract_info(text: str) -> Dict[str, Optional[str]]:
     name_match = re.search(r"旅客姓名.*?\n\s*([\S]+)", text)
-    from_match = re.search(r"自[：:]\s*(\S+\s+\S+)", text)
-    to_match = re.search(r"至[：:]\s*(\S+\s+\S+)", text)
+    # A place is "城市 机场" — two Chinese tokens (2nd optional). Restricting to
+    # Chinese excludes the fare row's leading "至: CNY 1412.84" and empty "至:".
+    place = r"[一-鿿]+(?:[ \t]+[一-鿿]+)?"
+    # [ \t]* (not \s*) so an empty "至:" line can't reach onto the next line and
+    # grab "票价 燃油附加费" from the fare header.
+    from_matches = re.findall(rf"自[：:][ \t]*({place})", text)
+    to_matches = re.findall(rf"至[：:][ \t]*({place})", text)
     amount_match = re.search(r"合计.*?\n.*?(\d+\.\d{2})\s*$", text, re.MULTILINE)
     buyer_match = re.search(r"购买方名称[：:](\S+)", text)
     invoice_match = re.search(r"发票号码[：:]\s*(\d+)", text)
     issue_date_match = re.search(r"填开日期[：:]\s*([0-9]{4}[年/-][0-9]{1,2}[月/-][0-9]{1,2}[日]?)", text)
     insurance_match = re.search(r"保险费[：:]\s*(\d+\.\d{2})", text)
 
+    origin = from_matches[0].replace(' ', '') if from_matches else None
+    dests = [m.replace(' ', '') for m in to_matches]
+    # destination is the full chain of legs, so a multi-segment / round trip like
+    # 大连周水子-银川河东-大连周水子 renders correctly via "{origin}-{destination}".
+    destination = "-".join(dests) if dests else None
+    legs = ([origin] if origin else []) + dests
+    route = "-".join(legs) if legs else None
+
     return {
         "name": name_match.group(1) if name_match else None,
-        "origin": from_match.group(1).replace(' ', '') if from_match else None,
-        "destination": to_match.group(1).replace(' ', '') if to_match else None,
+        "origin": origin,
+        "destination": destination,
+        "route": route,
         "amount": amount_match.group(1) if amount_match else None,
         "buyer": buyer_match.group(1) if buyer_match else None,
         "invoice_number": invoice_match.group(1) if invoice_match else None,
@@ -61,6 +75,7 @@ def render_filename_template(template: str, values: Dict[str, Optional[str]], or
         "name": values.get("name") or "",
         "origin": values.get("origin") or "",
         "destination": values.get("destination") or "",
+        "route": values.get("route") or "",
         "amount": values.get("amount") or "",
         "invoice_number": values.get("invoice_number") or "",
         "issue_date": values.get("issue_date") or "",
