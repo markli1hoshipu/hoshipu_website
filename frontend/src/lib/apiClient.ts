@@ -285,6 +285,7 @@ export interface TravelAirport {
   id: number;
   code: string;
   name: string;
+  city?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -390,11 +391,11 @@ export async function getAllTravelAirports(): Promise<TravelAirport[]> {
   return response.json();
 }
 
-export async function createTravelAirport(code: string, name: string, password: string): Promise<TravelAirport> {
+export async function createTravelAirport(code: string, name: string, city: string, password: string): Promise<TravelAirport> {
   const response = await fetch(`${API_BASE_URL}/api/qff-travel/airports`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, name, password }),
+    body: JSON.stringify({ code, name, city, password }),
   });
   if (!response.ok) {
     const error = await response.json();
@@ -403,11 +404,11 @@ export async function createTravelAirport(code: string, name: string, password: 
   return response.json();
 }
 
-export async function updateTravelAirport(id: number, password: string, code?: string, name?: string, is_active?: boolean): Promise<TravelAirport> {
+export async function updateTravelAirport(id: number, password: string, code?: string, name?: string, city?: string, is_active?: boolean): Promise<TravelAirport> {
   const response = await fetch(`${API_BASE_URL}/api/qff-travel/airports/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, name, is_active, password }),
+    body: JSON.stringify({ code, name, city, is_active, password }),
   });
   if (!response.ok) {
     const error = await response.json();

@@ -85,6 +85,7 @@ class TravelAirport(Base):
     id = Column(Integer, primary_key=True, index=True)
     code = Column(String(10), nullable=False, unique=True, index=True, comment="机场代码，如：PEK、PVG、CAN")
     name = Column(String(255), nullable=False, comment="机场中文名称，如：首都国际机场、上海浦东国际机场")
+    city = Column(String(255), nullable=True, comment="城市名（用于编号模板输出），如：北京、上海、大连")
     is_active = Column(Boolean, default=True, nullable=False, comment="是否启用")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

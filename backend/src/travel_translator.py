@@ -34,9 +34,12 @@ AIRPORT_CITY = {
 }
 
 
-def _city_name(code, full_name):
-    """City name for the numbered layout: curated map, else the airport name with
-    the trailing 机场 / 国际机场 stripped (best effort for uncommon airports)."""
+def _city_name(code, full_name, cities=None):
+    """City name for the numbered layout. Priority: the per-airport city set in the
+    DB (editable from the frontend) → the curated map → the airport name with the
+    trailing 机场 / 国际机场 stripped (best effort for uncommon airports)."""
+    if cities and cities.get(code):
+        return cities[code]
     if code in AIRPORT_CITY:
         return AIRPORT_CITY[code]
     name = full_name or code
@@ -52,7 +55,7 @@ def cleare(ll):
             re.append(i)
     return re
 
-def translate_itinerary(input_text: str, template_config: dict, airlines: dict, airports: dict) -> str:
+def translate_itinerary(input_text: str, template_config: dict, airlines: dict, airports: dict, airport_cities: dict = None) -> str:
     """
     Translate travel itinerary from raw text to formatted output
     """
@@ -162,8 +165,8 @@ def translate_itinerary(input_text: str, template_config: dict, airlines: dict, 
         if pax_str:
             out_lines.append(pax_str)
         for flight in flights:
-            dep_city = _city_name(flight['route'][:3], airports.get(flight['route'][:3], flight['route'][:3]))
-            arr_city = _city_name(flight['route'][3:6], airports.get(flight['route'][3:6], flight['route'][3:6]))
+            dep_city = _city_name(flight['route'][:3], airports.get(flight['route'][:3], flight['route'][:3]), airport_cities)
+            arr_city = _city_name(flight['route'][3:6], airports.get(flight['route'][3:6], flight['route'][3:6]), airport_cities)
             m = month_num.get(flight['month'], flight['month'])
             try:
                 d = int(flight['day'])

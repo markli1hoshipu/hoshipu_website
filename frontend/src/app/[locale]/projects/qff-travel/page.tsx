@@ -63,7 +63,7 @@ export default function QFFTravelPage() {
 
   const [templateForm, setTemplateForm] = useState({ name: "", description: "", config_json: "" });
   const [airlineForm, setAirlineForm] = useState({ code: "", name: "" });
-  const [airportForm, setAirportForm] = useState({ code: "", name: "" });
+  const [airportForm, setAirportForm] = useState({ code: "", name: "", city: "" });
 
   useEffect(() => {
     loadData();
@@ -244,21 +244,21 @@ export default function QFFTravelPage() {
 
   const handleCreateAirport = () => {
     setEditingAirport(null);
-    setAirportForm({ code: "", name: "" });
+    setAirportForm({ code: "", name: "", city: "" });
     setShowAirportForm(true);
   };
 
   const handleEditAirport = (airport: TravelAirport) => {
     setEditingAirport(airport);
-    setAirportForm({ code: airport.code, name: airport.name });
+    setAirportForm({ code: airport.code, name: airport.name, city: airport.city || "" });
     setShowAirportForm(true);
   };
 
   const handleSaveAirport = async (password: string) => {
     if (editingAirport) {
-      await updateTravelAirport(editingAirport.id, password, airportForm.code, airportForm.name);
+      await updateTravelAirport(editingAirport.id, password, airportForm.code, airportForm.name, airportForm.city);
     } else {
-      await createTravelAirport(airportForm.code, airportForm.name, password);
+      await createTravelAirport(airportForm.code, airportForm.name, airportForm.city, password);
     }
     setShowAirportForm(false);
     await loadData();
@@ -575,6 +575,9 @@ export default function QFFTravelPage() {
                       <span className="font-medium">{airport.code}</span>
                       <span className="mx-2 text-muted-foreground">-</span>
                       <span>{airport.name}</span>
+                      {airport.city && (
+                        <span className="ml-2 text-xs bg-muted rounded px-1.5 py-0.5">城市: {airport.city}</span>
+                      )}
                       <span className="ml-4 text-xs text-muted-foreground">
                         ({airport.is_active ? "启用" : "禁用"})
                       </span>
@@ -723,6 +726,14 @@ export default function QFFTravelPage() {
                   value={airportForm.name}
                   onChange={(e) => setAirportForm({ ...airportForm, name: e.target.value })}
                   placeholder="如：首都国际机场"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">城市（用于编号模板，如 北京）</label>
+                <Input
+                  value={airportForm.city}
+                  onChange={(e) => setAirportForm({ ...airportForm, city: e.target.value })}
+                  placeholder="如：北京"
                 />
               </div>
               <div className="flex gap-2">

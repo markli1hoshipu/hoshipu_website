@@ -288,7 +288,8 @@ def create_airport(airport_data: TravelAirportCreate, db: Session = Depends(get_
     
     new_airport = TravelAirport(
         code=airport_data.code,
-        name=airport_data.name
+        name=airport_data.name,
+        city=airport_data.city
     )
     db.add(new_airport)
     db.commit()
@@ -330,10 +331,13 @@ def update_airport(
     
     if airport_data.name is not None:
         airport.name = airport_data.name
-    
+
+    if airport_data.city is not None:
+        airport.city = airport_data.city
+
     if airport_data.is_active is not None:
         airport.is_active = airport_data.is_active
-    
+
     db.commit()
     db.refresh(airport)
     return airport
@@ -375,15 +379,18 @@ def translate_travel_itinerary(request: TranslateRequest, db: Session = Depends(
     
     airports_query = db.query(TravelAirport).filter(TravelAirport.is_active == True).all()
     airports_dict = {airport.code: airport.name for airport in airports_query}
-    
+    # City names (used by the numbered layout); only include ones that are set.
+    airport_cities = {a.code: a.city for a in airports_query if a.city}
+
     template_config = json.loads(template.config_json)
-    
+
     try:
         output_text = translate_itinerary(
             request.input_text,
             template_config,
             airlines_dict,
-            airports_dict
+            airports_dict,
+            airport_cities
         )
         return TranslateResponse(output_text=output_text)
     except Exception as e:

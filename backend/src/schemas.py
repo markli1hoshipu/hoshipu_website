@@ -132,6 +132,7 @@ class TravelAirportCreate(BaseModel):
     """Schema for creating a new airport"""
     code: str = Field(..., min_length=1, max_length=10, description="Airport code")
     name: str = Field(..., min_length=1, max_length=255, description="Airport name")
+    city: Optional[str] = Field(None, max_length=255, description="City name (for numbered template)")
     password: str = Field(..., description="Password required to create airport")
 
 
@@ -139,6 +140,7 @@ class TravelAirportUpdate(BaseModel):
     """Schema for updating an airport"""
     code: Optional[str] = Field(None, min_length=1, max_length=10, description="Airport code")
     name: Optional[str] = Field(None, min_length=1, max_length=255, description="Airport name")
+    city: Optional[str] = Field(None, max_length=255, description="City name (for numbered template)")
     is_active: Optional[bool] = Field(None, description="Whether airport is active")
     password: str = Field(..., description="Password required to update airport")
 
@@ -153,6 +155,7 @@ class TravelAirportResponse(BaseModel):
     id: int
     code: str
     name: str
+    city: Optional[str] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
