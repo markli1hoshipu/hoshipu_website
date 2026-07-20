@@ -8,8 +8,12 @@ import { useLocale } from "next-intl";
 import { Card as UICard, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Plus, RefreshCw, Users, Bot, Cpu, LogIn, Gamepad2 } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Users, Bot, Cpu, LogIn, Gamepad2, Wrench } from "lucide-react";
 import { API_BASE_URL, getPlayerId, getPlayerName, setPlayerName } from "./net";
+
+// Online hall temporarily off while we isolate bugs. Re-enable by setting
+// NEXT_PUBLIC_GUANDAN_ONLINE=1 (Vercel env) and redeploying the frontend.
+const ONLINE_ENABLED = process.env.NEXT_PUBLIC_GUANDAN_ONLINE === "1";
 
 interface LobbyTable {
   id: number;
@@ -49,6 +53,7 @@ export default function GuandanLobbyPage() {
   }, []);
 
   useEffect(() => {
+    if (!ONLINE_ENABLED) return; // online hall disabled — send no requests
     load();
     // Skip polling while the tab is hidden to avoid needless load on the backend.
     const iv = setInterval(() => {
@@ -109,6 +114,39 @@ export default function GuandanLobbyPage() {
       setErr(e instanceof Error ? e.message : "加入失败");
     }
   };
+
+  if (!ONLINE_ENABLED) {
+    return (
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-6">
+          <Button variant="ghost" asChild className="mb-4">
+            <Link href="/projects">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              返回项目列表
+            </Link>
+          </Button>
+          <h1 className="text-4xl md:text-5xl font-bold mb-2">掼蛋 2v2</h1>
+        </motion.div>
+        <div className="max-w-md mx-auto">
+          <UICard>
+            <CardContent className="pt-6 text-center space-y-4">
+              <Wrench className="h-8 w-8 mx-auto text-muted-foreground" />
+              <div className="text-lg font-semibold">在线对战维护中</div>
+              <p className="text-sm text-muted-foreground">
+                在线掼蛋大厅正在调试中，即将上线。你可以先玩单机练习（离线，与 AI 对战）。
+              </p>
+              <Button asChild>
+                <Link href={`/${locale}/projects/guandan/solo`}>
+                  <Gamepad2 className="mr-1 h-4 w-4" />
+                  单机练习
+                </Link>
+              </Button>
+            </CardContent>
+          </UICard>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">

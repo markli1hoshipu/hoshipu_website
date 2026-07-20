@@ -7,10 +7,12 @@ import { useParams } from "next/navigation";
 import { useLocale } from "next-intl";
 import { Card as UICard, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Play, Bot, Lightbulb, Loader2, LogOut, Users } from "lucide-react";
+import { ArrowLeft, Play, Bot, Lightbulb, Loader2, LogOut, Users, Wrench } from "lucide-react";
 import { API_BASE_URL, getPlayerId, getPlayerName, TableView, ViewState } from "../../net";
 import { analyze, canBeat, findNonBombBeat, findBombs, sortHand, Card } from "../../engine";
 import { CardFace, CardBack } from "../../CardView";
+
+const ONLINE_ENABLED = process.env.NEXT_PUBLIC_GUANDAN_ONLINE === "1";
 
 const teamOf = (i: number) => (i % 2 === 0 ? 0 : 1);
 const teamName = (t: number) => (t === 0 ? "我方" : "对方");
@@ -45,6 +47,7 @@ export default function GuandanTablePage() {
   }, [tableId]);
 
   useEffect(() => {
+    if (!ONLINE_ENABLED) return; // online hall disabled — send no requests
     poll();
     // Pause polling while the tab is hidden (background tabs shouldn't keep hitting the server).
     const iv = setInterval(() => {
@@ -135,6 +138,27 @@ export default function GuandanTablePage() {
       </Button>
     </div>
   );
+
+  if (!ONLINE_ENABLED) {
+    return (
+      <div className="container mx-auto px-4 py-10 max-w-md">
+        <div className="mb-4">
+          <Button variant="ghost" asChild size="sm">
+            <Link href={`/${locale}/projects/guandan`}>
+              <ArrowLeft className="mr-1 h-4 w-4" /> 大厅
+            </Link>
+          </Button>
+        </div>
+        <UICard>
+          <CardContent className="pt-6 text-center space-y-3">
+            <Wrench className="h-8 w-8 mx-auto text-muted-foreground" />
+            <div className="text-lg font-semibold">在线对战维护中</div>
+            <p className="text-sm text-muted-foreground">在线掼蛋暂时关闭，即将上线。</p>
+          </CardContent>
+        </UICard>
+      </div>
+    );
+  }
 
   if (!view) {
     return (

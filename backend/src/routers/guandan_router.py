@@ -11,14 +11,27 @@ Optimistic concurrency via a version column keeps concurrent pollers safe.
 import json
 from typing import List, Optional, Dict, Any
 
-from fastapi import APIRouter, HTTPException, Request
+import os
+
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 from psycopg2.extras import RealDictCursor, Json
 
 from rate_limiter import limiter
 import guandan_engine as G
 
-router = APIRouter(prefix="/api/guandan", tags=["guandan"])
+# Online hall is temporarily disabled while we isolate/fix issues. Flip back on
+# by setting env GUANDAN_ONLINE=1 (no code change / redeploy needed on Render).
+ONLINE_ENABLED = os.getenv("GUANDAN_ONLINE", "0") == "1"
+
+
+def _require_online():
+    if not ONLINE_ENABLED:
+        raise HTTPException(503, "在线掼蛋暂时维护中，即将上线")
+
+
+# The dependency gates every route in this router, so nothing hits the DB while off.
+router = APIRouter(prefix="/api/guandan", tags=["guandan"], dependencies=[Depends(_require_online)])
 
 MAX_NAME = 20
 
