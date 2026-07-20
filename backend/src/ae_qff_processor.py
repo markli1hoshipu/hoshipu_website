@@ -295,6 +295,15 @@ def _open_grand_total(ws) -> None:
             letter = get_column_letter(c)
             ws.cell(2, c).value = f"=SUM({letter}$3:{letter}${_EXCEL_MAX_ROW})"
 
+    # extend 当月欠款增减合计 = SUM(B3:B{row-1}) so newly-inserted groups get counted
+    # (keeps the column-B mechanism — its value differs from the raw D total by design).
+    for r in range(ws.max_row, 2, -1):
+        if str(ws.cell(r, 1).value or "").strip() == "当月欠款增减合计":
+            b = ws.cell(r, 2).value
+            if isinstance(b, str) and re.match(r"=SUM\(B3:B\d+\)$", b.replace(" ", "")):
+                ws.cell(r, 2).value = f"=SUM(B3:B{r - 1})"
+            break
+
 
 def _create_month_sheet(wb, sheet_name: str):
     """Create a fresh single-month sheet (no prior-month carry-over): grand-total
@@ -497,10 +506,7 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
                                                "new-row", iou.get("remark")])
             if is_new_group:  # contiguous subtotal row for the brand-new group's block
                 sr = insert_at + len(new_list)
-                if fresh:
-                    _style_subtotal_row(ws, sr)
-                else:
-                    _copy_row_style(ws, tpl, sr, max_col)
+                _style_subtotal_row(ws, sr)  # subtotal look (no debtor fill), any sheet
                 first_r, last_r = insert_at, sr - 1
                 ws.cell(sr, 1).value = f"=SUM(C{first_r}:C{last_r})"
                 ws.cell(sr, 2).value = f"=SUM(D{first_r}:D{last_r})"
