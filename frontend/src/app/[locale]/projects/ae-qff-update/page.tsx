@@ -336,7 +336,7 @@ export default function AeQffUpdatePage() {
               <p>• 报表里没有的负责人分组会自动新建（含分组小计行）。</p>
               <p>• 月份表里缺当天的日期列会自动补上。</p>
               <p>• 总计为开口 SUM、分组小计为区间 SUM（插行自动维护），打开时自动重算。</p>
-              <p>• 隐藏表 <span className="font-mono">_QFF_imported</span> 记录已导入的欠单号，重复上传自动跳过。</p>
+              <p>• 隐藏表 <span className="font-mono">_已导入欠条id</span> 记录已导入的欠单号，重复上传自动跳过。</p>
             </CardContent>
           </Card>
         </div>

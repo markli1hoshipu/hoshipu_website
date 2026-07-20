@@ -11,7 +11,7 @@ Design decisions (confirmed with user):
   * amount written = 初始金额 (QFF col B)
   * debtor matched by space-normalized name within the QFF group (A == "QFF")
   * unmatched debtors -> a new row auto-inserted into the QFF group
-  * duplicate imports prevented via a hidden "_QFF_imported" log of 欠单号
+  * duplicate imports prevented via a hidden "_已导入欠条id" log of 欠单号
 
 Row insertion is done with a formula-remap so the ledger's hardcoded summary
 ranges (grand total, group subtotals, row 541/542) stay correct — openpyxl does
@@ -27,7 +27,8 @@ import openpyxl
 from openpyxl.utils import get_column_letter
 from copy import copy
 
-LOG_SHEET = "_QFF_imported"
+LOG_SHEET = "_已导入欠条id"
+_LEGACY_LOG_SHEETS = ["_QFF_imported"]  # older name — auto-migrated to LOG_SHEET
 _EXCEL_MAX_ROW = 1048576
 _FIRST_DAY_COL = 6  # column F — day columns start here (A..E are 负责人/欠款人/余额/发生额/上月余额)
 _EPOCH = datetime(1899, 12, 30)
@@ -333,6 +334,12 @@ _LOG_HEADERS = ["欠单号", "日期", "欠款人", "初始金额", "月份sheet
 
 
 def _ensure_log_sheet(wb):
+    # migrate a legacy-named log sheet so past dedup history is preserved
+    if LOG_SHEET not in wb.sheetnames:
+        for n in _LEGACY_LOG_SHEETS:
+            if n in wb.sheetnames:
+                wb[n].title = LOG_SHEET
+                break
     if LOG_SHEET in wb.sheetnames:
         ws = wb[LOG_SHEET]
     else:
@@ -342,10 +349,21 @@ def _ensure_log_sheet(wb):
     return ws
 
 
+def _log_sheet_name(wb) -> Optional[str]:
+    """Current log sheet name, honoring the legacy name for un-migrated files."""
+    if LOG_SHEET in wb.sheetnames:
+        return LOG_SHEET
+    for n in _LEGACY_LOG_SHEETS:
+        if n in wb.sheetnames:
+            return n
+    return None
+
+
 def _existing_iou_numbers(wb) -> set:
-    if LOG_SHEET not in wb.sheetnames:
+    name = _log_sheet_name(wb)
+    if not name:
         return set()
-    ws = wb[LOG_SHEET]
+    ws = wb[name]
     seen = set()
     for r in range(2, ws.max_row + 1):
         v = ws.cell(r, 1).value
