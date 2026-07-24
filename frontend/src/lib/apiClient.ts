@@ -122,6 +122,7 @@ export interface AeQffReport {
   new_day_list?: string[];
   new_groups?: number;
   new_group_names?: string[];
+  no_id?: number;
   skipped: { iou_no: string; reason: string }[];
   new_debtor_names: string[];
 }

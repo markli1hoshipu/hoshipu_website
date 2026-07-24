@@ -90,16 +90,16 @@ def read_qff(data: bytes) -> List[Dict[str, Any]]:
         remaining = ws.cell(r, 3).value     # C 剩余金额
         debtor = ws.cell(r, 4).value        # D 欠款人
         owner = ws.cell(r, 5).value         # E 负责人
-        iou_no = ws.cell(r, 6).value        # F 欠单号
+        iou_no = ws.cell(r, 6).value        # F 欠单号 (may be blank — still imported)
         remark = ws.cell(r, 7).value        # G 备注
-        if iou_no is None or debtor is None:
+        if debtor is None:                  # need a debtor to place the row
             continue
         date_s = str(date).strip() if date is not None else ""
         # normalize a YYMMDD-ish date (drop any trailing .0 from float cells)
         if date_s.endswith(".0"):
             date_s = date_s[:-2]
         rows.append({
-            "iou_no": str(iou_no).strip(),
+            "iou_no": str(iou_no).strip() if iou_no is not None else "",
             "date": date_s,
             "initial": initial,
             "remaining": remaining,
@@ -397,6 +397,7 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
         "new_day_list": [],     # ["202607-260713", ...]
         "new_groups": 0,        # 负责人 groups auto-created
         "new_group_names": [],  # ["202607: WX", ...]
+        "no_id": 0,             # rows imported without a 欠单号 (cannot be deduped)
         "skipped": [],          # {iou_no, reason}
         "new_debtor_names": [],
         "log_rows": [],         # rows to append to the hidden log
@@ -415,11 +416,14 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
 
     for iou in ious:
         no = iou["iou_no"]
-        if no in seen:
-            report["duplicates"] += 1
-            report["skipped"].append({"iou_no": no, "reason": "duplicate"})
-            continue
-        seen.add(no)
+        if no:  # has a 欠单号 -> dedup as before
+            if no in seen:
+                report["duplicates"] += 1
+                report["skipped"].append({"iou_no": no, "reason": "duplicate"})
+                continue
+            seen.add(no)
+        else:   # no 欠单号 -> always import, but cannot be tracked for dedup
+            report["no_id"] += 1
 
         yymmdd = iou["date"]
         if not re.fullmatch(r"\d{6}", yymmdd or ""):
@@ -537,7 +541,8 @@ def merge(ae_bytes: bytes, qff_files: List[bytes]) -> Tuple[bytes, Dict[str, Any
     # append to the hidden import log
     log = _ensure_log_sheet(wb)
     for row in report["log_rows"]:
-        log.append(row)
+        if row and str(row[0] or "").strip():  # only rows with a 欠单号 are dedup-tracked
+            log.append(row)
 
     # Force Excel to recompute every formula on open — openpyxl writes no cached
     # values, so without this the formula cells would show blank until edited.

@@ -238,6 +238,16 @@ export default function AeQffUpdatePage() {
                   </div>
                 )}
 
+                {(report.no_id ?? 0) > 0 && (
+                  <div className="text-xs text-amber-600 flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <span>
+                      有 <b>{report.no_id}</b> 笔<b>无欠单号</b>，已照常录入；但它们<b>无法去重</b>——
+                      再次上传同一文件会<b>重复计入</b>，请注意不要重复上传这些无单号的欠条。
+                    </span>
+                  </div>
+                )}
+
                 {(report.new_group_names?.length ?? 0) > 0 && (
                   <div>
                     <div className="flex items-center gap-2 text-sm font-medium mb-2">
