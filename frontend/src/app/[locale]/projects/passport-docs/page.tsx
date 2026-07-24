@@ -60,6 +60,7 @@ export default function PassportDocsPage() {
   const [airline, setAirline] = useState("CZ");
   const [startPax, setStartPax] = useState(1);
   const [provider, setProvider] = useState<Provider>("aliyun");
+  const [useSsr, setUseSsr] = useState(true); // prefix each DOCS line with "SSR "
   const [files, setFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lines, setLines] = useState<DocsLine[]>([]);
@@ -199,7 +200,27 @@ export default function PassportDocsPage() {
     }
   };
 
-  const allCommands = lines.filter((l) => l.command && !l.error).map((l) => l.command).join("\n");
+  // Optional "SSR " prefix in front of the DOCS command (e.g. "SSR DOCS CZ HK1 ...").
+  const withSsr = (cmd: string) => (useSsr ? `SSR ${cmd}` : cmd);
+
+  // "复制全部" is the SSR DOCS lines only — the NM name line is copied separately.
+  const allCommands = lines
+    .filter((l) => l.command && !l.error)
+    .map((l) => withSsr(l.command))
+    .join("\n");
+
+  // Single NM name command aggregating every recognized passenger, e.g.
+  // "NM 1YU/JUNTAO-1LIU/YUCHEN" (1{surname}/{given} per pax, joined by "-").
+  const nmCommand = (() => {
+    const names = lines
+      .filter((l) => l.command && !l.error)
+      .map((l) => {
+        const surname = (l.fields.surname || "").trim().toUpperCase();
+        const given = (l.fields.given_names || "").trim().toUpperCase();
+        return `1${surname}/${given}`;
+      });
+    return names.length ? `NM ${names.join("-")}` : "";
+  })();
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -246,14 +267,46 @@ export default function PassportDocsPage() {
                 <CardTitle>生成结果</CardTitle>
                 <CardDescription>点击复制单条，或右上角复制全部；请核对后为每条反馈是否正确</CardDescription>
               </div>
-              {allCommands && (
-                <Button variant="outline" size="sm" onClick={() => copy(allCommands, "__all__")}>
-                  <Copy className="h-4 w-4 mr-1" />
-                  {copiedKey === "__all__" ? "已复制" : "复制全部"}
-                </Button>
-              )}
+              <div className="flex items-center gap-3 shrink-0">
+                <label className="flex items-center gap-1.5 text-sm cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={useSsr}
+                    onChange={(e) => setUseSsr(e.target.checked)}
+                  />
+                  SSR 前缀
+                </label>
+                {allCommands && (
+                  <Button variant="outline" size="sm" onClick={() => copy(allCommands, "__all__")}>
+                    <Copy className="h-4 w-4 mr-1" />
+                    {copiedKey === "__all__" ? "已复制" : "复制全部"}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
+              {/* NM name command — one line for all passengers, copied on its own
+                  (NOT part of "复制全部"). */}
+              {nmCommand && (
+                <div className="border rounded-lg p-3 bg-muted/40">
+                  <div className="flex items-start justify-between gap-2">
+                    <code className="font-mono text-sm break-all">{nmCommand}</code>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 shrink-0"
+                      onClick={() => copy(nmCommand, "__nm__")}
+                    >
+                      <Copy className="h-4 w-4 mr-1" />
+                      {copiedKey === "__nm__" ? "已复制" : "复制"}
+                    </Button>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    姓名指令（NM）· 不含在“复制全部”中，请单独复制
+                  </div>
+                </div>
+              )}
               {lines.map((line) => {
                 const key = `line-${line.pax}`;
                 const voted = line.log_id != null ? votes[line.log_id] : undefined;
@@ -267,12 +320,12 @@ export default function PassportDocsPage() {
                     ) : (
                       <>
                         <div className="flex items-start justify-between gap-2">
-                          <code className="font-mono text-sm break-all">{line.command}</code>
+                          <code className="font-mono text-sm break-all">{withSsr(line.command)}</code>
                           <Button
                             variant="ghost"
                             size="sm"
                             className="h-7 shrink-0"
-                            onClick={() => copy(line.command, key)}
+                            onClick={() => copy(withSsr(line.command), key)}
                           >
                             <Copy className="h-4 w-4 mr-1" />
                             {copiedKey === key ? "已复制" : "复制"}
@@ -469,9 +522,11 @@ export default function PassportDocsPage() {
         </Card>
 
         <div className="text-xs text-muted-foreground bg-muted/50 p-4 rounded-lg">
-          指令格式：<code className="font-mono">DOCS {"{航司}"} HK1 P/签发国/护照号/国籍/出生/性别/到期/姓/名/P{"{乘客号}"}</code>
+          指令格式：<code className="font-mono">{"[SSR] "}DOCS {"{航司}"} HK1 P/签发国/护照号/国籍/出生/性别/到期/姓/名/P{"{乘客号}"}</code>
           <br />
-          姓名取自护照 MRZ（机读区），而非印刷姓名栏，以保证姓/名顺序正确。仅记录识别结果与准确率反馈，不保存护照照片。
+          姓名指令：<code className="font-mono">NM 1姓/名-1姓/名…</code>（汇总全部乘客，单独复制，不含在“复制全部”中）
+          <br />
+          勾选“SSR 前缀”可在每条 DOCS 前加 <code className="font-mono">SSR</code>。姓名取自护照 MRZ（机读区），而非印刷姓名栏，以保证姓/名顺序正确。仅记录识别结果与准确率反馈，不保存护照照片。
         </div>
       </motion.div>
     </div>
