@@ -6,11 +6,15 @@ from typing import Optional, Dict, Any
 
 def extract_info(text: str) -> Dict[str, Optional[str]]:
     name_match = re.search(r"旅客姓名.*?\n\s*([\S]+)", text)
-    # A place is "城市 机场" — two Chinese tokens (2nd optional). Restricting to
-    # Chinese excludes the fare row's leading "至: CNY 1412.84" and empty "至:".
-    place = r"[一-鿿]+(?:[ \t]+[一-鿿]+)?"
-    # [ \t]* (not \s*) so an empty "至:" line can't reach onto the next line and
-    # grab "票价 燃油附加费" from the fare header.
+    # A place is the first two tokens after 自:/至:, whatever the layout —
+    # "北京 首都" (city+airport, 国航/CA) or "DLC 大连" (IATA code+city, 南航/CZ);
+    # the trailing airline/flight columns are extra tokens we don't capture.
+    # Two structural rules reject the noise without hardcoding the Chinese range
+    # (so non-Chinese place names keep working):
+    #   - require two tokens        -> skips the empty "至:" line
+    #   - 2nd token can't start 0-9  -> skips the fare row "至: CNY 1412.84 ..."
+    # [ \t]* (not \s*) so the empty "至:" line can't reach onto the next line.
+    place = r"\S+[ \t]+(?![0-9])\S+"
     from_matches = re.findall(rf"自[：:][ \t]*({place})", text)
     to_matches = re.findall(rf"至[：:][ \t]*({place})", text)
     amount_match = re.search(r"合计.*?\n.*?(\d+\.\d{2})\s*$", text, re.MULTILINE)
