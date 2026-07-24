@@ -1518,6 +1518,8 @@ def classify_sheet_type(title: str) -> str:
         return 'M'  # MU airline
     elif '外航' in title:
         return 'W'  # Foreign airlines
+    elif '保险' in title:
+        return 'B'  # 保险 (insurance)
     return 'N'  # Unknown
 
 
