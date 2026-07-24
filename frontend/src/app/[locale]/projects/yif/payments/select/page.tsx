@@ -416,10 +416,17 @@ export default function SelectivePaymentPage() {
     () => allocationPreview.reduce((sum, p) => sum + p.payment, 0),
     [allocationPreview]
   );
+  // 至少有一票分配金额非 0 —— 允许付款总额为 0 的对冲场景（如 +227 与 −227 抵消），
+  // 但仍拒绝“各票全为 0”的空提交。
+  const hasNonZeroAllocation = useMemo(
+    () => allocationPreview.some((p) => Math.abs(p.payment) >= 0.01),
+    [allocationPreview]
+  );
   // 余额（浮点比较容差 0.01）：0 表示分配平衡
   const allocationDiff = paymentAmount - allocatedTotal;
   const isBalanced = pendingQueue.length > 0 && Math.abs(allocationDiff) < 0.01;
-  const isPaymentValid = paymentAmount > 0 && pendingQueue.length > 0 && isBalanced;
+  // 付款总额不得为负（允许 0 用于对冲，但整体不能是负数付款）。
+  const isPaymentValid = pendingQueue.length > 0 && isBalanced && hasNonZeroAllocation && paymentAmount >= 0;
 
   if (authLoading) {
     return (
@@ -610,8 +617,12 @@ export default function SelectivePaymentPage() {
       setMessage({ type: "error", text: "请添加欠条到待清理列表" });
       return;
     }
-    if (paymentAmount <= 0) {
-      setMessage({ type: "error", text: "付款金额必须大于 0" });
+    if (paymentAmount < 0) {
+      setMessage({ type: "error", text: "付款总额不能为负数" });
+      return;
+    }
+    if (!hasNonZeroAllocation) {
+      setMessage({ type: "error", text: "各票分配金额不能全部为 0" });
       return;
     }
     if (!isBalanced) {
@@ -824,8 +835,8 @@ export default function SelectivePaymentPage() {
                   </SortableContext>
                 </DndContext>
 
-                {/* 分配校验：各票分配之和必须等于付款总额 */}
-                {paymentAmount > 0 && !isBalanced && (
+                {/* 分配校验：各票分配之和必须等于付款总额（付款总额可为 0） */}
+                {!isBalanced && (
                   <div className="mt-4 p-3 rounded-lg bg-red-100 text-red-800 flex items-start gap-2 text-sm">
                     <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
                     <div>
@@ -857,7 +868,7 @@ export default function SelectivePaymentPage() {
                       {" · "}已分配: <span className={`font-medium ${isBalanced ? "text-green-600" : "text-red-600"}`}>
                         ¥{allocatedTotal.toLocaleString()}
                       </span>
-                      {isBalanced && paymentAmount > 0 && <span className="text-green-600"> ✓</span>}
+                      {isBalanced && hasNonZeroAllocation && <span className="text-green-600"> ✓</span>}
                     </p>
                   </div>
                   <Button
@@ -1213,6 +1224,7 @@ export default function SelectivePaymentPage() {
               <li>负数欠条（蓝色）优先清算，支付其绝对值</li>
               <li>正数欠条：填写金额则按填写值精确入账（可填 0、负数或超额）；留空则按顺序自动分摊剩余</li>
               <li>各票分配金额之和必须等于付款总额，否则无法提交（防止金额丢失）</li>
+              <li>付款总额可为 0（用于正负欠条对冲，如 +227 与 −227 抵消），只要各票分配不全为 0 即可提交</li>
             </ol>
           </div>
         </div>
