@@ -217,16 +217,18 @@ export default function About() {
                       </CardHeader>
                       <CardContent>
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline">{pub.venue}</Badge>
-                          <a
-                            href={`https://arxiv.org/abs/${pub.arxiv.replace("arXiv:", "")}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary hover:underline flex items-center gap-1"
-                          >
-                            {pub.arxiv}
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
+                          <Badge variant="outline" className="whitespace-normal shrink max-w-full h-auto text-left rounded-md">{pub.venue}</Badge>
+                          {pub.arxiv && (
+                            <a
+                              href={`https://arxiv.org/abs/${pub.arxiv.replace("arXiv:", "")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary hover:underline flex items-center gap-1"
+                            >
+                              {pub.arxiv}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
                         </div>
                       </CardContent>
                     </Card>

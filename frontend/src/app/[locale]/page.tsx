@@ -207,7 +207,7 @@ export default function Home() {
             <div className="w-full md:w-52 shrink-0">
               <div className="rounded-2xl overflow-hidden shadow-lg ring-1 ring-border">
                 <Image
-                  src="/images/avatar.jpg"
+                  src="/images/avatar_2026.jpg"
                   alt="Zhiyuan Li"
                   width={480}
                   height={607}
@@ -296,7 +296,7 @@ export default function Home() {
                   </CardHeader>
                   <CardContent className="px-4 pb-4">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <Badge variant="outline" className="text-xs">{pub.venue}</Badge>
+                      <Badge variant="outline" className="text-xs whitespace-normal shrink max-w-full h-auto text-left rounded-md">{pub.venue}</Badge>
                       {pub.link && (
                         <a
                           href={pub.link}
