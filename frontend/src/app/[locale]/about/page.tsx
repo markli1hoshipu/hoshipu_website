@@ -23,9 +23,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 
-const researchIds = ["huawei", "crl"];
+const researchIds = ["rvl", "huawei", "crl"];
 const workIds = ["prelude", "robotics", "yif"];
-const awardIds = ["putnam", "cmo", "uoftmath", "cemc", "amc"];
+const awardIds = ["b1k2026", "bestpaper", "b1k2025", "putnam", "uoftmath", "cmo", "cemc"];
 const projectIds = ["robotpet", "turtlebot", "mahjong", "travelmap"];
 
 export default function About() {

@@ -9,17 +9,17 @@
   "home": {
     "hero": {
       "title": "Hi, I'm Zhiyuan Li",
-      "subtitle1": "Undergrad student with passion in mathematics",
-      "subtitle2": "Researcher exploring robotic manipulation",
-      "subtitle3": "Software engineer building next-generation technologies",
+      "subtitle1": "Robotics undergraduate at the University of Toronto",
+      "subtitle2": "Embodied AI researcher: VLAs, world models, robot agents",
+      "subtitle3": "1st place, BEHAVIOR Challenge at CoRL 2026",
       "subtitle4": "Imaginative music artist and composer",
-      "affiliation": "University of Toronto · Huawei Noah's Ark Lab Researcher",
+      "affiliation": "University of Toronto · Robot Vision and Learning Lab · Huawei Noah's Ark Lab",
       "viewWork": "View My Work",
       "getInTouch": "Get in Touch"
     },
     "about": {
       "title": "About Me",
-      "description": "I'm a Robotics Engineering student at the University of Toronto, passionate about embodied AI, mathematics, and creative arts. Currently conducting research at Huawei Noah's Ark Lab on Vision-Language-Action models while building full-stack applications at Prelude CA. Award-winning mathematician (Putnam Top 154, UofT Math Contest #1) and aspiring music composer."
+      "description": "I am a final-year Engineering Science (Robotics) student at the University of Toronto working on embodied AI. My research asks how robots can learn from their own failures: coding agents that build and repair robot programs, harnesses that carry that experience across tasks, and benchmarks that show where VLA and world action models break. I am an undergraduate researcher in the Robot Vision and Learning Lab with Prof. Florian Shkurti and a research assistant at Huawei Noah's Ark Lab. Our team won 1st place in the 2026 BEHAVIOR Challenge at CoRL 2026. I am applying to master's and PhD programs for Fall 2027."
     },
     "timeline": {
       "title": "My Journey",
@@ -31,17 +31,17 @@
     "education_uoft": {
       "title": "University of Toronto",
       "subtitle": "BASc Engineering Science, Robotics Specialization",
-      "description": "GPA: 3.90 | Dean's Honour List every semester | PEY Co-op Program"
+      "description": "GPA: 3.90 | Dean's Honour List every semester"
     },
     "work_yif": {
       "title": "Full-Stack Engineer",
-      "subtitle": "Yuhang International Flight (YIF)",
+      "subtitle": "Yuhang International Flight (Dalian) Co., Ltd.",
       "description": "Developed IOU management system handling 100k+ records with 100+ concurrent users using Python, SQL, and Qt"
     },
     "award_putnam": {
-      "title": "Putnam Math Contest",
-      "subtitle": "Top 154 Individual, Top 5 Team",
-      "description": "Personal score 42, contributing member of UofT's top 5 winning team in North America"
+      "title": "Putnam Competition",
+      "subtitle": "5th Place Team, Rank 154 Individual",
+      "description": "Top 3 at University of Toronto; individual top 4%"
     },
     "work_robotics": {
       "title": "Software Engineer",
@@ -55,34 +55,49 @@
     },
     "award_uoftmath": {
       "title": "UofT Math Contest",
-      "subtitle": "#1 All Campuses",
-      "description": "Ranked first among all undergraduate participants across all University of Toronto campuses"
+      "subtitle": "1st Place",
+      "description": "1st place in the University of Toronto Undergraduate Mathematics Competition"
     },
     "research_huawei": {
       "title": "Research Assistant",
       "subtitle": "Huawei Technologies, Noah's Ark Lab",
-      "description": "VLA models (Pi0), Plan-to-Evolve frameworks, Mem2Ego navigation, 4 papers submitted to ICRA/ICLR"
+      "description": "BEHAVIOR Challenge agentic harness, VLA/WAM robustness, RoboPRO and RoboDyna benchmarks, A²H, Self-CriTeach (ICML 2026)"
     },
     "work_prelude": {
       "title": "Full-Stack Engineer / Frontend Lead",
       "subtitle": "Prelude CA",
-      "description": "Leading frontend architecture of multi-tenant SaaS platform with Next.js 15, React 19, TypeScript"
+      "description": "Agentic workflows for a multi-tenant CRM platform"
     },
     "award_neurips": {
-      "title": "NeurIPS Behavior Challenge",
-      "subtitle": "4th Place - The North Star Team",
-      "description": "Designed FSM pipeline integrating SAM6D, Pi0 VLA, and motion planning for 50+ household tasks"
+      "title": "BEHAVIOR Challenge @ NeurIPS 2025",
+      "subtitle": "4th Place - The North Star",
+      "description": "Team The North Star, Huawei Noah's Ark Lab"
     },
     "graduation": {
       "title": "Expected Graduation",
       "subtitle": "BASc Engineering Science",
       "description": "Completing Bachelor of Applied Science with Robotics Engineering specialization"
+    },
+    "research_rvl": {
+      "title": "Undergraduate Researcher",
+      "subtitle": "UofT Robot Vision and Learning Lab",
+      "description": "Thesis on agentic learning from failed attempts in code-as-policy robotics; episodic memory for VLA policies"
+    },
+    "award_b1k2026": {
+      "title": "BEHAVIOR Challenge @ CoRL 2026",
+      "subtitle": "1st Place - The North Star",
+      "description": "Agentic harness routing tasks among VLA policies and a skill library of robot pipelines"
+    },
+    "award_bestpaper": {
+      "title": "ECCV 2026 Workshop Best Paper",
+      "subtitle": "RoboHarness (Oral)",
+      "description": "Best Paper Award at the Agent in World Workshop"
     }
   },
   "about": {
     "title": "About Me",
     "fullProfile": "Full Profile",
-    "description": "I'm Zhiyuan Li, a Robotics Engineering student at the University of Toronto with a passion for embodied AI and full-stack development. Currently conducting research at Huawei Noah's Ark Lab while leading frontend development at Prelude CA.",
+    "description": "I am a final-year Engineering Science (Robotics) student at the University of Toronto working on embodied AI. My research asks how robots can learn from their own failures: coding agents that build and repair robot programs, harnesses that carry that experience across tasks, and benchmarks that show where VLA and world action models break. I am an undergraduate researcher in the Robot Vision and Learning Lab with Prof. Florian Shkurti and a research assistant at Huawei Noah's Ark Lab. Our team won 1st place in the 2026 BEHAVIOR Challenge at CoRL 2026. I am applying to master's and PhD programs for Fall 2027.",
     "documents": {
       "title": "Documents",
       "resume": "Resume",
@@ -101,36 +116,51 @@
       "gpa": "GPA: 3.90",
       "honors": "Dean's Honour List (Every Semester)",
       "period": "Sep 2022 - Apr 2027",
-      "status": "Currently on PEY Co-op"
+      "status": "Expected graduation: Apr 2027"
     },
     "researchTitle": "Research Experience",
     "research": {
+      "rvl": {
+        "title": "Undergraduate Researcher",
+        "company": "UofT Robot Vision and Learning Lab (Prof. Florian Shkurti)",
+        "period": "May 2026 - Present",
+        "location": "Toronto, Ontario",
+        "points": [
+          "Designed an episodic memory module for frozen VLA policies (π0.5) that stores context, plan, failure, and recovery in one entry to support plan selection and failure recovery on memory-dependent manipulation tasks (RMBench); analyzed which failure modes cross-episode memory can and cannot fix.",
+          "Undergraduate thesis on agentic learning from failed attempts in code-as-policy robotics, where a frozen coding agent converts rollout videos, API traces, and scores into verified, failure-specific progress checks. Evaluating on RoboTwin 2.0 and EmbodiedSWE-Bench, with a 22-percentage-point improvement in task success on RoboTwin 2.0 so far."
+        ]
+      },
       "huawei": {
         "title": "Research Assistant",
         "company": "Huawei Technologies, Noah's Ark Lab - Embodied AI",
         "period": "May 2025 - Present",
         "location": "Toronto, Ontario",
         "points": [
-          "Conducted research on Vision-Language-Action (VLA) models such as Pi0 for robotic manipulation in visually cluttered environments, studying perception-action coupling and robustness degradation. Designed experiments using UR5e and Franka robots with ROS integration.",
-          "Explored long-horizon symbolic planning via Plan-to-Evolve (P2E) frameworks. Fine-tuned LLMs including Qwen3 and LLaMA 3/4 using PDDL-based domains with Chain-of-Thought reasoning. Integrated real-robot experiments combining VLA and motion planners.",
-          "Contributed to Mem2Ego, a global-to-egocentric memory architecture for long-horizon embodied navigation. Integrated V-SLAM and Nav2 within ROS2 for agent-guided navigation.",
-          "Lead engineer on The North Star team at NeurIPS 2025 Behavior Challenge. Designed FSM pipeline integrating SAM6D, Pi0 VLA, and classical robot motion planning for 50+ household tasks in Isaac Sim. Achieved 4th place."
+          "Major contributor to The North Star's BEHAVIOR Challenge system: 1st place at CoRL 2026 (Q score 0.683; 48.2% full-task success on 100 household tasks), after 4th place at NeurIPS 2025. Built the agentic harness, whose capability- and history-based policy cards route tasks among VLA policies and a skill library of FSM pipelines combining SAM6D, π0.5, and TAMP. Built the HiPhys-RSI proof of concept, where a frozen-VLM coding agent composes tools into code pipelines and revises them from rollout videos and logs, and validated it for whole-body control and long-horizon manipulation.",
+          "Conducted large-scale robustness evaluations of VLAs (π0.5, X-VLA) and world action models (LingBot-VA, Fast-WAM, GE-Act, Cosmos-Policy) on LIBERO-Plus, and built RoboTwin 2.0-Plus, a dual-arm benchmark with the same perturbation protocol. Analyzed how vision, language, object layout, and robot initial-state perturbations affect each model family: WAMs are more robust to noise, lighting, and layout (74.2% vs. 58.6% for π0.5 on RoboTwin 2.0-Plus), while camera and initial-state shifts remain hard.",
+          "Led the design of two benchmarks for open problems in VLA and WAM evaluation, safe manipulation under clutter and anticipation of future dynamics: RoboPRO, 80 bimanual tasks with 16K demonstrations and safety-aware contact metrics; and RoboDyna, 30 dynamic tasks with synchronized and asynchronous evaluation protocols that isolate the effect of inference latency. Accepted at the NeurIPS 2026 and RSS 2026 workshops.",
+          "Proposed the Agentic Adversarial Harness (A²H): a coding agent designs task variations that break its own robot programs, repairs them, and distills the failures into a reusable harness that transfers to unseen environments, raising real-robot first-attempt success from 15% to 60%. Co-developed RoboHarness, which orchestrates VLA, WAM, RL, and TAMP policies as agentic skills with memory-guided handoffs. A²H was accepted at CoRL 2026 (Late Breaking Results); RoboHarness received the Best Paper Award (oral) at the ECCV 2026 Workshop on Agent in World.",
+          "For the Self-CriTeach project, fine-tuned LLMs for long-horizon symbolic planning on self-generated PDDL domains with chain-of-thought self-teaching and self-critiquing constrained RL, and compared training recipes. Raised Qwen3-4B planning success from 26% to 46% (above GPT-4o at 19%); on a real UR5e robot it reached 70% vs. 40% for a PDDL solver. Accepted at ICML 2026."
         ]
       },
       "crl": {
         "title": "Undergraduate Research Assistant",
-        "company": "UofT Continuum Robotics Laboratory",
+        "company": "UofT Continuum Robotics Laboratory (Prof. Jessica Burgner-Kahrs)",
         "period": "Feb 2024 - Apr 2025",
         "location": "Toronto, Ontario",
         "points": [
-          "Conducted in-depth research on state estimations for continuum robotics, focusing on constraints and degrees of freedom. Extended Clarke transformation to general models for tendon-driven continuum robots (TDCR).",
-          "Analyzed TDCR forward kinematics from first principles, evaluating hardware factors such as material stiffness, size effects, disk radius, and tendon length. Introduced corrective factors to improve model accuracy.",
-          "Developed and simulated TDCR models using MuJoCo and Pyplot. Documented findings through blog posts on the OpenCR project."
+          "Studied state estimation for tendon-driven continuum robots (TDCR), extending the Clarke transformation to general TDCR models to characterize actuation constraints and degrees of freedom.",
+          "Derived TDCR forward kinematics from first principles and built MuJoCo simulations; compared them with physical robots and introduced corrective factors for hardware effects such as material stiffness, disk radius, and tendon length. Documented results for the OpenCR project."
         ]
       }
     },
     "publicationsTitle": "Publications",
     "publications": [
+      {
+        "title": "Learning to Anticipate Physical Failures via Agentic Adversarial Harness",
+        "venue": "CoRL 2026, Late Breaking Results",
+        "arxiv": ""
+      },
       {
         "title": "Self-CriTeach: LLM Self-Teaching and Self-Critiquing for Improving Robotic Planning via Automated Domain Generation",
         "venue": "ICML 2026",
@@ -138,25 +168,40 @@
         "link": "https://markli1hoshipu.github.io/Plan_LLM/"
       },
       {
-        "title": "H-WM: Robotic Task and Motion Planning Guided by Hierarchical World Model",
-        "venue": "ICLR 2026 Workshop on World Models",
-        "arxiv": "arXiv:2602.11291"
-      },
-      {
-        "title": "Distracted Robot: How Visual Clutter Undermines Robotic Manipulation",
+        "title": "Distracted Robot: How Visual Clutter Undermine Robotic Manipulation",
         "venue": "ICRA 2026",
         "arxiv": "arXiv:2511.22780"
       },
       {
         "title": "Improving Robotic Manipulation Robustness via NICE Scene Surgery",
-        "venue": "ICRA 2026",
+        "venue": "ICRA 2026 (earlier version at CoRL 2025 Robot Data Workshop)",
         "arxiv": "arXiv:2511.22777"
       },
       {
+        "title": "RoboHarness: Memory-Driven Orchestration of Heterogeneous Robot Policies for Long-Horizon Planning",
+        "venue": "ECCV 2026 Workshop on Agent in World, Oral, Best Paper Award",
+        "arxiv": "arXiv:2607.18060"
+      },
+      {
+        "title": "Benchmarking Robotic Manipulation under Physically Realistic Dynamics",
+        "venue": "NeurIPS 2026 Robotics World Modeling Workshop",
+        "arxiv": ""
+      },
+      {
         "title": "Data and Evaluation Protocols for Robust Robotic Manipulation",
-        "venue": "RSS 2026 Workshop",
+        "venue": "RSS 2026 RoboData Workshop",
         "arxiv": "",
         "link": "https://robopro-bench.github.io/RoboPRO/"
+      },
+      {
+        "title": "H-WM: Robotic Task and Motion Planning Guided by Hierarchical World Model",
+        "venue": "ICLR 2026 Workshop on World Models",
+        "arxiv": "arXiv:2602.11291"
+      },
+      {
+        "title": "Spatial Grafting: Grounding 3D Features for Flow-Matching Robot Policies",
+        "venue": "arXiv",
+        "arxiv": "arXiv:2609.35249"
       },
       {
         "title": "Do World Action Models Generalize Better than VLAs? A Robustness Study",
@@ -171,52 +216,53 @@
     ],
     "awardsTitle": "Awards & Honors",
     "awards": {
-      "putnam": {
-        "title": "Putnam Math Contest",
-        "description": "Score 42, Top 154 Individual, Top 3 member of Top 5 Winning Team"
+      "b1k2026": {
+        "title": "1st Place, BEHAVIOR Challenge @ CoRL 2026",
+        "description": "Team The North Star (Huawei Noah's Ark Lab); 48.2% full-task success on 100 household tasks"
       },
-      "cmo": {
-        "title": "Canadian Mathematics Olympiad",
-        "description": "Invited participant"
+      "bestpaper": {
+        "title": "Best Paper Award (Oral), ECCV 2026 Workshop on Agent in World",
+        "description": "RoboHarness: memory-driven orchestration of heterogeneous robot policies"
+      },
+      "b1k2025": {
+        "title": "4th Place, BEHAVIOR Challenge @ NeurIPS 2025",
+        "description": "Team The North Star (Huawei Noah's Ark Lab)"
+      },
+      "putnam": {
+        "title": "William Lowell Putnam Competition (2023)",
+        "description": "5th place team; top 3 at University of Toronto; individual rank 154 (top 4%)"
       },
       "uoftmath": {
-        "title": "UofT Undergrad Mathematics Contest",
-        "description": "#1 among all participants from all years, all campuses"
+        "title": "UofT Undergraduate Mathematics Competition (2023)",
+        "description": "1st place"
+      },
+      "cmo": {
+        "title": "Canadian Mathematical Olympiad",
+        "description": "Participant, 2019 and 2021"
       },
       "cemc": {
-        "title": "CEMC Math Contests",
-        "description": "Euclid Honor Roll (Rank 77), Hypatia, Fermat, CSMC Honor Roll (Rank 100)"
-      },
-      "amc": {
-        "title": "AMC/AIME Math Contests",
-        "description": "2-time AMC Honor Roll (Top 0.1%), 2-time AIME Honor Roll (Top 0.1%)"
+        "title": "CEMC Mathematics Contests (2021-2022)",
+        "description": "Honour Roll: Euclid, Fermat, Hypatia, and CSMC"
       }
     },
     "workTitle": "Industry Experience",
     "work": {
       "prelude": {
-        "title": "Full-Stack Engineer / Frontend Lead",
+        "title": "Full-Stack Engineer / Frontend Lead (Part-time)",
         "company": "Prelude CA",
-        "period": "June 2025 - Present",
+        "period": "Jun 2025 - Jun 2026",
         "location": "Toronto, Ontario",
         "points": [
-          "Led the frontend architecture of a multi-tenant SaaS platform using Next.js 15 (App Router), React 19, and TypeScript. Built a modular design system with Radix UI and Tailwind CSS, implemented global state management via Zustand, and optimized performance through client-side state caching and cookies, reducing interaction latency by 40%.",
-          "Implemented secure authentication and authorization for workspace-isolated tenants, using OAuth integration (Google/Microsoft), role-based access control, and team invitation flows. Designed multi-tenant isolation across application and data layers.",
-          "Designed an AI-driven pipeline enabling automated, multi-agent data processing workflows. Built an intelligent CSV ingestion system with semantic column matching using OpenAI embeddings, achieving 90%+ auto-mapping accuracy.",
-          "Designed a scalable CRM relational schema using PostgreSQL, unifying customers, leads, and deals into comprehensive user profiles with normalization, indexed key columns, and transaction-safe updates."
+          "Built agentic workflows for a multi-tenant CRM platform: LLM agents automatically search the CRM and use customs declaration data to find new sales leads. A multi-agent ingestion pipeline matches uploaded CSV columns semantically with OpenAI embeddings (90%+ auto-mapping accuracy) and writes validated records to PostgreSQL."
         ]
       },
       "yif": {
         "title": "Full-Stack Engineer",
-        "company": "Yuhang International Flight (YIF)",
-        "period": "July 2022 - May 2024",
+        "company": "Yuhang International Flight (Dalian) Co., Ltd.",
+        "period": "Jul 2022 - May 2024",
         "location": "Dalian, China",
         "points": [
-          "Designed and developed an online information management system using Python, QtDesigner, SQL, and QML to track and manage IOU payments, significantly reducing manual input and improving efficiency.",
-          "Utilized MySQL with connection pooling for multiple concurrent users. Enhanced user authentication with bcrypt hashed passwords, enforcing security protocols.",
-          "Implemented advanced multi-key search using SQL JOIN, INDEX, and LIKE statements. Developed fuzzy search with FuzzyWuzzy library for partial matches. Integrated real-time updates with SQL triggers.",
-          "Leveraged pandas and numpy to connect to Excel and other platforms, enabling data import and visual summaries through graphs depicting IOU amount changes over time.",
-          "Conducted rigorous system testing with over 1 million items and 100+ concurrent users. Optimized to process 100k+ IOUs with 3-5 second search response, improving efficiency by over 100%."
+          "Designed and built an information-management system for IOU payment records end to end, covering the SQL database schema, Python application logic, and a Qt/QML interface. Supported 100+ concurrent users with connection pooling, bcrypt-hashed authentication, and SQL triggers; indexed fuzzy search returned results in 3-5 seconds over 100k+ records."
         ]
       },
       "robotics": {
@@ -253,14 +299,57 @@
     },
     "skillsTitle": "Technical Skills",
     "skills": {
-      "languagesTitle": "Languages",
-      "languages": ["C", "C++", "Python", "TypeScript", "JavaScript", "Java", "C#", "Swift", "MATLAB", "R", "HTML", "CSS/SCSS", "Shell Scripting", "LaTeX"],
-      "frameworksTitle": "Frameworks & Libraries",
-      "frameworks": ["React", "Next.js", "Node.js", "ROS/ROS2", "PyTorch", "TensorFlow", "Keras", "NumPy", "scikit-learn", "OpenCV", "OpenAI", "Langchain", "Three.js", "Unity"],
-      "roboticsTitle": "Robotics & Hardware",
-      "robotics": ["MuJoCo", "Isaac Sim", "UR5e", "Franka", "V-SLAM", "Nav2", "Arduino", "ESP32", "PID Control"],
-      "toolsTitle": "Tools & Platforms",
-      "tools": ["Git", "Docker", "Linux", "AWS", "Vercel", "Vim", "Jupyter", "XCode"]
+      "languagesTitle": "Model Training",
+      "languages": [
+        "PyTorch",
+        "Hugging Face",
+        "π0.5 fine-tuning (openpi)",
+        "LLM fine-tuning",
+        "Diffusion Policy",
+        "Flow Matching",
+        "Slurm multi-GPU"
+      ],
+      "frameworksTitle": "Agents",
+      "frameworks": [
+        "Claude Code",
+        "Codex",
+        "OpenAI API",
+        "Anthropic API",
+        "LangChain",
+        "LangGraph",
+        "Code as Policies"
+      ],
+      "roboticsTitle": "Robotics",
+      "robotics": [
+        "UR5e",
+        "Franka",
+        "AgileX",
+        "ROS/ROS2",
+        "TAMP",
+        "PDDL",
+        "Isaac Sim",
+        "MuJoCo",
+        "SAPIEN",
+        "PyBullet",
+        "Nav2",
+        "V-SLAM",
+        "SAM6D",
+        "OpenCV"
+      ],
+      "toolsTitle": "Software",
+      "tools": [
+        "Python",
+        "C/C++",
+        "MATLAB",
+        "React",
+        "Next.js",
+        "Node.js",
+        "PostgreSQL",
+        "Qt",
+        "Linux",
+        "Git",
+        "Docker"
+      ]
     }
   },
   "oc": {
@@ -281,9 +370,21 @@
     "personality": {
       "title": "Personality"
     },
-    "traits": ["Curious", "Friendly", "A bit lazy", "Foodie", "Loves coding"],
+    "traits": [
+      "Curious",
+      "Friendly",
+      "A bit lazy",
+      "Foodie",
+      "Loves coding"
+    ],
     "likesTitle": "Likes",
-    "likes": ["Starry sky", "Music", "Code", "Sweets", "Sleeping"],
+    "likes": [
+      "Starry sky",
+      "Music",
+      "Code",
+      "Sweets",
+      "Sleeping"
+    ],
     "story": {
       "title": "Background Story",
       "content": "Hoshipu is a little spirit from the stars who came to Earth out of curiosity about the human world. It loves observing human life and has developed a strong interest in programming and creation. Although sometimes lazy, once engaged in something interesting, it gives its all. Its name comes from the Japanese word 'hoshi' (star) and 'pu', symbolizing writing stories with starlight."
@@ -333,72 +434,114 @@
     "pdfRename": {
       "title": "GJP PDF Rename Tool",
       "description": "Intelligent PDF batch rename tool that extracts invoice information and renames files using custom templates.",
-      "tags": ["PDF Processing", "Batch Rename"]
+      "tags": [
+        "PDF Processing",
+        "Batch Rename"
+      ]
     },
     "gjpInvoice": {
       "title": "GJP Invoice Export Tool",
       "description": "Batch-extract flight e-invoice PDFs and export them into the Yuhang SAP-entry Excel format.",
-      "tags": ["PDF Processing", "Excel Export"]
+      "tags": [
+        "PDF Processing",
+        "Excel Export"
+      ]
     },
     "aeQff": {
       "title": "pxb-ae",
       "description": "Merge QFF IOU files into the pxb-ae ledger by 负责人, debtor and date — auto-creating missing month sheets, day columns, groups and debtors, with dedup.",
-      "tags": ["Excel Processing", "Reconciliation"]
+      "tags": [
+        "Excel Processing",
+        "Reconciliation"
+      ]
     },
     "game24": {
       "title": "Game 24",
       "description": "Classic math puzzle game where you use four numbers and basic operators to make 24. Train your mathematical thinking and calculation skills!",
-      "tags": ["Game", "Math"]
+      "tags": [
+        "Game",
+        "Math"
+      ]
     },
     "pong": {
       "title": "Pong",
       "description": "Classic Pong against an AI opponent! Use W/S or arrow keys to control your paddle, or just move your mouse. First to 7 points wins — ball speeds up with every hit!",
-      "tags": ["Game", "Classic"]
+      "tags": [
+        "Game",
+        "Classic"
+      ]
     },
     "codeQuiz": {
       "title": "Airline / Airport Code Quiz",
       "description": "Multiple-choice quiz on IATA airline and airport codes — match Chinese names to codes and back. Pick a category, build your streak, and memorize codes the fun way!",
-      "tags": ["Game", "Quiz"]
+      "tags": [
+        "Game",
+        "Quiz"
+      ]
     },
     "guandan": {
       "title": "Guandan 掼蛋 2v2 Hall",
       "description": "The classic Jiangsu partnership card game with an online hall: create or join tables, team up with other players, and fill empty seats with AI (or practice solo). Full combos incl. bombs, straight flushes and the four-joker bomb, with level-up (打级) to A.",
-      "tags": ["Game", "Cards"]
+      "tags": [
+        "Game",
+        "Cards"
+      ]
     },
     "qffTravel": {
       "title": "QFF Travel Itinerary Tool",
       "description": "Manage travel translation output templates, airline code mappings, and airport code mappings for easy flight information organization.",
-      "tags": ["Aviation", "Data Management"]
+      "tags": [
+        "Aviation",
+        "Data Management"
+      ]
     },
     "yifPayment": {
       "title": "YIF Payment Management",
       "description": "Secure payment tracking and management tool with multi-user access control.",
-      "tags": ["Finance", "Management"]
+      "tags": [
+        "Finance",
+        "Management"
+      ]
     },
     "lifeManagement": {
       "title": "Life Management",
       "description": "Personal life management system including accounting, task management, and more.",
-      "tags": ["Life", "Management"]
+      "tags": [
+        "Life",
+        "Management"
+      ]
     },
     "iataCode": {
       "title": "IATA Code Translator",
       "description": "Convert IATA airport codes to city names, supporting various separator formats.",
-      "tags": ["Aviation", "Code Conversion"]
+      "tags": [
+        "Aviation",
+        "Code Conversion"
+      ]
     },
     "passportDocs": {
       "title": "Passport → DOCS Command",
       "description": "Read a passport's MRZ from a photo and generate the SR DOCS command line for each passenger.",
-      "tags": ["Aviation", "OCR"]
+      "tags": [
+        "Aviation",
+        "OCR"
+      ]
     },
     "embodybench": {
       "title": "EmbodyBench",
       "description": "Evaluate VLA policy models on embodied benchmarks (RoboTwin, RoboPRO). Submit a run, point at your model's API, watch results stream in.",
-      "tags": ["Embodied AI", "Benchmarks", "Research"]
+      "tags": [
+        "Embodied AI",
+        "Benchmarks",
+        "Research"
+      ]
     },
     "comingSoon": {
       "title": "Coming Soon",
       "description": "More exciting projects are in development and will be launched soon...",
-      "tags": ["Coming Soon"]
+      "tags": [
+        "Coming Soon"
+      ]
     },
     "openTool": "Open Tool"
   },

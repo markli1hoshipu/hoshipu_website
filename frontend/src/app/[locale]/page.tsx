@@ -6,7 +6,7 @@ import {
   Download,
   FlaskConical, FileText, Trophy,
   Briefcase, Cpu, Code2, Globe, Server, Wrench,
-  MapPin, Calendar, ExternalLink,
+  MapPin, Calendar, ExternalLink, GraduationCap,
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -38,18 +38,22 @@ const HuggingFaceIcon = () => (
 
 const timelineEntries: TimelineEntry[] = [
   { id: "graduation", date: "Apr 2027", type: "education" },
-  { id: "work_prelude", date: "Jun 2025 - Present", type: "work", current: true },
+  { id: "award_b1k2026", date: "Nov 2026", type: "award" },
+  { id: "award_bestpaper", date: "2026", type: "award" },
+  { id: "research_rvl", date: "May 2026 - Present", type: "research", current: true },
+  { id: "award_neurips", date: "Dec 2025", type: "award" },
+  { id: "work_prelude", date: "Jun 2025 - Jun 2026", type: "work" },
   { id: "research_huawei", date: "May 2025 - Present", type: "research", current: true },
-  { id: "award_putnam", date: "2023", type: "award" },
   { id: "research_crl", date: "Feb 2024 - Apr 2025", type: "research" },
-  { id: "award_uoftmath", date: "2024", type: "award" },
+  { id: "award_putnam", date: "Dec 2023", type: "award" },
+  { id: "award_uoftmath", date: "2023", type: "award" },
   { id: "work_yif", date: "Jul 2022 - May 2024", type: "work" },
   { id: "education_uoft", date: "Sep 2022", type: "education" },
 ];
 
-const researchIds = ["huawei", "crl"];
+const researchIds = ["rvl", "huawei", "crl"];
 const workIds = ["prelude", "yif"];
-const awardIds = ["putnam", "cmo", "uoftmath", "cemc", "amc"];
+const awardIds = ["b1k2026", "bestpaper", "b1k2025", "putnam", "uoftmath", "cmo", "cemc"];
 const projectIds = ["robotpet", "turtlebot", "mahjong", "travelmap"];
 
 function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
@@ -153,6 +157,10 @@ export default function Home() {
             <a href="https://huggingface.co/hoshipu" target="_blank" rel="noopener noreferrer"
               className="text-muted-foreground hover:text-primary transition-colors">
               <HuggingFaceIcon />
+            </a>
+            <a href="https://scholar.google.com/citations?user=uYvXm1sAAAAJ" target="_blank" rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-primary transition-colors" aria-label="Google Scholar">
+              <GraduationCap className="h-5 w-5" />
             </a>
           </div>
 

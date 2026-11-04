@@ -9,17 +9,17 @@
   "home": {
     "hero": {
       "title": "你好，我是李智远",
-      "subtitle1": "对数学充满热情的本科生",
-      "subtitle2": "探索机器人操控的研究者",
-      "subtitle3": "探索下一代技术的软件工程师",
+      "subtitle1": "多伦多大学机器人方向本科生",
+      "subtitle2": "具身智能研究者：VLA、世界模型与机器人智能体",
+      "subtitle3": "CoRL 2026 BEHAVIOR Challenge 冠军",
       "subtitle4": "充满幻想主义的音乐艺术家作曲家",
-      "affiliation": "多伦多大学 · 华为诺亚方舟实验室研究员",
+      "affiliation": "多伦多大学 · Robot Vision and Learning 实验室 · 华为诺亚方舟实验室",
       "viewWork": "查看作品",
       "getInTouch": "联系我"
     },
     "about": {
       "title": "关于我",
-      "description": "我是多伦多大学机器人工程专业学生，对具身智能、数学和创意艺术充满热情。目前在华为诺亚方舟实验室进行视觉-语言-动作模型研究，同时在 Prelude CA 构建全栈应用。获奖数学竞赛选手（普特南前154名、多大数学竞赛第一名）以及有志的音乐作曲家。"
+      "description": "我是多伦多大学工程科学（机器人方向）大四学生，研究具身智能。我的研究关注机器人如何从自己的失败中学习：让 coding agent 编写并修复机器人程序，用 harness 把这些经验带到新任务中，并用 benchmark 揭示 VLA 和世界动作模型在哪里失效。我目前在 Florian Shkurti 教授的 Robot Vision and Learning 实验室做本科研究，同时在华为诺亚方舟实验室担任研究助理。我们团队获得了 CoRL 2026 BEHAVIOR Challenge 第一名。我正在申请 2027 年秋季入学的硕士和博士项目。"
     },
     "timeline": {
       "title": "我的历程",
@@ -31,17 +31,17 @@
     "education_uoft": {
       "title": "多伦多大学",
       "subtitle": "工程科学学士，机器人专业",
-      "description": "GPA: 3.90 | 每学期院长荣誉榜 | PEY 实习项目"
+      "description": "GPA：3.90 | 每学期 Dean's Honour List"
     },
     "work_yif": {
       "title": "全栈工程师",
-      "subtitle": "裕航国际航空（大连）有限公司",
+      "subtitle": "宇航国际航空（大连）有限公司",
       "description": "开发借据管理系统，处理10万+记录，支持100+并发用户，使用Python、SQL和Qt"
     },
     "award_putnam": {
-      "title": "普特南数学竞赛",
-      "subtitle": "个人排名前154，团队前5",
-      "description": "个人得分42分，作为核心成员帮助多大获得北美前5名团队"
+      "title": "Putnam 数学竞赛",
+      "subtitle": "团队第 5 名，个人第 154 名",
+      "description": "多伦多大学校内前三；个人前 4%"
     },
     "work_robotics": {
       "title": "软件工程师",
@@ -55,34 +55,49 @@
     },
     "award_uoftmath": {
       "title": "多大数学竞赛",
-      "subtitle": "全校区第一名",
-      "description": "在多伦多大学所有校区、所有年级本科生参赛者中排名第一"
+      "subtitle": "第一名",
+      "description": "多伦多大学本科数学竞赛第一名"
     },
     "research_huawei": {
       "title": "研究助理",
       "subtitle": "华为技术，诺亚方舟实验室",
-      "description": "VLA模型(Pi0)、Plan-to-Evolve框架、Mem2Ego导航，4篇论文投稿ICRA/ICLR"
+      "description": "BEHAVIOR Challenge agentic harness、VLA/WAM 鲁棒性、RoboPRO 与 RoboDyna benchmark、A²H、Self-CriTeach（ICML 2026）"
     },
     "work_prelude": {
       "title": "全栈工程师 / 前端负责人",
       "subtitle": "Prelude CA",
-      "description": "领导多租户SaaS平台前端架构，使用Next.js 15、React 19、TypeScript"
+      "description": "为多租户 CRM 平台搭建 agentic 工作流"
     },
     "award_neurips": {
-      "title": "NeurIPS 行为挑战赛",
-      "subtitle": "第四名 - The North Star 团队",
-      "description": "设计有限状态机流水线，集成SAM6D、Pi0 VLA和运动规划，完成50+家庭任务"
+      "title": "NeurIPS 2025 BEHAVIOR Challenge",
+      "subtitle": "第四名 - The North Star",
+      "description": "The North Star 团队，华为诺亚方舟实验室"
     },
     "graduation": {
       "title": "预计毕业",
       "subtitle": "工程科学学士",
       "description": "完成机器人工程专业应用科学学士学位"
+    },
+    "research_rvl": {
+      "title": "本科研究员",
+      "subtitle": "多伦多大学 Robot Vision and Learning 实验室",
+      "description": "毕业论文研究 code-as-policy 机器人如何从失败中学习；VLA 策略的 episodic memory"
+    },
+    "award_b1k2026": {
+      "title": "CoRL 2026 BEHAVIOR Challenge",
+      "subtitle": "第一名 - The North Star",
+      "description": "agentic harness 在 VLA 策略与机器人 pipeline 技能库之间分配任务"
+    },
+    "award_bestpaper": {
+      "title": "ECCV 2026 Workshop 最佳论文",
+      "subtitle": "RoboHarness（口头报告）",
+      "description": "Agent in World Workshop 最佳论文奖"
     }
   },
   "about": {
     "title": "关于我",
     "fullProfile": "完整简介",
-    "description": "我是李智远，多伦多大学机器人工程专业学生，对具身智能和全栈开发充满热情。目前在华为诺亚方舟实验室进行研究，同时在 Prelude CA 担任前端负责人。",
+    "description": "我是多伦多大学工程科学（机器人方向）大四学生，研究具身智能。我的研究关注机器人如何从自己的失败中学习：让 coding agent 编写并修复机器人程序，用 harness 把这些经验带到新任务中，并用 benchmark 揭示 VLA 和世界动作模型在哪里失效。我目前在 Florian Shkurti 教授的 Robot Vision and Learning 实验室做本科研究，同时在华为诺亚方舟实验室担任研究助理。我们团队获得了 CoRL 2026 BEHAVIOR Challenge 第一名。我正在申请 2027 年秋季入学的硕士和博士项目。",
     "documents": {
       "title": "文档下载",
       "resume": "简历",
@@ -101,36 +116,51 @@
       "gpa": "GPA: 3.90",
       "honors": "院长荣誉榜（每学期）",
       "period": "2022年9月 - 2027年4月",
-      "status": "目前在进行PEY实习"
+      "status": "预计 2027 年 4 月毕业"
     },
     "researchTitle": "研究经历",
     "research": {
+      "rvl": {
+        "title": "本科研究员",
+        "company": "多伦多大学 Robot Vision and Learning 实验室（Florian Shkurti 教授）",
+        "period": "2026年5月 - 至今",
+        "location": "安大略省多伦多",
+        "points": [
+          "为参数冻结的 VLA 策略（π0.5）设计 episodic memory 模块，每条记忆同时记录情境、计划、失败与恢复，用于记忆依赖型操作任务（RMBench）中的计划选择和失败恢复；分析了跨 episode 记忆能修复和不能修复的失败类型。",
+          "本科毕业论文研究 code-as-policy 机器人中“从失败中学习”的 agentic learning：让参数冻结的 coding agent 把 rollout 视频、API 记录和分数转化为经过验证、针对具体失败的进度检查。目前在 RoboTwin 2.0 和 EmbodiedSWE-Bench 上评测，RoboTwin 2.0 任务成功率已提升 22 个百分点。"
+        ]
+      },
       "huawei": {
         "title": "研究助理",
-        "company": "华为技术，诺亚方舟实验室 - 具身智能",
+        "company": "华为技术有限公司，诺亚方舟实验室 - 具身智能",
         "period": "2025年5月 - 至今",
-        "location": "加拿大安大略省多伦多",
+        "location": "安大略省多伦多",
         "points": [
-          "研究视觉-语言-动作（VLA）模型如Pi0在视觉杂乱环境中的机器人操控应用，研究感知-动作耦合和鲁棒性退化。使用UR5e和Franka机器人配合ROS集成设计实验。",
-          "探索通过Plan-to-Evolve (P2E)框架进行长期符号规划。使用基于PDDL的领域和思维链推理微调包括Qwen3和LLaMA 3/4在内的大语言模型。整合VLA和运动规划器进行真实机器人实验。",
-          "贡献于Mem2Ego，一种用于长期具身导航的全局到自我中心记忆架构。在ROS2中集成V-SLAM和Nav2用于代理引导导航。",
-          "作为The North Star团队核心工程师参加NeurIPS 2025行为挑战赛。设计集成SAM6D、Pi0 VLA和经典机器人运动规划的有限状态机流水线，在Isaac Sim中完成50+家庭任务。获得第四名。"
+          "The North Star 团队 BEHAVIOR Challenge 系统的主要贡献者：CoRL 2026 第一名（Q score 0.683；100 个家务任务的完整成功率 48.2%），此前在 NeurIPS 2025 获第四名。搭建了 agentic harness，用基于能力与历史表现的 policy card，在 VLA 策略和由 SAM6D、π0.5、TAMP 组成的 FSM pipeline 技能库之间分配任务。完成了 HiPhys-RSI 的概念验证：参数冻结的 VLM coding agent 把工具组合成代码 pipeline，并根据 rollout 视频和日志迭代修改；验证了它在全身控制和长程操作上的适用性。",
+          "在 LIBERO-Plus 上对 VLA（π0.5、X-VLA）和世界动作模型（LingBot-VA、Fast-WAM、GE-Act、Cosmos-Policy）做了大规模鲁棒性评测，并按相同扰动协议搭建了双臂 benchmark RoboTwin 2.0-Plus。分析视觉、语言、物体布局和机器人初始状态扰动对两类模型的影响：WAM 对噪声、光照和布局更鲁棒（RoboTwin 2.0-Plus 上 74.2% 对 π0.5 的 58.6%），但相机视角和初始状态变化仍是难点。",
+          "主导设计两个 benchmark，针对 VLA 与 WAM 评测中尚未解决的问题：杂乱环境下的安全操作，以及对未来动态的预判。RoboPRO 包含 80 个双臂任务、1.6 万条示范和接触安全指标；RoboDyna 包含 30 个动态任务，用同步与异步两种评测协议单独考察推理延迟的影响。两篇分别被 NeurIPS 2026 和 RSS 2026 workshop 接收。",
+          "提出 Agentic Adversarial Harness（A²H）：coding agent 自己设计能击败自身机器人程序的任务变体，修复后把失败经验提炼成可迁移到新环境的 harness，真机首次尝试成功率从 15% 提升到 60%。参与开发 RoboHarness，把 VLA、WAM、RL 和 TAMP 策略作为 agentic 技能编排，并用记忆引导策略交接。A²H 被 CoRL 2026（Late Breaking Results）接收；RoboHarness 获 ECCV 2026 Agent in World Workshop 最佳论文奖（口头报告）。",
+          "Self-CriTeach 项目：在自动生成的 PDDL 领域上微调 LLM 做长程符号规划，结合思维链自教学和带约束的自评 RL，并对比多种训练方案。Qwen3-4B 的规划成功率从 26% 提升到 46%（GPT-4o 为 19%）；在真实 UR5e 机器人上达到 70%，PDDL 求解器为 40%。被 ICML 2026 接收。"
         ]
       },
       "crl": {
         "title": "本科研究助理",
-        "company": "多伦多大学连续体机器人实验室",
+        "company": "多伦多大学连续体机器人实验室（Jessica Burgner-Kahrs 教授）",
         "period": "2024年2月 - 2025年4月",
-        "location": "加拿大安大略省多伦多",
+        "location": "安大略省多伦多",
         "points": [
-          "深入研究连续体机器人的状态估计，专注于约束和自由度。将克拉克变换扩展到腱驱动连续体机器人（TDCR）的通用模型。",
-          "从第一性原理分析TDCR正向运动学，评估材料刚度、尺寸效应、圆盘半径和肌腱长度等硬件因素。引入修正因子以提高模型精度。",
-          "使用MuJoCo和Pyplot开发和仿真TDCR模型。通过OpenCR项目的博客文章记录研究成果。"
+          "研究腱驱动连续体机器人（TDCR）的状态估计，把 Clarke 变换推广到一般 TDCR 模型，用于刻画驱动约束和自由度。",
+          "从第一性原理推导 TDCR 正运动学并搭建 MuJoCo 仿真，与实体机器人对比，针对材料刚度、圆盘半径、腱长等硬件因素引入修正系数；结果整理进 OpenCR 项目。"
         ]
       }
     },
     "publicationsTitle": "发表论文",
     "publications": [
+      {
+        "title": "Learning to Anticipate Physical Failures via Agentic Adversarial Harness",
+        "venue": "CoRL 2026, Late Breaking Results",
+        "arxiv": ""
+      },
       {
         "title": "Self-CriTeach: LLM Self-Teaching and Self-Critiquing for Improving Robotic Planning via Automated Domain Generation",
         "venue": "ICML 2026",
@@ -138,25 +168,40 @@
         "link": "https://markli1hoshipu.github.io/Plan_LLM/"
       },
       {
-        "title": "H-WM: Robotic Task and Motion Planning Guided by Hierarchical World Model",
-        "venue": "ICLR 2026 Workshop on World Models",
-        "arxiv": "arXiv:2602.11291"
-      },
-      {
-        "title": "Distracted Robot: How Visual Clutter Undermines Robotic Manipulation",
+        "title": "Distracted Robot: How Visual Clutter Undermine Robotic Manipulation",
         "venue": "ICRA 2026",
         "arxiv": "arXiv:2511.22780"
       },
       {
         "title": "Improving Robotic Manipulation Robustness via NICE Scene Surgery",
-        "venue": "ICRA 2026",
+        "venue": "ICRA 2026 (earlier version at CoRL 2025 Robot Data Workshop)",
         "arxiv": "arXiv:2511.22777"
       },
       {
+        "title": "RoboHarness: Memory-Driven Orchestration of Heterogeneous Robot Policies for Long-Horizon Planning",
+        "venue": "ECCV 2026 Workshop on Agent in World, Oral, Best Paper Award",
+        "arxiv": "arXiv:2607.18060"
+      },
+      {
+        "title": "Benchmarking Robotic Manipulation under Physically Realistic Dynamics",
+        "venue": "NeurIPS 2026 Robotics World Modeling Workshop",
+        "arxiv": ""
+      },
+      {
         "title": "Data and Evaluation Protocols for Robust Robotic Manipulation",
-        "venue": "RSS 2026 Workshop",
+        "venue": "RSS 2026 RoboData Workshop",
         "arxiv": "",
         "link": "https://robopro-bench.github.io/RoboPRO/"
+      },
+      {
+        "title": "H-WM: Robotic Task and Motion Planning Guided by Hierarchical World Model",
+        "venue": "ICLR 2026 Workshop on World Models",
+        "arxiv": "arXiv:2602.11291"
+      },
+      {
+        "title": "Spatial Grafting: Grounding 3D Features for Flow-Matching Robot Policies",
+        "venue": "arXiv",
+        "arxiv": "arXiv:2609.35249"
       },
       {
         "title": "Do World Action Models Generalize Better than VLAs? A Robustness Study",
@@ -171,52 +216,53 @@
     ],
     "awardsTitle": "获奖与荣誉",
     "awards": {
-      "putnam": {
-        "title": "普特南数学竞赛",
-        "description": "得分42，个人排名前154，前5团队核心成员"
+      "b1k2026": {
+        "title": "CoRL 2026 BEHAVIOR Challenge 第一名",
+        "description": "The North Star 团队（华为诺亚方舟实验室）；100 个家务任务完整成功率 48.2%"
       },
-      "cmo": {
-        "title": "加拿大数学奥林匹克",
-        "description": "受邀参赛选手"
+      "bestpaper": {
+        "title": "ECCV 2026 Agent in World Workshop 最佳论文奖（口头报告）",
+        "description": "RoboHarness：记忆驱动的异构机器人策略编排"
+      },
+      "b1k2025": {
+        "title": "NeurIPS 2025 BEHAVIOR Challenge 第四名",
+        "description": "The North Star 团队（华为诺亚方舟实验室）"
+      },
+      "putnam": {
+        "title": "Putnam 数学竞赛（2023）",
+        "description": "团队第 5 名；多伦多大学校内前三；个人第 154 名（前 4%）"
       },
       "uoftmath": {
-        "title": "多伦多大学本科数学竞赛",
-        "description": "全校区、全年级参赛者中排名第一"
+        "title": "多伦多大学本科数学竞赛（2023）",
+        "description": "第一名"
+      },
+      "cmo": {
+        "title": "加拿大数学奥林匹克（CMO）",
+        "description": "参赛，2019 年和 2021 年"
       },
       "cemc": {
-        "title": "CEMC数学竞赛",
-        "description": "欧几里得荣誉榜（排名77）、Hypatia、Fermat、CSMC荣誉榜（排名100）"
-      },
-      "amc": {
-        "title": "AMC/AIME数学竞赛",
-        "description": "两次AMC荣誉榜（前0.1%）、两次AIME荣誉榜（前0.1%）"
+        "title": "CEMC 数学竞赛（2021-2022）",
+        "description": "Honour Roll：Euclid、Fermat、Hypatia、CSMC"
       }
     },
     "workTitle": "行业经历",
     "work": {
       "prelude": {
-        "title": "全栈工程师 / 前端负责人",
+        "title": "全栈工程师 / 前端负责人（兼职）",
         "company": "Prelude CA",
-        "period": "2025年6月 - 至今",
-        "location": "加拿大安大略省多伦多",
+        "period": "2025年6月 - 2026年6月",
+        "location": "安大略省多伦多",
         "points": [
-          "领导多租户SaaS平台前端架构，使用Next.js 15 (App Router)、React 19和TypeScript。构建基于Radix UI和Tailwind CSS的模块化设计系统，通过Zustand实现全局状态管理，通过客户端状态缓存和cookies优化性能，交互延迟降低40%。",
-          "实现工作空间隔离租户的安全认证和授权，使用OAuth集成（Google/Microsoft）、基于角色的访问控制和团队邀请流程。设计跨应用层和数据层的多租户隔离。",
-          "设计AI驱动的流水线，实现自动化多代理数据处理工作流。构建智能CSV导入系统，使用OpenAI嵌入进行语义列匹配，实现90%+自动映射准确率。",
-          "使用PostgreSQL设计可扩展的CRM关系模式，将客户、潜在客户和交易统一为完整的用户档案，具有规范化、索引关键列和事务安全更新。"
+          "为多租户 CRM 平台搭建 agentic 工作流：LLM agent 自动检索 CRM，并根据报关数据寻找新的销售线索。多 agent 数据导入流程用 OpenAI embeddings 对上传 CSV 的列做语义匹配（自动映射准确率 90% 以上），校验后写入 PostgreSQL。"
         ]
       },
       "yif": {
         "title": "全栈工程师",
-        "company": "裕航国际航空（大连）有限公司",
+        "company": "宇航国际航空（大连）有限公司",
         "period": "2022年7月 - 2024年5月",
         "location": "中国大连",
         "points": [
-          "使用Python、QtDesigner、SQL和QML设计和开发在线信息管理系统，用于跟踪和管理借据支付，大幅减少手动输入并提高效率。",
-          "使用MySQL配合连接池支持多并发用户。通过bcrypt哈希密码增强用户认证，执行安全协议。",
-          "使用SQL JOIN、INDEX和LIKE语句实现高级多键搜索。使用FuzzyWuzzy库开发模糊搜索实现部分匹配。通过SQL触发器集成实时更新。",
-          "利用pandas和numpy连接Excel和其他平台，支持数据导入和通过图表展示借据金额变化的可视化摘要。",
-          "进行严格的系统测试，处理超过100万条数据和100+并发用户。优化处理10万+借据，搜索响应时间3-5秒，效率提升超过100%。"
+          "端到端设计并实现 IOU 付款记录信息管理系统，包括 SQL 数据库结构、Python 业务逻辑和 Qt/QML 界面。通过连接池、bcrypt 认证和 SQL 触发器支持 100 多名用户并发访问；带索引的模糊搜索在 10 万条以上记录中 3-5 秒返回结果。"
         ]
       },
       "robotics": {
@@ -253,14 +299,57 @@
     },
     "skillsTitle": "技术技能",
     "skills": {
-      "languagesTitle": "编程语言",
-      "languages": ["C", "C++", "Python", "TypeScript", "JavaScript", "Java", "C#", "Swift", "MATLAB", "R", "HTML", "CSS/SCSS", "Shell脚本", "LaTeX"],
-      "frameworksTitle": "框架与库",
-      "frameworks": ["React", "Next.js", "Node.js", "ROS/ROS2", "PyTorch", "TensorFlow", "Keras", "NumPy", "scikit-learn", "OpenCV", "OpenAI", "Langchain", "Three.js", "Unity"],
-      "roboticsTitle": "机器人与硬件",
-      "robotics": ["MuJoCo", "Isaac Sim", "UR5e", "Franka", "V-SLAM", "Nav2", "Arduino", "ESP32", "PID控制"],
-      "toolsTitle": "工具与平台",
-      "tools": ["Git", "Docker", "Linux", "AWS", "Vercel", "Vim", "Jupyter", "XCode"]
+      "languagesTitle": "模型训练",
+      "languages": [
+        "PyTorch",
+        "Hugging Face",
+        "π0.5 微调（openpi）",
+        "LLM 微调",
+        "Diffusion Policy",
+        "Flow Matching",
+        "Slurm 多卡训练"
+      ],
+      "frameworksTitle": "智能体",
+      "frameworks": [
+        "Claude Code",
+        "Codex",
+        "OpenAI API",
+        "Anthropic API",
+        "LangChain",
+        "LangGraph",
+        "Code as Policies"
+      ],
+      "roboticsTitle": "机器人",
+      "robotics": [
+        "UR5e",
+        "Franka",
+        "AgileX",
+        "ROS/ROS2",
+        "TAMP",
+        "PDDL",
+        "Isaac Sim",
+        "MuJoCo",
+        "SAPIEN",
+        "PyBullet",
+        "Nav2",
+        "V-SLAM",
+        "SAM6D",
+        "OpenCV"
+      ],
+      "toolsTitle": "软件",
+      "tools": [
+        "Python",
+        "C/C++",
+        "MATLAB",
+        "React",
+        "Next.js",
+        "Node.js",
+        "PostgreSQL",
+        "Qt",
+        "Linux",
+        "Git",
+        "Docker"
+      ]
     }
   },
   "oc": {
@@ -281,9 +370,21 @@
     "personality": {
       "title": "性格特点"
     },
-    "traits": ["好奇", "友善", "有点懒", "爱吃", "喜欢编程"],
+    "traits": [
+      "好奇",
+      "友善",
+      "有点懒",
+      "爱吃",
+      "喜欢编程"
+    ],
     "likesTitle": "喜欢的事物",
-    "likes": ["星空", "音乐", "代码", "甜食", "睡觉"],
+    "likes": [
+      "星空",
+      "音乐",
+      "代码",
+      "甜食",
+      "睡觉"
+    ],
     "story": {
       "title": "背景故事",
       "content": "Hoshipu 是一只来自星空的小精灵，因为对人类世界充满好奇而来到了地球。它喜欢观察人类的生活，尤其对编程和创作产生了浓厚的兴趣。虽然有时候会犯懒，但一旦投入到感兴趣的事情中就会全力以赴。它的名字来源于日语的「星」(hoshi) 和「谱」(pu)，象征着用星光谱写故事。"
@@ -333,72 +434,114 @@
     "pdfRename": {
       "title": "GJP PDF 重命名工具",
       "description": "智能PDF批量重命名工具，可提取发票信息并使用自定义模板重命名文件。",
-      "tags": ["PDF处理", "批量重命名"]
+      "tags": [
+        "PDF处理",
+        "批量重命名"
+      ]
     },
     "gjpInvoice": {
       "title": "GJP 发票导出工具",
       "description": "批量提取机票行程单PDF信息，自动导出为宇航SAP录入格式的Excel表格。",
-      "tags": ["PDF处理", "Excel导出"]
+      "tags": [
+        "PDF处理",
+        "Excel导出"
+      ]
     },
     "aeQff": {
       "title": "pxb-ae",
       "description": "把QFF欠条文件按负责人、欠款人和日期并入pxb-ae报表，自动新建缺失的月份表/日期列/分组/欠款人并去重。",
-      "tags": ["Excel处理", "对账"]
+      "tags": [
+        "Excel处理",
+        "对账"
+      ]
     },
     "game24": {
       "title": "计算24小游戏",
       "description": "经典数学益智游戏，使用四个数字和基本运算符计算出24。锻炼你的数学思维和计算能力！",
-      "tags": ["游戏", "数学"]
+      "tags": [
+        "游戏",
+        "数学"
+      ]
     },
     "pong": {
       "title": "Pong 乒乓球",
       "description": "经典乒乓球人机对战！W/S 或方向键控制挡板，也支持鼠标和触屏。先得7分获胜，球速随对打节奏不断加快！",
-      "tags": ["游戏", "经典"]
+      "tags": [
+        "游戏",
+        "经典"
+      ]
     },
     "codeQuiz": {
       "title": "航司/机场代码测验",
       "description": "航空公司与机场 IATA 代码选择题，中文名与代码双向出题。选择类别，挑战连对纪录，轻松记住各种代码！",
-      "tags": ["游戏", "问答"]
+      "tags": [
+        "游戏",
+        "问答"
+      ]
     },
     "guandan": {
       "title": "掼蛋 2v2 大厅",
       "description": "经典江苏掼蛋游戏大厅：创建或加入牌桌，真人线上组队，空位可加 AI 补齐（也可单机练习）。含炸弹、同花顺、天王炸等完整牌型，逐级打级至 A 获胜。",
-      "tags": ["游戏", "扑克"]
+      "tags": [
+        "游戏",
+        "扑克"
+      ]
     },
     "qffTravel": {
       "title": "QFF 航程信息整理工具",
       "description": "管理航程翻译输出模板、航司代码对照表和机场代码对照表，方便整理航班信息。",
-      "tags": ["航空", "数据管理"]
+      "tags": [
+        "航空",
+        "数据管理"
+      ]
     },
     "yifPayment": {
       "title": "YIF 款项管理系统",
       "description": "安全的款项记录和管理工具，支持多用户访问控制。",
-      "tags": ["财务", "管理"]
+      "tags": [
+        "财务",
+        "管理"
+      ]
     },
     "lifeManagement": {
       "title": "生活管理",
       "description": "个人生活管理系统，包含记账、任务管理等功能。",
-      "tags": ["生活", "管理"]
+      "tags": [
+        "生活",
+        "管理"
+      ]
     },
     "iataCode": {
       "title": "机场三字代码翻译器",
       "description": "将IATA机场三字代码转换为中文城市名称，支持多种分隔符格式。",
-      "tags": ["航空", "代码转换"]
+      "tags": [
+        "航空",
+        "代码转换"
+      ]
     },
     "passportDocs": {
       "title": "护照 → DOCS 指令",
       "description": "从护照照片识别机读区（MRZ），为每位乘客生成 SR DOCS 指令。",
-      "tags": ["航空", "OCR"]
+      "tags": [
+        "航空",
+        "OCR"
+      ]
     },
     "embodybench": {
       "title": "EmbodyBench",
       "description": "在具身基准（RoboTwin, RoboPRO）上评估 VLA 策略模型。提交任务、指向模型 API，结果实时回传。",
-      "tags": ["具身智能", "评测", "研究"]
+      "tags": [
+        "具身智能",
+        "评测",
+        "研究"
+      ]
     },
     "comingSoon": {
       "title": "敬请期待",
       "description": "更多精彩项目正在开发中，即将上线...",
-      "tags": ["即将推出"]
+      "tags": [
+        "即将推出"
+      ]
     },
     "openTool": "打开工具"
   },
