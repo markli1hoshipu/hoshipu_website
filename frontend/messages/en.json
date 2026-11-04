@@ -204,6 +204,16 @@
         "arxiv": "arXiv:2609.35249"
       },
       {
+        "title": "StageGuard: Learning Stage Transitions for Long-Horizon Robot Tasks via Agentic Distillation",
+        "venue": "arXiv",
+        "arxiv": "arXiv:2609.20791"
+      },
+      {
+        "title": "How VLAs (Really) Work In Open-World Environments",
+        "venue": "arXiv",
+        "arxiv": "arXiv:2604.21192"
+      },
+      {
         "title": "Do World Action Models Generalize Better than VLAs? A Robustness Study",
         "venue": "arXiv",
         "arxiv": "arXiv:2603.22078"
